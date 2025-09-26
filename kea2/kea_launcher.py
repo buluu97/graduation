@@ -184,6 +184,9 @@ def parse_args(argv: List):
 
 
 def _sanitize_args(args):
+    args.property_start_dir = None
+    args.property_pattern = None
+    args.mode = None
     if args.agent == "u2" and not args.driver_name:
         if args.extra == []:
             args.driver_name = "d"
@@ -192,10 +195,42 @@ def _sanitize_args(args):
     if args.extra:
         args.extra = args.extra[1:] if args.extra[0] == "--" else args.extra
         unittest_index = args.extra.index("unittest") if "unittest" in args.extra else -1
-        if unittest_index != -1:
-            unittest_args = args.extra[unittest_index+1:]
+        propertytest_index = args.extra.index("propertytest") if "propertytest" in args.extra else -1
+        if unittest_index != -1: # feat 4
+            
+            setattr(args,"mode","guided")
+
+            if propertytest_index != -1: # feat 4 + feat 2/3
+                unittest_args = args.extra[unittest_index+1:propertytest_index]
+                setattr(args, "unittest_args", unittest_args)
+                
+                propertytest_args = args.extra[propertytest_index+1:]
+
+                start_dir = None
+                pattern = None
+
+                if "-s" in propertytest_args:
+                    start_dir = propertytest_args[propertytest_args.index("-s")+1]
+
+                if "-p" in propertytest_args:
+                    pattern = propertytest_args[propertytest_args.index("-p")+1]
+
+                args.property_start_dir = start_dir
+                args.property_pattern = pattern
+
+            else:
+                unittest_args = args.extra[unittest_index+1:]
+                setattr(args, "unittest_args", unittest_args)
+
+            args.extra = args.extra[:unittest_index] # left args
+
+        elif propertytest_index != -1: # feat 2/3
+            
+            unittest_args = args.extra[propertytest_index+1:]
             setattr(args, "unittest_args", unittest_args)
-            args.extra = args.extra[:unittest_index]
+
+            args.extra = args.extra[:propertytest_index] # left args
+
 
 def run(args=None):
     if args is None:
@@ -207,7 +242,7 @@ def run(args=None):
         print("[Warning] Captured extra args:", args.extra, flush=True)
         print("The extra args will be passed into fastbot launcher.", flush=True)
 
-    from kea2 import KeaTestRunner, Options
+    from kea2 import KeaTestRunner, Options, FuzzingTestRunner
     from kea2.u2Driver import U2Driver
     options = Options(
         agent=args.agent,
@@ -225,13 +260,21 @@ def run(args=None):
         device_output_root=args.device_output_root,
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
+        property_start_dir=args.property_start_dir,
+        property_pattern=args.property_pattern,
         extra_args=args.extra,
     )
 
-    KeaTestRunner.setOptions(options)
-    sys.argv = ["python3 -m unittest"] + args.unittest_args
+    if getattr(args,"mode")=="guided":
+        FuzzingTestRunner.setOptions(options)
+        sys.argv = ["python3 -m unittest"] + args.unittest_args
 
-    unittest.main(module=None, testRunner=KeaTestRunner)
+        unittest.main(module=None, testRunner=FuzzingTestRunner)
+    else:
+        KeaTestRunner.setOptions(options)
+        sys.argv = ["python3 -m unittest"] + args.unittest_args
+
+        unittest.main(module=None, testRunner=KeaTestRunner)
 
 
 if __name__ == "__main__":

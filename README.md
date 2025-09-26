@@ -101,7 +101,7 @@ Upgrade Kea2 to its latest version if you already installed Kea2 before:
 python3 -m pip install -U kea2-python
 ```
 > If you're using mirror sites like Tsinghua or USTC, you may fail to upgrade. Because these sites may not have the latest version yet. In this case, you can try to install Kea2 by specifying the latest version manually, or use `pypi.org` directly by `pip install kea2-python -i https://pypi.org/simple`.
- 
+
 Upgrade Kea2 to the specifc latest version (e.g., 0.3.6) if you already installed Kea2 before:
 ```bash
 python3 -m pip install -U kea2-python==0.3.6
@@ -187,7 +187,7 @@ You can find the full example in script `quicktest.py`, and run this script with
 
 ```bash
 # Launch Kea2 and load one single script quicktest.py.
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
 ```
 
 ## Feature 3(运行增强版Fastbot：加入自动断言)
@@ -211,7 +211,7 @@ In a social media app, message sending is a common feature. On the message sendi
 <div align="center">
     The expected behavior (the upper figure) and the buggy behavior (the lower figure).
 </div>
-    
+​    
 
 For the preceding always-holding property, we can write the following script to validate the functional correctness: when there is an `input_box` widget on the message sending page, we can type any non-empty string text into the input box and assert `send_button` should always exists.
 
@@ -233,6 +233,65 @@ For the preceding always-holding property, we can write the following script to 
 >  We use [hypothesis](https://github.com/HypothesisWorks/hypothesis) to generate random texts.
 
 You can run this example by using the similar command line in Feature 2.
+
+## Feature 4(脚本驱动的性质测试)
+
+Kea2 supports reusing existing "guiding scripts" to reach specific UI pages or functionalities **before** running fuzzing tests.  After the fuzzing test stops, Kea2 will restart the app, launch another guiding script and repeat the procedure until all guiding scripts are tested. This feature enables Kea2 to utilize existing app knowledge(guiding scripts) and begin fuzzing from a "deep" enough app state.
+
+### Example
+
+Assuming you already have some existing guiding scripts(`test_add_note_add_category` and `test_delete_note_search`) written in `unittest`: 
+
+```python
+class Omni_Notes_Sample(unittest.TestCase):
+
+    def setUp(self):
+        self.d = u2.connect()
+
+    @interruptable() 
+    # interruptable: launch fuzzing test after this testcase
+    def test_add_note_add_category(self):
+        '''
+        add note -> add category
+        '''
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/fab_expand_menu_button").long_click()
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/detail_content").set_text("Hello world")
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_category").click()
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/md_buttonDefaultPositive").click()
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/category_title").set_text("aaa")
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/save").click()
+    
+    @interruptable()
+    def test_delete_note_search(self):
+        '''
+        add note -> delete note
+        '''
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/fab_expand_menu_button").long_click()
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/detail_title").set_text("Hello112233")
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/detail_content").set_text("Hello world")
+        self.d(description="drawer open").click()
+        self.d(resourceId="it.feio.android.omninotes.alpha:id/note_title").long_click()
+        self.d(description="More options").click()
+        self.d(text="Trash").click()
+```
+
+By the decorator `@interruptable`, you can mark the testcase as "interruptable" so that Kea2 can recognize this script and launch fuzzing test after it returns. 
+
+Since the state of app is probably unpredicted after fuzzing tests, Kea2 provides a `common_teardown` function to clean up the environment between previous script and next script. The function can be manually specified in `configs/teardown.py`.
+
+The fuzzing test can be configured using the similar command line in Feature 2 and Feature 3. 
+
+You can find the full example in `guide_scripts.py`, `property_omninotes.py`  and `configs/teardown.py` .  You can run one of the following commands:
+
+```bash
+# Guide with guide_scripts.py and launch fuzzing test after every script.
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py 
+
+# Guide with guide_scripts.py and launch fuzzing test after every script(check properties during fuzzing).
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p property_omninotes.py
+```
+
+
 
 ## Test Reports（测试报告）
 
@@ -267,13 +326,13 @@ Some blogs on Kea/Kea2 (in Chinese):
   <summary>Kea2的性质是什么含义？Kea2意义和价值是什么？</summary>
 
     kea2 其实是一个工具，它是python+u2+fastbot的集合体。 它本身更像是一台装好了发动机和轮子的汽车底盘。
-
+    
     性质是苏老师他们团队提出的一个概念， 转换到测试领域的实际工作中，性质对应的是最小单位的功能（原子级功能），性质的依赖条件很少或没有，它可以自身运行。一个典型的性质就是登录，它仅仅具有输入用户名，输入密码，提交。再举个例子，给视频点个赞，也就是简单的两三步。就是一个性质。
-
+    
     性质与kea2结合的意义是在于解决过去使用appium过重的问题。用appium去测试一个性质通常要写很多行的代码，引导界面到达性质的位置。但使用kea2，就只需要编写性质，如何到其所在的位置是交给fastbot和它的学习算法来搞定的。 
-
+    
     kea2另个重大的价值是，它解决了上述思想所需要的技术支撑，比appium更轻量的UI编写方式，fastbot编写性质的能力不足，以及无法编写逻辑和断言。整体上是保留了fastbot以往的优秀品质，完善了其不足和短板。
-
+    
     简而言之，需要做传统的编排型的功能测试，仍然使用appium，使用kea2也行，但你感觉不到它的价值。本身有需要做混沌测试，模糊测试，兼容性测试。那么强烈，强烈推荐kea2。kea2更偏探索性测试而非编排型。
 </details>
 

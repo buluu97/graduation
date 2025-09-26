@@ -5,7 +5,7 @@ from pathlib import Path
 import traceback
 import time
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Union
-from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult
+from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader
 import random
 import warnings
 from dataclasses import dataclass, asdict
@@ -17,13 +17,14 @@ from kea2.logWatcher import LogWatcher
 from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, timer
 from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject
 from kea2.fastbotManager import FastbotManager
-from kea2.adbUtils import ADBDevice
+from kea2.adbUtils import ADBDevice, adb_shell
 import uiautomator2 as u2
 import types
 
 PRECONDITIONS_MARKER = "preconds"
 PROP_MARKER = "prop"
 MAX_TRIES_MARKER = "max_tries"
+INTERRUPTABLE_MARKER = "interruptable"
 
 logger = getLogger(__name__)
 
@@ -96,6 +97,32 @@ def max_tries(n: int):
 
     return accept
 
+def interruptable(strategy = 'default'):
+    """the decorator @interruptable
+
+    @interruptable specify the propbability of **fuzzing** when calling every line of code in a property.
+    """
+
+    def decorator(func):
+
+        @wraps(func)
+        def interruptable_wrapper(*args, **kwargs):
+            res = None
+            try:
+                res=func(*args, **kwargs)
+            except KeaTestcaseEndException:
+                logger.info("Fuzzing finish, launching next script...")
+            except KeaBreakpointException:
+                logger.info("Fuzzing finish, launching next script...")
+            
+                
+            return res
+        
+        setattr(interruptable_wrapper, INTERRUPTABLE_MARKER, True)
+        setattr(interruptable_wrapper, 'strategy', strategy)
+
+        return interruptable_wrapper
+    return decorator
 
 @dataclass
 class Options:
@@ -136,6 +163,10 @@ class Options:
     act_whitelist_file: str = None
     # Activity BlackList File
     act_blacklist_file: str = None
+    # Property Discover Start Directory
+    property_start_dir: str = "."
+    # Property Discover Pattern
+    property_pattern: str = "property*.py"
     # Extra args
     extra_args: List[str] = None
 
@@ -691,3 +722,303 @@ class KeaTestRunner(TextTestRunner):
             self.options.Driver.tearDown()
 
         self._generate_bug_report()
+
+class FuzzingTestRunner(KeaTestRunner):
+
+    allTestCases: Dict[str, tuple[TestCase, bool]]
+    allProperties: Dict[str, TestCase]
+    _common_teardown_func = None
+
+    def getTestMethodAttr(self,test,key):
+        testMethodName = test._testMethodName
+        testMethod = getattr(test, testMethodName)
+        if hasattr(testMethod, key):
+            return getattr(testMethod,key)
+        return None
+    
+    @property
+    def _common_teardown(self):
+        """
+        load `common_teardown` function from teardown.py configuration file.
+
+        Returns:
+            dict: A dictionary containing two lists:
+                - 'widgets': List of functions that block individual widgets
+                - 'trees': List of functions that block widget trees
+        """
+        if self._common_teardown_func is None:
+            root_dir = getProjectRoot()
+            if root_dir is None or not os.path.exists(
+                    teardown_file := root_dir / "configs" / "teardown.py"
+            ):
+                print(f"[WARNING] widget.block.py not find", flush=True)
+
+            def __get_teardown_module():
+                import importlib.util
+                module_name = "teardown"
+                spec = importlib.util.spec_from_file_location(module_name, teardown_file)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                return mod
+
+            mod = __get_teardown_module()
+
+            import inspect
+            for func_name, func in inspect.getmembers(mod, inspect.isfunction):
+                if func_name == "common_teardown":
+                    self._common_teardown_func = func
+                    break
+
+        return self._common_teardown_func
+
+    def run(self, test):
+        
+        self.allTestCases = dict()
+        self.allProperties = dict()
+        self.collectAllTestCases(test)
+        self.collectAllProperties(defaultTestLoader.discover(start_dir=self.options.property_start_dir, pattern=self.options.property_pattern))
+
+        if len(self.allTestCases) == 0:
+            logger.warning("[Warning] No test case has been found.")
+        if len(self.allProperties) == 0:
+            logger.warning("[Warning] No property has been found.")
+
+        self._setOuputDir()
+
+
+
+        JsonResult.setProperties(self.allProperties)
+        self.resultclass = JsonResult
+
+        result: JsonResult = self._makeResult()
+        registerResult(result)
+        result.failfast = self.failfast
+        result.buffer = self.buffer
+        result.tb_locals = self.tb_locals
+
+        with warnings.catch_warnings():
+            if self.warnings:
+                # if self.warnings is set, use it to filter all the warnings
+                warnings.simplefilter(self.warnings)
+                # if the filter is 'default' or 'always', special-case the
+                # warnings from the deprecated unittest methods to show them
+                # no more than once per module, because they can be fairly
+                # noisy.  The -Wd and -Wa flags can be used to bypass this
+                # only when self.warnings is None.
+                if self.warnings in ["default", "always"]:
+                    warnings.filterwarnings(
+                        "module",
+                        category=DeprecationWarning,
+                        message=r"Please use assert\w+ instead.",
+                    )
+
+            # setUp for the u2 driver
+            fb = FastbotManager(self.options, LOGFILE)
+            fb.start()
+            
+            
+
+            self.scriptDriver = self.options.Driver.getScriptDriver()  
+            
+            log_watcher = LogWatcher(LOGFILE)
+
+            fb.check_alive()
+            fb.init(options=self.options, stamp=STAMP)
+            
+
+            resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
+            resultSyncer.run()
+
+
+            for testCaseName, testCaseTuple in self.allTestCases.items():
+                test, isInterruptable = testCaseTuple
+
+                # Dependency Injection. driver when doing scripts
+                self.scriptDriver = self.options.Driver.getScriptDriver()  
+                setattr(test, self.options.driverName, self.scriptDriver)
+                print("execute test case %s." % testCaseName, flush=True)
+
+
+                if not isInterruptable:
+                    try:
+                        test(result)
+                    except Exception:
+                        logger.info("script error")
+                    finally:
+                        result.printErrors()
+
+                else:
+
+                    strategy = self.getTestMethodAttr(test,'strategy')
+
+                    if strategy=='default': # run fuzzing after scripts
+                        try:
+                            test(result)
+                            logger.info(f"====================launch fastbot after every script=======================")
+                            self.fuzzing_loop(fb=fb, result=result)
+                        except Exception as e:
+                            logger.error("script error")
+                            logger.error(e)
+                        finally:
+                            result.printErrors()
+                    
+                self._common_teardown(self) # load from configs/teardown.py
+                
+
+            
+            fb.stopMonkey()
+            fb.join()
+            print(f"Fastbot close", flush=True)
+            log_watcher.close()
+            result.flushResult()
+            resultSyncer.close()
+
+
+        # Source code from unittest Runner
+        # process the result
+        expectedFails = unexpectedSuccesses = skipped = 0
+        try:
+            results = map(
+                len,
+                (result.expectedFailures, result.unexpectedSuccesses, result.skipped),
+            )
+        except AttributeError:
+            pass
+        else:
+            expectedFails, unexpectedSuccesses, skipped = results
+
+        infos = []
+        if not result.wasSuccessful():
+            self.stream.write("FAILED")
+            failed, errored = len(result.failures), len(result.errors)
+            if failed:
+                infos.append("failures=%d" % failed)
+            if errored:
+                infos.append("errors=%d" % errored)
+        else:
+            self.stream.write("OK")
+        if skipped:
+            infos.append("skipped=%d" % skipped)
+        if expectedFails:
+            infos.append("expected failures=%d" % expectedFails)
+        if unexpectedSuccesses:
+            infos.append("unexpected successes=%d" % unexpectedSuccesses)
+        if infos:
+            self.stream.writeln(" (%s)" % (", ".join(infos),))
+        else:
+            self.stream.write("\n")
+        self.stream.flush()
+        return result
+    
+
+    def fuzzing_loop(self,fb,result):
+
+        # initialize the result.json file
+        result.flushResult()
+
+        resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
+        resultSyncer.run()
+
+        end_by_remote = False
+        self.stepsCount = 0
+        while self.stepsCount < self.options.maxStep:
+
+            self.stepsCount += 1
+            logger.info("Sending monkeyEvent {}".format(
+                f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf")
+                else f"({self.stepsCount})"
+                )
+            )
+
+            try:
+                xml_raw = fb.stepMonkey(self._monkeyStepInfo)
+                propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
+            except u2.HTTPError:
+                logger.info("Connection refused by remote.")
+                if fb.get_return_code() == 0:
+                    logger.info("Exploration times up (--running-minutes).")
+                    end_by_remote = True
+                    break
+                raise RuntimeError("Fastbot Aborted.")
+
+            if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
+                resultSyncer.sync_event.set()
+
+            # Go to the next round if no precond satisfied
+            if len(propsSatisfiedPrecond) == 0:
+                continue
+
+            # get the random probability p
+            p = random.random()
+            propsNameFilteredByP = []
+            # filter the properties according to the given p
+            for propName, test in propsSatisfiedPrecond.items():
+                result.addPrecondSatisfied(test)
+                if getattr(test, "p", 1) >= p:
+                    propsNameFilteredByP.append(propName)
+
+            if len(propsNameFilteredByP) == 0:
+                print("Not executed any property due to probability.", flush=True)
+                continue
+
+            execPropName = random.choice(propsNameFilteredByP)
+            test = propsSatisfiedPrecond[execPropName]
+            # Dependency Injection. driver when doing scripts
+            self.scriptDriver = self.options.Driver.getScriptDriver()
+            setattr(test, self.options.driverName, self.scriptDriver)
+            print("execute property %s." % execPropName, flush=True)
+
+            result.addExcuted(test, self.stepsCount)
+            fb.logScript(result.lastExecutedInfo)
+            try:
+                test(result)
+            finally:
+                result.printErrors()
+
+            result.updateExectedInfo()
+            fb.logScript(result.lastExecutedInfo)
+            result.flushResult()
+
+    def collectAllTestCases(self, test: TestSuite):
+        """collect all the properties to prepare for PBT
+        """
+
+        def iter_tests(suite):
+            for test in suite:
+                if isinstance(test, TestSuite):
+                    yield from iter_tests(test)
+                else:
+                    yield test
+
+        # Traverse the TestCase to get all properties
+        for t in iter_tests(test):
+            
+            # remove the hook func in its TestCase
+            def dummy(self): ...
+            t.setUp = types.MethodType(dummy, t)
+            t.tearDown = types.MethodType(dummy, t)
+
+            # check if it's interruptable (reflection)
+            testMethodName = t._testMethodName
+            testMethod = getattr(t, testMethodName)
+            isInterruptable = hasattr(testMethod, INTERRUPTABLE_MARKER)
+
+            # save it into allTestCases, if interruptable, mark as true
+            self.allTestCases[testMethodName] = (t, isInterruptable)
+            logger.info(f"Load TestCase: {getFullPropName(t)} , interruptable: {isInterruptable}")
+
+
+    def __del__(self):
+        """tearDown method. Cleanup the env.
+        """
+        if self.options.Driver:
+            self.options.Driver.tearDown()
+
+
+class KeaBreakpointException(RuntimeError):...
+class KeaTestcaseEndException(RuntimeError):...
+
+def kea2_breakpoint():
+    """mark fuzzing entrance
+    """
+    raise KeaBreakpointException("Kea2 breakpoint")
