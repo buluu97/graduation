@@ -2,6 +2,9 @@ import sys
 import argparse
 import unittest
 from typing import List
+import os
+
+
 
 def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"):
     parser = subparsers.add_parser("run", help="run kea2")
@@ -187,6 +190,7 @@ def _sanitize_args(args):
     args.property_start_dir = None
     args.property_pattern = None
     args.mode = None
+    args.propertytest_args = None
     if args.agent == "u2" and not args.driver_name:
         if args.extra == []:
             args.driver_name = "d"
@@ -205,18 +209,7 @@ def _sanitize_args(args):
                 setattr(args, "unittest_args", unittest_args)
                 
                 propertytest_args = args.extra[propertytest_index+1:]
-
-                start_dir = None
-                pattern = None
-
-                if "-s" in propertytest_args:
-                    start_dir = propertytest_args[propertytest_args.index("-s")+1]
-
-                if "-p" in propertytest_args:
-                    pattern = propertytest_args[propertytest_args.index("-p")+1]
-
-                args.property_start_dir = start_dir
-                args.property_pattern = pattern
+                setattr(args, "propertytest_args", propertytest_args)
 
             else:
                 unittest_args = args.extra[unittest_index+1:]
@@ -260,8 +253,7 @@ def run(args=None):
         device_output_root=args.device_output_root,
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
-        property_start_dir=args.property_start_dir,
-        property_pattern=args.property_pattern,
+        propertytest_args=args.propertytest_args,
         extra_args=args.extra,
     )
 
@@ -277,5 +269,3 @@ def run(args=None):
         unittest.main(module=None, testRunner=KeaTestRunner)
 
 
-if __name__ == "__main__":
-    run()
