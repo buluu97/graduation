@@ -187,8 +187,6 @@ def parse_args(argv: List):
 
 
 def _sanitize_args(args):
-    args.property_start_dir = None
-    args.property_pattern = None
     args.mode = None
     args.propertytest_args = None
     if args.agent == "u2" and not args.driver_name:
@@ -196,33 +194,27 @@ def _sanitize_args(args):
             args.driver_name = "d"
         else:
             raise ValueError("--driver-name should be specified when customizing script in --agent u2")
-    if args.extra:
-        args.extra = args.extra[1:] if args.extra[0] == "--" else args.extra
-        unittest_index = args.extra.index("unittest") if "unittest" in args.extra else -1
-        propertytest_index = args.extra.index("propertytest") if "propertytest" in args.extra else -1
-        if unittest_index != -1: # feat 4
-            
-            setattr(args,"mode","guided")
+    
+    extra_args = {
+        "unittest": [],
+        "propertytest": [],
+        "extra": []
+    }    
 
-            if propertytest_index != -1: # feat 4 + feat 2/3
-                unittest_args = args.extra[unittest_index+1:propertytest_index]
-                setattr(args, "unittest_args", unittest_args)
-                
-                propertytest_args = args.extra[propertytest_index+1:]
-                setattr(args, "propertytest_args", propertytest_args)
-
-            else:
-                unittest_args = args.extra[unittest_index+1:]
-                setattr(args, "unittest_args", unittest_args)
-
-            args.extra = args.extra[:unittest_index] # left args
-
-        elif propertytest_index != -1: # feat 2/3
-            
-            unittest_args = args.extra[propertytest_index+1:]
-            setattr(args, "unittest_args", unittest_args)
-
-            args.extra = args.extra[:propertytest_index] # left args
+    for i in range(len(args.extra)):
+        if args.extra[i] == "unittest":
+            current = "unittest"
+        elif args.extra[i] == "propertytest":
+            current = "propertytest"
+        elif args.extra[i] == "--":
+            current = "extra"
+        extra_args[current].append(args.extra[i])
+    setattr(args, "unittest_args", [])
+    setattr(args, "propertytest_args", [])
+    args.unittest_args = extra_args["unittest"]
+    args.propertytest_args = extra_args["propertytest"]
+    args.extra = extra_args["extra"]
+    # TODO args.mode not set
 
 
 def run(args=None):
