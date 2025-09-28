@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import traceback
 import time
-from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Union
+from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader
 import random
 import warnings
@@ -721,7 +721,7 @@ class KeaTestRunner(TextTestRunner):
 
 class FuzzingTestRunner(KeaTestRunner):
 
-    allTestCases: Dict[str, tuple[TestCase, bool]]
+    allTestCases: Dict[str, Tuple[TestCase, bool]]
     allProperties: Dict[str, TestCase]
     _common_teardown_func = None
 
