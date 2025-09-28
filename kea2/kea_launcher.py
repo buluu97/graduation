@@ -148,11 +148,15 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
 
-def unittest_info_logger(args):
+def extra_args_info_logger(args):
     if args.agent == "native":
         print("[Warning] Property not availble in native agent.", flush=True)
     if args.unittest_args:
         print("Captured unittest args:", args.unittest_args, flush=True)
+    if args.propertytest_args:
+        print("Captured propertytest args:", args.propertytest_args, flush=True)
+    if args.extra:
+        print("Captured extra args (Will be appended to fastbot launcher):", args.extra, flush=True)
 
 
 def driver_info_logger(args):
@@ -222,10 +226,7 @@ def run(args=None):
         args = parse_args(sys.argv[1:])
     _sanitize_args(args)
     driver_info_logger(args)
-    unittest_info_logger(args)
-    if args.extra:
-        print("[Warning] Captured extra args:", args.extra, flush=True)
-        print("The extra args will be passed into fastbot launcher.", flush=True)
+    extra_args_info_logger(args)
 
     from kea2 import KeaTestRunner, Options, FuzzingTestRunner
     from kea2.u2Driver import U2Driver
