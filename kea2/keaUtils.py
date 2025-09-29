@@ -6,6 +6,7 @@ import traceback
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
 from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
+from unittest import main as unittest_main
 import random
 import warnings
 from dataclasses import dataclass, asdict
@@ -821,7 +822,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                         logger.info(f"====================launch fastbot after interruptable script=======================")
                         argv = ["python3 -m unittest"] + self.options.propertytest_args
                         KeaTestRunner.setOptions(self.options)
-                        unittest.main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
+                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
                 finally:
                     result.printErrors()
                     
