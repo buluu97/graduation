@@ -288,7 +288,7 @@ You can find the full example in `guide_scripts.py`, `property_omninotes.py`  an
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py 
 
 # Guide with guide_scripts.py and launch fuzzing test after every script(check properties during fuzzing).
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p property_omninotes.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p quickstart2.py
 ```
 
 
