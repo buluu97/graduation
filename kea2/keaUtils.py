@@ -3,9 +3,9 @@ import json
 import os
 from pathlib import Path
 import traceback
-import time
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
-from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader
+from contextvars import ContextVar
+from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
 import random
 import warnings
 from dataclasses import dataclass, asdict
@@ -20,6 +20,10 @@ from kea2.fastbotManager import FastbotManager
 from kea2.adbUtils import ADBDevice, adb_shell
 import uiautomator2 as u2
 import types
+
+
+hybrid_mode = ContextVar("hybrid_mode", default=False)
+
 
 PRECONDITIONS_MARKER = "preconds"
 PROP_MARKER = "prop"
@@ -97,7 +101,8 @@ def max_tries(n: int):
 
     return accept
 
-def interruptable(strategy = 'default'):
+
+def interruptable(strategy='default'):
     """the decorator @interruptable
 
     @interruptable specify the propbability of **fuzzing** when calling every line of code in a property.
@@ -112,8 +117,6 @@ def interruptable(strategy = 'default'):
                 res=func(*args, **kwargs)
             except KeaBreakpointException:
                 logger.info("Fuzzing finish, launching next script...")
-            
-                
             return res
         
         setattr(interruptable_wrapper, INTERRUPTABLE_MARKER, True)
@@ -729,6 +732,10 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
     allTestCases: Dict[str, Tuple[TestCase, bool]]
     _common_teardown_func = None
 
+    def __init__(self, stream = None, descriptions = True, verbosity = 1, failfast = False, buffer = False, resultclass = None, warnings = None, *, tb_locals = False):
+        super().__init__(stream, descriptions, verbosity, failfast, buffer, resultclass, warnings, tb_locals=tb_locals)
+        hybrid_mode.set(True)
+
     def getTestMethodAttr(self,test,key):
         testMethodName = test._testMethodName
         testMethod = getattr(test, testMethodName)
@@ -859,9 +866,10 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             self.options.Driver.tearDown()
 
 
-class KeaBreakpointException(RuntimeError):...
-
 def kea2_breakpoint():
-    """mark fuzzing entrance
+    """kea2 entrance. Call this function in TestCase.
+    Kea2 will automatically switch to Kea2 Test in kea2_breakpoint in HybridTest mode.
+    The normal launch in unittest will not be affected.
     """
-    raise KeaBreakpointException("Kea2 breakpoint")
+    if hybrid_mode.get():
+        raise SkipTest("Skip the breakpoint in hybrid mode.")
