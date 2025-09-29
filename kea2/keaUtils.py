@@ -315,12 +315,8 @@ class JsonResult(TextTestResult):
         logger.info(f"[Property Exectution Summary] Errors:{errors}, Fails:{fails}")
 
 
-class KeaTestRunner(TextTestRunner):
-
-    resultclass: JsonResult
-    allProperties: PropertyStore
+class KeaOptionSetter:
     options: Options = None
-    _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
 
     @classmethod
     def setOptions(cls, options: Options):
@@ -330,6 +326,13 @@ class KeaTestRunner(TextTestRunner):
             logger.warning("[Warning] Can not use any Driver when runing native mode.")
             options.Driver = None
         cls.options = options
+    
+
+class KeaTestRunner(TextTestRunner, KeaOptionSetter):
+
+    resultclass: JsonResult
+    allProperties: PropertyStore
+    _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
 
     def _setOuputDir(self):
         output_dir = Path(self.options.output_dir).absolute()
@@ -720,7 +723,8 @@ class KeaTestRunner(TextTestRunner):
 
         self._generate_bug_report()
 
-class FuzzingTestRunner(KeaTestRunner):
+
+class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
     allTestCases: Dict[str, Tuple[TestCase, bool]]
     allProperties: Dict[str, TestCase]
