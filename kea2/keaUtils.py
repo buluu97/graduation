@@ -44,6 +44,7 @@ LOGFILE: str
 RESFILE: str
 PROP_EXEC_RESFILE: str
 
+
 def precondition(precond: Callable[[Any], bool]) -> Callable:
     """the decorator @precondition
 
@@ -51,17 +52,12 @@ def precondition(precond: Callable[[Any], bool]) -> Callable:
     A property could have multiple preconditions, each of which is specified by @precondition.
     """
     def accept(f):
-        @wraps(f)
-        def precondition_wrapper(*args, **kwargs):
-            return f(*args, **kwargs)
-
         preconds = getattr(f, PRECONDITIONS_MARKER, tuple())
-
-        setattr(precondition_wrapper, PRECONDITIONS_MARKER, preconds + (precond,))
-
-        return precondition_wrapper
+        setattr(f, PRECONDITIONS_MARKER, preconds + (precond,))
+        return f
 
     return accept
+
 
 def prob(p: float):
     """the decorator @prob
@@ -71,14 +67,10 @@ def prob(p: float):
     p = float(p)
     if not 0 < p <= 1.0:
         raise ValueError("The propbability should between 0 and 1")
+
     def accept(f):
-        @wraps(f)
-        def precondition_wrapper(*args, **kwargs):
-            return f(*args, **kwargs)
-
-        setattr(precondition_wrapper, PROP_MARKER, p)
-
-        return precondition_wrapper
+        setattr(f, PROP_MARKER, p)
+        return f
 
     return accept
 
@@ -91,14 +83,10 @@ def max_tries(n: int):
     n = int(n)
     if not n > 0:
         raise ValueError("The maxium tries should be a positive integer.")
+
     def accept(f):
-        @wraps(f)
-        def precondition_wrapper(*args, **kwargs):
-            return f(*args, **kwargs)
-
-        setattr(precondition_wrapper, MAX_TRIES_MARKER, n)
-
-        return precondition_wrapper
+        setattr(f, MAX_TRIES_MARKER, n)
+        return f
 
     return accept
 
@@ -110,21 +98,11 @@ def interruptable(strategy='default'):
     """
 
     def decorator(func):
-
-        @wraps(func)
-        def interruptable_wrapper(*args, **kwargs):
-            res = None
-            try:
-                res=func(*args, **kwargs)
-            except KeaBreakpointException:
-                logger.info("Fuzzing finish, launching next script...")
-            return res
-        
-        setattr(interruptable_wrapper, INTERRUPTABLE_MARKER, True)
-        setattr(interruptable_wrapper, 'strategy', strategy)
-
-        return interruptable_wrapper
+        setattr(func, INTERRUPTABLE_MARKER, True)
+        setattr(func, 'strategy', strategy)
+        return func
     return decorator
+
 
 @dataclass
 class Options:
