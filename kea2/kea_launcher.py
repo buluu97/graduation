@@ -212,7 +212,8 @@ def _sanitize_args(args):
             current = "propertytest"
         elif args.extra[i] == "--":
             current = "extra"
-        extra_args[current].append(args.extra[i])
+        else:
+            extra_args[current].append(args.extra[i])
     setattr(args, "unittest_args", [])
     setattr(args, "propertytest_args", [])
     args.unittest_args = extra_args["unittest"]
@@ -228,7 +229,7 @@ def run(args=None):
     driver_info_logger(args)
     extra_args_info_logger(args)
 
-    from kea2 import KeaTestRunner, Options, FuzzingTestRunner
+    from kea2 import KeaTestRunner, Options, HybridTestRunner
     from kea2.u2Driver import U2Driver
     options = Options(
         agent=args.agent,
@@ -249,12 +250,13 @@ def run(args=None):
         propertytest_args=args.propertytest_args,
         extra_args=args.extra,
     )
-
-    if getattr(args,"mode")=="guided":
-        FuzzingTestRunner.setOptions(options)
+    
+    guided = True if args.propertytest_args else False
+    if guided:
+        HybridTestRunner.setOptions(options)
         sys.argv = ["python3 -m unittest"] + args.unittest_args
 
-        unittest.main(module=None, testRunner=FuzzingTestRunner)
+        unittest.main(module=None, testRunner=HybridTestRunner)
     else:
         KeaTestRunner.setOptions(options)
         sys.argv = ["python3 -m unittest"] + args.unittest_args

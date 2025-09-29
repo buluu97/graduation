@@ -13,7 +13,7 @@ class Omni_Notes_Sample(unittest.TestCase):
         self.d = u2.connect()
 
 
-    def test_aaa(self):
+    def test_rotation(self):
         self.d.set_orientation('l')
         sleep(1)
         self.d.set_orientation('r')

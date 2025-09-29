@@ -727,7 +727,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
     allTestCases: Dict[str, Tuple[TestCase, bool]]
-    allProperties: Dict[str, TestCase]
     _common_teardown_func = None
 
     def getTestMethodAttr(self,test,key):
@@ -752,7 +751,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             if root_dir is None or not os.path.exists(
                     teardown_file := root_dir / "configs" / "teardown.py"
             ):
-                print(f"[WARNING] widget.block.py not find", flush=True)
+                logger.warning("widget.block.py not find")
 
             def __get_teardown_module():
                 import importlib.util
@@ -775,28 +774,15 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
     def run(self, test):
         
         self.allTestCases = dict()
-        self.allProperties = dict()
         self.collectAllTestCases(test)
-        self.collectAllProperties(TestProgram(module = None, argv = ["unittest"]+self.options.propertytest_args).test) # using unittest parser
-
         if len(self.allTestCases) == 0:
             logger.warning("[Warning] No test case has been found.")
-        if len(self.allProperties) == 0:
-            logger.warning("[Warning] No property has been found.")
 
-        self._setOuputDir()
-
-
-
-        JsonResult.setProperties(self.allProperties)
-        self.resultclass = JsonResult
-
-        result: JsonResult = self._makeResult()
+        result = self._makeResult()
         registerResult(result)
         result.failfast = self.failfast
         result.buffer = self.buffer
         result.tb_locals = self.tb_locals
-
         with warnings.catch_warnings():
             if self.warnings:
                 # if self.warnings is set, use it to filter all the warnings
@@ -813,173 +799,30 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                         message=r"Please use assert\w+ instead.",
                     )
 
-            # setUp for the u2 driver
-            fb = FastbotManager(self.options, LOGFILE)
-            fb.start()
-            
-            
-
-            self.scriptDriver = self.options.Driver.getScriptDriver()  
-            
-            log_watcher = LogWatcher(LOGFILE)
-
-            fb.check_alive()
-            fb.init(options=self.options, stamp=STAMP)
-            
-
-            resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
-            resultSyncer.run()
-
+            self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
 
             for testCaseName, testCaseTuple in self.allTestCases.items():
                 test, isInterruptable = testCaseTuple
 
                 # Dependency Injection. driver when doing scripts
-                self.scriptDriver = self.options.Driver.getScriptDriver()  
                 setattr(test, self.options.driverName, self.scriptDriver)
                 print("execute test case %s." % testCaseName, flush=True)
 
-
-                if not isInterruptable:
-                    try:
-                        test(result)
-                    except Exception:
-                        logger.info("script error")
-                        if len(result.errors) > 0:
-                            test,err = result.errors[-1]
-                            logger.error(err)
-
-                        
-
-                else:
-
-                    strategy = self.getTestMethodAttr(test,'strategy')
-
-                    if strategy=='default': # run fuzzing after scripts
-                        try:
-                            test(result)
-                            logger.info(f"====================launch fastbot after every script=======================")
-                            self.fuzzing_loop(fb=fb, result=result)
-                        except Exception:
-                            logger.info("script error")
-                            if len(result.errors) > 0:
-                                test,err = result.errors[-1]
-                                logger.error(err)
+                try:
+                    ret = test(result)
+                    if isInterruptable:
+                        logger.info(f"====================launch fastbot after interruptable script=======================")
+                        argv = ["python3 -m unittest"]
+                        unittest.main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
+                finally:
+                    result.printErrors()
                     
                 self._common_teardown(self) # load from configs/teardown.py
                 
-
-            
-            fb.stopMonkey()
-            fb.join()
-            print(f"Fastbot close", flush=True)
-            log_watcher.close()
             result.flushResult()
-            resultSyncer.close()
 
-
-        # Source code from unittest Runner
-        # process the result
-        expectedFails = unexpectedSuccesses = skipped = 0
-        try:
-            results = map(
-                len,
-                (result.expectedFailures, result.unexpectedSuccesses, result.skipped),
-            )
-        except AttributeError:
-            pass
-        else:
-            expectedFails, unexpectedSuccesses, skipped = results
-
-        infos = []
-        if not result.wasSuccessful():
-            self.stream.write("FAILED")
-            failed, errored = len(result.failures), len(result.errors)
-            if failed:
-                infos.append("failures=%d" % failed)
-            if errored:
-                infos.append("errors=%d" % errored)
-        else:
-            self.stream.write("OK")
-        if skipped:
-            infos.append("skipped=%d" % skipped)
-        if expectedFails:
-            infos.append("expected failures=%d" % expectedFails)
-        if unexpectedSuccesses:
-            infos.append("unexpected successes=%d" % unexpectedSuccesses)
-        if infos:
-            self.stream.writeln(" (%s)" % (", ".join(infos),))
-        else:
-            self.stream.write("\n")
-        self.stream.flush()
         return result
     
-
-    def fuzzing_loop(self,fb,result):
-
-        # initialize the result.json file
-        result.flushResult()
-
-        resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
-        resultSyncer.run()
-
-        end_by_remote = False
-        self.stepsCount = 0
-        while self.stepsCount < self.options.maxStep:
-
-            self.stepsCount += 1
-            logger.info("Sending monkeyEvent {}".format(
-                f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf")
-                else f"({self.stepsCount})"
-                )
-            )
-
-            try:
-                xml_raw = fb.stepMonkey(self._monkeyStepInfo)
-                propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
-            except u2.HTTPError:
-                logger.info("Connection refused by remote.")
-                if fb.get_return_code() == 0:
-                    logger.info("Exploration times up (--running-minutes).")
-                    end_by_remote = True
-                    break
-                raise RuntimeError("Fastbot Aborted.")
-
-            if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
-                resultSyncer.sync_event.set()
-
-            # Go to the next round if no precond satisfied
-            if len(propsSatisfiedPrecond) == 0:
-                continue
-
-            # get the random probability p
-            p = random.random()
-            propsNameFilteredByP = []
-            # filter the properties according to the given p
-            for propName, test in propsSatisfiedPrecond.items():
-                result.addPrecondSatisfied(test)
-                if getattr(test, "p", 1) >= p:
-                    propsNameFilteredByP.append(propName)
-
-            if len(propsNameFilteredByP) == 0:
-                print("Not executed any property due to probability.", flush=True)
-                continue
-
-            execPropName = random.choice(propsNameFilteredByP)
-            test = propsSatisfiedPrecond[execPropName]
-            # Dependency Injection. driver when doing scripts
-            self.scriptDriver = self.options.Driver.getScriptDriver()
-            setattr(test, self.options.driverName, self.scriptDriver)
-            print("execute property %s." % execPropName, flush=True)
-
-            result.addExcuted(test, self.stepsCount)
-            fb.logScript(result.lastExecutedInfo)
-            
-            test(result)
-
-            result.updateExectedInfo()
-            fb.logScript(result.lastExecutedInfo)
-            result.flushResult()
 
     def collectAllTestCases(self, test: TestSuite):
         """collect all the properties to prepare for PBT
