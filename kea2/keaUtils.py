@@ -15,7 +15,7 @@ from kea2.bug_report_generator import BugReportGenerator
 from kea2.resultSyncer import ResultSyncer
 from kea2.logWatcher import LogWatcher
 from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, timer
-from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject
+from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
 from kea2.fastbotManager import FastbotManager
 from kea2.adbUtils import ADBDevice, adb_shell
 import uiautomator2 as u2
@@ -386,7 +386,7 @@ class KeaTestRunner(TextTestRunner):
                 # initialize the result.json file
                 result.flushResult()
                 # setUp for the u2 driver
-                self.scriptDriver = self.options.Driver.getScriptDriver()
+                self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
                 fb.check_alive()
                 
                 fb.init(options=self.options, stamp=STAMP)
@@ -439,7 +439,8 @@ class KeaTestRunner(TextTestRunner):
                     execPropName = random.choice(propsNameFilteredByP)
                     test = propsSatisfiedPrecond[execPropName]
                     # Dependency Injection. driver when doing scripts
-                    self.scriptDriver = self.options.Driver.getScriptDriver()
+                    self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
+                    
                     setattr(test, self.options.driverName, self.scriptDriver)
                     print("execute property %s." % execPropName, flush=True)
 
@@ -520,7 +521,7 @@ class KeaTestRunner(TextTestRunner):
 
     def getValidProperties(self, xml_raw: str, result: JsonResult) -> PropertyStore:
 
-        staticCheckerDriver = self.options.Driver.getStaticChecker(hierarchy=xml_raw)
+        staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
 
         validProps: PropertyStore = dict()
         for propName, test in self.allProperties.items():
@@ -671,7 +672,7 @@ class KeaTestRunner(TextTestRunner):
 
             if preconds_pass(preconds):
                 try:
-                    _widgets = func(self.options.Driver.getStaticChecker())
+                    _widgets = func(U2Driver.getStaticChecker())
                     _widgets = _widgets if isinstance(_widgets, list) else [_widgets]
                     for w in _widgets:
                         if isinstance(w, (StaticU2UiObject, StaticXpathUiObject)):
