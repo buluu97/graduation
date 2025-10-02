@@ -1342,7 +1342,7 @@
                 <table class="table table-custom table-activities">
                     <thead>
                         <tr>
-                            <th>Activity Name</th>
+                            <th>Activity Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ tested_activities_count }}/{{ total_activities_count }}</span></th>
                             <th>Visit Count <i class="bi bi-arrow-down-up text-muted sort-icon activities-sort-icon" id="visit-count-sort" data-column="visit-count" data-order="none" style="cursor: pointer;"></i></th>
                         </tr>
                     </thead>
@@ -1675,27 +1675,54 @@
                                 {% set max_visible = 3 %}
                                 {% if source_dirs|length <= max_visible %}
                                     <!-- Show all directories if count is small -->
-                                    {% for dir_name in source_dirs %}
+                                    {% for dir_info in source_dirs %}
+                                    {% if dir_info.report_path %}
+                                    <a href="{{ dir_info.report_path }}" target="_blank" class="text-decoration-none">
+                                        <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                              onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                            <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                        </span>
+                                    </a>
+                                    {% else %}
                                     <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
-                                        <i class="bi bi-folder me-1"></i>{{ dir_name }}
+                                        <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
                                     </span>
+                                    {% endif %}
                                     {% endfor %}
                                 {% else %}
                                     <!-- Show limited directories with expand/collapse -->
                                     <div class="source-dirs-container" data-property="{{ property_name }}">
                                         <!-- Always visible directories -->
-                                        {% for dir_name in source_dirs[:max_visible] %}
+                                        {% for dir_info in source_dirs[:max_visible] %}
+                                        {% if dir_info.report_path %}
+                                        <a href="{{ dir_info.report_path }}" target="_blank" class="text-decoration-none">
+                                            <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                                  onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                                <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                            </span>
+                                        </a>
+                                        {% else %}
                                         <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
-                                            <i class="bi bi-folder me-1"></i>{{ dir_name }}
+                                            <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
                                         </span>
+                                        {% endif %}
                                         {% endfor %}
 
                                         <!-- Hidden directories -->
                                         <div class="source-dirs-hidden" id="hidden-dirs-{{ loop.index }}" style="display: none;">
-                                            {% for dir_name in source_dirs[max_visible:] %}
+                                            {% for dir_info in source_dirs[max_visible:] %}
+                                            {% if dir_info.report_path %}
+                                            <a href="{{ dir_info.report_path }}" target="_blank" class="text-decoration-none">
+                                                <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                                      onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                                    <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                                </span>
+                                            </a>
+                                            {% else %}
                                             <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
-                                                <i class="bi bi-folder me-1"></i>{{ dir_name }}
+                                                <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
                                             </span>
+                                            {% endif %}
                                             {% endfor %}
                                         </div>
 

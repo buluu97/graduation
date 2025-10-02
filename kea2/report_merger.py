@@ -86,14 +86,15 @@ class TestReportMerger:
             
             logger.debug(f"Validated result directory: {result_dir}")
     
-    def _merge_property_results(self) -> Tuple[Dict[str, Dict], Dict[str, List[str]]]:
+    def _merge_property_results(self) -> Tuple[Dict[str, Dict], Dict[str, List[Dict]]]:
         """
         Merge property test results from all directories
 
         Returns:
             Tuple of (merged_property_results, property_source_mapping)
             - merged_property_results: Merged property execution results
-            - property_source_mapping: Maps property names to list of source directories with fail/error
+            - property_source_mapping: Maps property names to list of source directory info with fail/error
+              Each entry contains: {'dir_name': str, 'report_path': str}
         """
         merged_results = defaultdict(lambda: {
             "precond_satisfied": 0,
@@ -114,6 +115,22 @@ class TestReportMerger:
             result_file = result_files[0]  # Take the first (should be only one)
             dir_name = result_dir.name  # Get the directory name (e.g., res_2025072011_5048015228)
 
+            # Find the HTML report file in the result directory
+            html_report_path = None
+            # First try to find HTML files directly in the result directory
+            html_files = list(result_dir.glob("*.html"))
+            if html_files:
+                # Use absolute file:// URL for direct access
+                html_report_path = f"file://{html_files[0].resolve()}"
+            else:
+                # Fallback: try to find in output_* subdirectories
+                output_dirs = list(result_dir.glob("output_*"))
+                if output_dirs:
+                    html_files = list(output_dirs[0].glob("*.html"))
+                    if html_files:
+                        # Use absolute file:// URL for direct access
+                        html_report_path = f"file://{html_files[0].resolve()}"
+
             try:
                 with open(result_file, 'r', encoding='utf-8') as f:
                     test_results = json.load(f)
@@ -125,8 +142,13 @@ class TestReportMerger:
 
                     # Track source directories for properties with fail/error
                     if prop_result.get('fail', 0) > 0 or prop_result.get('error', 0) > 0:
-                        if dir_name not in property_source_mapping[prop_name]:
-                            property_source_mapping[prop_name].append(dir_name)
+                        # Check if this directory is already in the mapping
+                        existing_dirs = [item['dir_name'] for item in property_source_mapping[prop_name]]
+                        if dir_name not in existing_dirs:
+                            property_source_mapping[prop_name].append({
+                                'dir_name': dir_name,
+                                'report_path': html_report_path
+                            })
 
                 logger.debug(f"Merged results from: {result_file}")
 
@@ -194,6 +216,7 @@ class TestReportMerger:
             "total_activities": list(all_activities),
             "tested_activities": list(tested_activities),
             "total_activities_count": len(all_activities),
+            "tested_activities_count": len(tested_activities),
             "activity_count_history": dict(activity_counts),
             "total_steps": total_steps
         }

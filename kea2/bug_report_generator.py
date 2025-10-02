@@ -415,6 +415,11 @@ class BugReportGenerator:
 
         # Load crash and ANR events from crash-dump.log
         crash_events, anr_events = self._load_crash_dump_data()
+
+        # Add screenshot ID information to crash and ANR events
+        self._add_screenshot_ids_to_events(crash_events)
+        self._add_screenshot_ids_to_events(anr_events)
+
         data["crash_events"] = crash_events
         data["anr_events"] = anr_events
 
@@ -460,7 +465,7 @@ class BugReportGenerator:
         """
         screenshot_path: Path = self.data_path.screenshots_dir / screenshot_name
         if not screenshot_path.exists():
-            logger.error(f"Screenshot file {screenshot_path} not exists.")
+            logger.debug(f"Screenshot file {screenshot_path} not exists.")
             return False
 
         img = Image.open(screenshot_path).convert("RGB")
@@ -612,6 +617,13 @@ class BugReportGenerator:
             caption = f"{prop_name}: {state}" if prop_name else f"{state}"
 
         screenshot_name = step_data["Screenshot"]
+
+        # Check if the screenshot file actually exists
+        screenshot_file_path = self.data_path.screenshots_dir / screenshot_name
+        if not screenshot_file_path.exists():
+            # Skip adding this screenshot if the file doesn't exist
+            return
+
         # Use relative path string instead of Path object
         relative_screenshot_path = f"output_{self.log_timestamp}/screenshots/{screenshot_name}"
 
@@ -877,11 +889,11 @@ class BugReportGenerator:
             with open(self.data_path.crash_dump_log, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Parse crash events
-            crash_events = self._parse_crash_events(content)
+            # Parse crash events with screenshot mapping
+            crash_events = self._parse_crash_events_with_screenshots(content)
 
-            # Parse ANR events
-            anr_events = self._parse_anr_events(content)
+            # Parse ANR events with screenshot mapping
+            anr_events = self._parse_anr_events_with_screenshots(content)
 
             logger.debug(f"Found {len(crash_events)} crash events and {len(anr_events)} ANR events")
 
@@ -889,26 +901,29 @@ class BugReportGenerator:
 
         except Exception as e:
             logger.error(f"Error reading crash dump file: {e}")
+            return crash_events, anr_events
 
-
-    def _parse_crash_events(self, content: str) -> List[Dict]:
+    def _parse_crash_events_with_screenshots(self, content: str) -> List[Dict]:
         """
-        Parse crash events from crash-dump.log content
+        Parse crash events from crash-dump.log content with screenshot mapping
 
         Args:
             content: Content of crash-dump.log file
 
         Returns:
-            List[Dict]: List of crash event dictionaries
+            List[Dict]: List of crash event dictionaries with screenshot information
         """
         crash_events = []
 
-        # Pattern to match crash blocks
-        crash_pattern = r'(\d{14})\ncrash:\n(.*?)\n// crash end'
+        # Pattern to match crash blocks with optional screenshot information
+        # Look for StepsCount and CrashScreen before the timestamp
+        crash_pattern = r'(?:StepsCount:\s*(\d+)\s*\nCrashScreen:\s*([^\n]+)\s*\n)?(\d{14})\ncrash:\n(.*?)\n// crash end'
 
         for match in re.finditer(crash_pattern, content, re.DOTALL):
-            timestamp_str = match.group(1)
-            crash_content = match.group(2)
+            steps_count = match.group(1)
+            crash_screen = match.group(2)
+            timestamp_str = match.group(3)
+            crash_content = match.group(4)
 
             # Parse timestamp (format: YYYYMMDDHHMMSS)
             try:
@@ -924,31 +939,35 @@ class BugReportGenerator:
                 "time": formatted_time,
                 "exception_type": crash_info.get("exception_type", "Unknown"),
                 "process": crash_info.get("process", "Unknown"),
-                "stack_trace": crash_info.get("stack_trace", "")
+                "stack_trace": crash_info.get("stack_trace", ""),
+                "steps_count": steps_count,
+                "crash_screen": crash_screen.strip() if crash_screen else None
             }
 
             crash_events.append(crash_event)
 
         return crash_events
 
-    def _parse_anr_events(self, content: str) -> List[Dict]:
+    def _parse_anr_events_with_screenshots(self, content: str) -> List[Dict]:
         """
-        Parse ANR events from crash-dump.log content
+        Parse ANR events from crash-dump.log content with screenshot mapping
 
         Args:
             content: Content of crash-dump.log file
 
         Returns:
-            List[Dict]: List of ANR event dictionaries
+            List[Dict]: List of ANR event dictionaries with screenshot information
         """
         anr_events = []
 
-        # Pattern to match ANR blocks
-        anr_pattern = r'(\d{14})\nanr:\n(.*?)\nanr end'
+        # Pattern to match ANR blocks with optional screenshot information
+        anr_pattern = r'(?:StepsCount:\s*(\d+)\s*\nCrashScreen:\s*([^\n]+)\s*\n)?(\d{14})\nanr:\n(.*?)\nanr end'
 
         for match in re.finditer(anr_pattern, content, re.DOTALL):
-            timestamp_str = match.group(1)
-            anr_content = match.group(2)
+            steps_count = match.group(1)
+            crash_screen = match.group(2)
+            timestamp_str = match.group(3)
+            anr_content = match.group(4)
 
             # Parse timestamp (format: YYYYMMDDHHMMSS)
             try:
@@ -964,12 +983,130 @@ class BugReportGenerator:
                 "time": formatted_time,
                 "reason": anr_info.get("reason", "Unknown"),
                 "process": anr_info.get("process", "Unknown"),
-                "trace": anr_info.get("trace", "")
+                "trace": anr_info.get("trace", ""),
+                "steps_count": steps_count,
+                "crash_screen": crash_screen.strip() if crash_screen else None
             }
 
             anr_events.append(anr_event)
 
         return anr_events
+
+    def _find_screenshot_id_by_filename(self, screenshot_filename: str) -> str:
+        """
+        Find screenshot ID by filename in the screenshots list
+
+        Args:
+            screenshot_filename: Name of the screenshot file
+
+        Returns:
+            str: Screenshot ID if found, empty string otherwise
+        """
+        if not screenshot_filename:
+            return ""
+
+        for screenshot in self.screenshots:
+            # Extract filename from path
+            screenshot_path = screenshot.get('path', '')
+            if screenshot_path.endswith(screenshot_filename):
+                return str(screenshot.get('id', ''))
+
+        return ""
+
+    def _add_screenshot_ids_to_events(self, events: List[Dict]):
+        """
+        Add screenshot ID information to crash/ANR events
+
+        Args:
+            events: List of crash or ANR event dictionaries
+        """
+        for event in events:
+            crash_screen = event.get('crash_screen')
+            if crash_screen:
+                screenshot_id = self._find_screenshot_id_by_filename(crash_screen)
+                event['screenshot_id'] = screenshot_id
+            else:
+                event['screenshot_id'] = ""
+
+    # def _parse_crash_events(self, content: str) -> List[Dict]:
+    #     """
+    #     Parse crash events from crash-dump.log content
+    #
+    #     Args:
+    #         content: Content of crash-dump.log file
+    #
+    #     Returns:
+    #         List[Dict]: List of crash event dictionaries
+    #     """
+    #     crash_events = []
+    #
+    #     # Pattern to match crash blocks
+    #     crash_pattern = r'(\d{14})\ncrash:\n(.*?)\n// crash end'
+    #
+    #     for match in re.finditer(crash_pattern, content, re.DOTALL):
+    #         timestamp_str = match.group(1)
+    #         crash_content = match.group(2)
+    #
+    #         # Parse timestamp (format: YYYYMMDDHHMMSS)
+    #         try:
+    #             timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+    #             formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    #         except ValueError:
+    #             formatted_time = timestamp_str
+    #
+    #         # Extract crash information
+    #         crash_info = self._extract_crash_info(crash_content)
+    #
+    #         crash_event = {
+    #             "time": formatted_time,
+    #             "exception_type": crash_info.get("exception_type", "Unknown"),
+    #             "process": crash_info.get("process", "Unknown"),
+    #             "stack_trace": crash_info.get("stack_trace", "")
+    #         }
+    #
+    #         crash_events.append(crash_event)
+    #
+    #     return crash_events
+    #
+    # def _parse_anr_events(self, content: str) -> List[Dict]:
+    #     """
+    #     Parse ANR events from crash-dump.log content
+    #
+    #     Args:
+    #         content: Content of crash-dump.log file
+    #
+    #     Returns:
+    #         List[Dict]: List of ANR event dictionaries
+    #     """
+    #     anr_events = []
+    #
+    #     # Pattern to match ANR blocks
+    #     anr_pattern = r'(\d{14})\nanr:\n(.*?)\nanr end'
+    #
+    #     for match in re.finditer(anr_pattern, content, re.DOTALL):
+    #         timestamp_str = match.group(1)
+    #         anr_content = match.group(2)
+    #
+    #         # Parse timestamp (format: YYYYMMDDHHMMSS)
+    #         try:
+    #             timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+    #             formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    #         except ValueError:
+    #             formatted_time = timestamp_str
+    #
+    #         # Extract ANR information
+    #         anr_info = self._extract_anr_info(anr_content)
+    #
+    #         anr_event = {
+    #             "time": formatted_time,
+    #             "reason": anr_info.get("reason", "Unknown"),
+    #             "process": anr_info.get("process", "Unknown"),
+    #             "trace": anr_info.get("trace", "")
+    #         }
+    #
+    #         anr_events.append(anr_event)
+    #
+    #     return anr_events
 
     def _extract_crash_info(self, crash_content: str) -> Dict:
         """
@@ -1109,7 +1246,7 @@ class BugReportGenerator:
 if __name__ == "__main__":
     print("Generating bug report")
     # OUTPUT_PATH = "<Your output path>"
-    OUTPUT_PATH = "P:/Python/Kea2/output/res_2025072011_5048015228"
+    OUTPUT_PATH = "P:/Python/Kea2/output/res_2025090122_1216279438"
 
     report_generator = BugReportGenerator()
     report_path = report_generator.generate_report(OUTPUT_PATH)

@@ -135,6 +135,8 @@ class Options:
     profile_period: int = 25
     # take screenshots for every step
     take_screenshots: bool = False
+    # Screenshots before failure (Dump n screenshots before failure. 0 means take screenshots for every step)
+    pre_failure_screenshots: int = 0
     # The root of output dir on device
     device_output_root: str = "/sdcard"
     # the debug mode
@@ -176,6 +178,9 @@ class Options:
                     )
             STAMP = self.log_stamp
         
+        if not self.take_screenshots and self.pre_failure_screenshots > 0:
+            raise ValueError("--screenshots-before-error should be 0 when --take-screenshots is not set.")
+        
         self.log_stamp = STAMP
             
         self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
@@ -191,7 +196,11 @@ class Options:
         if self.throttle < 0:
             raise ValueError("--throttle should be greater than or equal to 0")
 
+        if self.agent == 'u2' and self.driverName == None:
+            raise ValueError("--driver-name should be specified when customizing script in --agent u2")
+        
         _check_package_installation(self.packageNames)
+        _save_bug_report_configs(self)
 
 
 def _check_package_installation(packageNames):
@@ -201,6 +210,20 @@ def _check_package_installation(packageNames):
         if package not in installed_packages:
             logger.error(f"package {package} not installed. Abort.")
             raise ValueError("package not installed")
+
+
+def _save_bug_report_configs(options: Options):
+    output_dir = Path(options.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    configs = {
+        "driverName": options.driverName,
+        "packageNames": options.packageNames,
+        "take_screenshots": options.take_screenshots,
+        "pre_failure_screenshots": options.pre_failure_screenshots,
+        "device_output_root": options.device_output_root,
+    }
+    with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
+        json.dump(configs, fp, indent=4)
 
 
 @dataclass

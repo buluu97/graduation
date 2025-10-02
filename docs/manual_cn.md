@@ -110,7 +110,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -s mytests/omni_notes -p test*.py
 ```
 
-如果你需要向底层 Fastbot 传递额外参数，可以在常规参数后加 `--`，然后列出额外参数。例如，设置触摸事件比例为 30%：
+如果需要向底层 Fastbot 传递额外参数，可以在常规参数后添加 `--`，然后列出额外参数。例如，设置触摸事件比例为 30%：
 
 ```bash
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
@@ -122,7 +122,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 | --- | --- | --- |
 | -s | 设备序列号，可通过 `adb devices` 查看 |  |
 | -t | 设备传输 ID，可通过 `adb devices -l` 查看 |  |
-| -p | 被测试应用的包名（例如 com.example.app） |  |
+| -p | 指定被测试应用的包名（例如 com.example.app）。*支持多个包：`-p pkg1 pkg2 pkg3`* |  |
 | -o | 日志和结果输出目录 | `output` |
 | --agent | {native, u2}。默认使用 `u2`，支持 Kea2 三个重要功能。如果想运行原生 Fastbot，请使用 `native`。 | `u2` |
 | --running-minutes | 运行 Kea2 的时间（分钟） | `10` |
@@ -137,7 +137,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 
 ### `kea2 report` 参数说明
 
-`kea2 report` 命令用于从已有测试结果生成 HTML 测试报告。该命令会分析测试数据，生成包含测试执行统计、覆盖率信息、性质违例和崩溃详情的综合可视化报告。
+`kea2 report` 命令根据已有测试结果生成 HTML 测试报告。该命令分析测试数据，创建包含测试执行统计、覆盖率信息、性质违规和崩溃详情的综合可视化报告。
 
 | 参数 | 意义 | 是否必需 | 默认值 |
 | --- | --- | --- | --- |
@@ -160,17 +160,17 @@ kea2 report -p ./output/res_20240101_120000
 - **测试摘要**：发现的总缺陷数、执行时间、覆盖率百分比
 - **性质测试结果**：每个测试性质的执行统计（前置条件满足次数、执行次数、失败次数、错误次数）
 - **代码覆盖率**：Activity 覆盖趋势及详细覆盖信息
-- **性质违例**：失败测试性质的详细信息及错误堆栈
+- **性质违规**：失败测试性质的详细信息及错误堆栈
 - **崩溃事件**：测试过程中检测到的应用崩溃
 - **ANR 事件**：应用无响应事件
-- **截图**：测试过程中采集的 UI 截图（如果启用）
-- **Activity 遍历**：测试期间访问的 Activity 历史
+- **截图**：测试过程中采集的 UI 截图（如启用）
+- **Activity 遍历**：测试过程中访问的 Activity 历史
 
 **输出内容：**
-该命令会生成：
-- 测试结果目录下的 HTML 报告文件（`bug_report.html`）
-- 覆盖率和执行趋势的交互式图表
-- 便于调试的详细错误堆栈信息
+报告命令生成：
+- 指定测试结果目录下的 HTML 报告文件（`bug_report.html`）
+- 覆盖率和执行趋势的交互式图表和可视化
+- 详细的错误信息和堆栈跟踪，便于调试
 
 **输入目录结构示例：**
 ```
@@ -180,7 +180,7 @@ res_<timestamp>/
 │   ├── steps.log                    # 测试执行步骤
 │   ├── coverage.log                 # 覆盖率数据
 │   ├── crash-dump.log               # 崩溃和 ANR 事件
-│   └── screenshots/                 # UI 截图（如果启用）
+│   └── screenshots/                 # UI 截图（如启用）
 └── property_exec_info_<timestamp>.json  # 性质执行详情
 ```
 
@@ -190,8 +190,8 @@ res_<timestamp>/
 
 | 参数 | 意义 | 是否必需 | 默认值 |
 | --- | --- | --- | --- |
-| -p, --paths | 需要合并的测试报告目录路径（res_* 目录），至少需要两个路径 | 是 |  |
-| -o, --output | 合并后报告的输出目录 | 否 | `merged_report_<timestamp>` |
+| -p, --paths | 需要合并的测试报告目录路径（res_* 目录），至少两个路径 | 是 |  |
+| -o, --output | 合并报告的输出目录 | 否 | `merged_report_<timestamp>` |
 
 **使用示例：**
 
@@ -202,7 +202,7 @@ kea2 merge -p res_20240101_120000 res_20240102_130000
 # 合并多个测试报告目录并指定输出目录
 kea2 merge -p res_20240101_120000 res_20240102_130000 res_20240103_140000 -o my_merged_report
 
-# 合并时启用调试模式
+# 启用调试模式合并
 kea2 -d merge -p res_20240101_120000 res_20240102_130000
 ```
 
@@ -210,11 +210,11 @@ kea2 -d merge -p res_20240101_120000 res_20240102_130000
 - 性质测试执行统计（前置条件满足、执行、失败、错误次数）
 - 代码覆盖率数据（覆盖的 Activity、覆盖率百分比）
 - 崩溃和 ANR 事件
-- 测试执行步骤及时间信息
+- 测试执行步骤和时间信息
 
 **输出内容：**
-该命令会生成：
-- 包含合并数据的报告目录
+合并命令生成：
+- 包含汇总数据的合并报告目录
 - 带有可视化摘要的 HTML 报告（`merged_report.html`）
 - 合并元数据，包括源目录和时间戳
 

@@ -126,6 +126,15 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
     parser.add_argument(
+        "--pre-failure-screenshots",
+        dest="pre_failure_screenshots",
+        type=int,
+        required=False,
+        default=0,
+        help="Dump n screenshots before failure. 0 means take screenshots for every step.",
+    )
+
+    parser.add_argument(
         "--act-whitelist-file",
         dest="act_whitelist_file",
         required=False,
@@ -177,6 +186,8 @@ def driver_info_logger(args):
         print("  log_stamp:", args.log_stamp, flush=True)
     if args.take_screenshots:
         print("  take_screenshots:", args.take_screenshots, flush=True)
+        if args.pre_failure_screenshots:
+            print("  pre_failure_screenshots:", args.pre_failure_screenshots, flush=True)
     if args.max_step:
         print("  max_step:", args.max_step, flush=True)
 
@@ -244,6 +255,7 @@ def run(args=None):
         log_stamp=args.log_stamp,
         profile_period=args.profile_period,
         take_screenshots=args.take_screenshots,
+        pre_failure_screenshots=args.pre_failure_screenshots,
         device_output_root=args.device_output_root,
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
