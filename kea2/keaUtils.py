@@ -15,7 +15,7 @@ from functools import wraps
 from kea2.bug_report_generator import BugReportGenerator
 from kea2.resultSyncer import ResultSyncer
 from kea2.logWatcher import LogWatcher
-from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, timer
+from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
 from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
 from kea2.fastbotManager import FastbotManager
 from kea2.adbUtils import ADBDevice, adb_shell
@@ -738,48 +738,6 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         super().__init__(stream, descriptions, verbosity, failfast, buffer, resultclass, warnings, tb_locals=tb_locals)
         hybrid_mode.set(True)
 
-    def getTestMethodAttr(self,test,key):
-        testMethodName = test._testMethodName
-        testMethod = getattr(test, testMethodName)
-        if hasattr(testMethod, key):
-            return getattr(testMethod,key)
-        return None
-    
-    @property
-    def _common_teardown(self):
-        """
-        load `common_teardown` function from teardown.py configuration file.
-
-        Returns:
-            dict: A dictionary containing two lists:
-                - 'widgets': List of functions that block individual widgets
-                - 'trees': List of functions that block widget trees
-        """
-        if self._common_teardown_func is None:
-            root_dir = getProjectRoot()
-            if root_dir is None or not os.path.exists(
-                    teardown_file := root_dir / "configs" / "teardown.py"
-            ):
-                logger.warning("widget.block.py not find")
-
-            def __get_teardown_module():
-                import importlib.util
-                module_name = "teardown"
-                spec = importlib.util.spec_from_file_location(module_name, teardown_file)
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                return mod
-
-            mod = __get_teardown_module()
-
-            import inspect
-            for func_name, func in inspect.getmembers(mod, inspect.isfunction):
-                if func_name == "common_teardown":
-                    self._common_teardown_func = func
-                    break
-
-        return self._common_teardown_func
-
     def run(self, test):
         
         self.allTestCases = dict()
@@ -826,11 +784,8 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                         unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
                 finally:
                     result.printErrors()
-                    
-                self._common_teardown(self) # load from configs/teardown.py
 
         return result
-    
 
     def collectAllTestCases(self, test: TestSuite):
         """collect all the properties to prepare for PBT
@@ -843,13 +798,20 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                 else:
                     yield test
 
+        funcs = loadFuncsFromFile(getProjectRoot() / "configs" / "teardown.py")
+        setUp = funcs.get("setUp", None)
+        tearDown = funcs.get("tearDown", None)
+        if setUp is None:
+            raise ValueError("setUp function not found in teardown.py.")
+        if tearDown is None:
+            raise ValueError("tearDown function not found in teardown.py.")
+        
         # Traverse the TestCase to get all properties
         for t in iter_tests(test):
-            
+
             # remove the hook func in its TestCase
-            def dummy(self): ...
-            t.setUp = types.MethodType(dummy, t)
-            t.tearDown = types.MethodType(dummy, t)
+            t.setUp = types.MethodType(setUp, t)
+            t.tearDown = types.MethodType(tearDown, t)
 
             # check if it's interruptable (reflection)
             testMethodName = t._testMethodName
@@ -859,7 +821,6 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             # save it into allTestCases, if interruptable, mark as true
             self.allTestCases[testMethodName] = (t, isInterruptable)
             logger.info(f"Load TestCase: {getFullPropName(t)} , interruptable: {isInterruptable}")
-
 
     def __del__(self):
         """tearDown method. Cleanup the env.
