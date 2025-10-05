@@ -154,39 +154,42 @@ class Options:
         if value is None:
             return
         super().__setattr__(name, value)
-
+    
     def __post_init__(self):
         import logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)
-        
+
         if self.Driver:
-            target_device = dict()
-            if self.serial:
-                target_device["serial"] = self.serial
-            if self.transport_id:
-                target_device["transport_id"] = self.transport_id
-            self.Driver.setDevice(target_device)
-            ADBDevice.setDevice(self.serial, self.transport_id)
-            
-        global LOGFILE, RESFILE, PROP_EXEC_RESFILE, STAMP
+            self._set_driver()
+
         if self.log_stamp:
-            illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
-            for char in illegal_chars:
-                if char in self.log_stamp:
-                    raise ValueError(
-                        f"char: `{char}` is illegal in --log-stamp. current stamp: {self.log_stamp}"
-                    )
-            STAMP = self.log_stamp
+            self._sanitize_custom_stamp()
+
+        global STAMP
+        self._set_output_files_stamp(STAMP)
+
+        self._sanitize_args()
+
+        _check_package_installation(self.packageNames)
+        _save_bug_report_configs(self)
         
+    def set_stamp(self, stamp: str):
+        self._set_output_files_stamp(stamp)
+        self._sanitize_custom_stamp()
+
+    def _sanitize_custom_stamp(self):
+        global STAMP
+        illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
+        for char in illegal_chars:
+            if char in self.log_stamp:
+                raise ValueError(
+                    f"char: `{char}` is illegal in --log-stamp. current stamp: {self.log_stamp}"
+                )
+        STAMP = self.log_stamp
+    
+    def _sanitize_args(self):
         if not self.take_screenshots and self.pre_failure_screenshots > 0:
             raise ValueError("--screenshots-before-error should be 0 when --take-screenshots is not set.")
-        
-        self.log_stamp = STAMP
-            
-        self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
-        LOGFILE = f"fastbot_{STAMP}.log"
-        RESFILE = f"result_{STAMP}.json"
-        PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
 
         self.profile_period = int(self.profile_period)
         if self.profile_period < 1:
@@ -198,9 +201,25 @@ class Options:
 
         if self.agent == 'u2' and self.driverName == None:
             raise ValueError("--driver-name should be specified when customizing script in --agent u2")
-        
-        _check_package_installation(self.packageNames)
-        _save_bug_report_configs(self)
+
+    def _set_output_files_stamp(self, stamp: str):
+        global STAMP, LOGFILE, RESFILE, PROP_EXEC_RESFILE
+        self.log_stamp = stamp
+        STAMP = stamp
+
+        self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
+        LOGFILE = f"fastbot_{STAMP}.log"
+        RESFILE = f"result_{STAMP}.json"
+        PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
+
+    def _set_driver(self):
+        target_device = dict()
+        if self.serial:
+            target_device["serial"] = self.serial
+        if self.transport_id:
+            target_device["transport_id"] = self.transport_id
+        self.Driver.setDevice(target_device)
+        ADBDevice.setDevice(self.serial, self.transport_id)
 
 
 def _check_package_installation(packageNames):
@@ -729,10 +748,43 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         self._generate_bug_report()
 
 
+class KeaTextTestResult(TextTestResult):
+    
+    @property
+    def wasFail(self):
+        return self._wasFail
+    
+    def addError(self, test, err):
+        self._wasFail = True
+        return super().addError(test, err)
+    
+    def addFailure(self, test, err):
+        self._wasFail = True
+        return super().addFailure(test, err)
+    
+    def addSuccess(self, test):
+        self._wasFail = False
+        return super().addSuccess(test)
+
+    def addSkip(self, test, reason):
+        self._wasFail = False
+        return super().addSkip(test, reason)
+    
+    def addExpectedFailure(self, test, err):
+        self._wasFail = False
+        return super().addExpectedFailure(test, err)
+    
+    def addUnexpectedSuccess(self, test):
+        self._wasFail = False
+        return super().addUnexpectedSuccess(test)
+    
+    
+
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
     allTestCases: Dict[str, Tuple[TestCase, bool]]
     _common_teardown_func = None
+    resultclass = KeaTextTestResult
 
     def __init__(self, stream = None, descriptions = True, verbosity = 1, failfast = False, buffer = False, resultclass = None, warnings = None, *, tb_locals = False):
         super().__init__(stream, descriptions, verbosity, failfast, buffer, resultclass, warnings, tb_locals=tb_locals)
@@ -745,7 +797,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         if len(self.allTestCases) == 0:
             logger.warning("[Warning] No test case has been found.")
 
-        result = self._makeResult()
+        result: KeaTextTestResult = self._makeResult()
         registerResult(result)
         result.failfast = self.failfast
         result.buffer = self.buffer
@@ -766,28 +818,29 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                         message=r"Please use assert\w+ instead.",
                     )
 
-            self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
-
             hybrid_test_count = 0
             time_stamp = TimeStamp().getTimeStamp()
             hybrid_test_options = self.options
-            for testCaseName, testCaseTuple in self.allTestCases.items():
-                test, isInterruptable = testCaseTuple
+            for testCaseName, test in self.allTestCases.items():
+                test, isInterruptable = test, getattr(test, "isInterruptable", False)
 
                 # Dependency Injection. driver when doing scripts
+                self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
                 setattr(test, self.options.driverName, self.scriptDriver)
                 print("execute test case %s." % testCaseName, flush=True)
 
                 try:
-                    ret = test(result)
-                    if isInterruptable:
+                    ret: KeaTextTestResult = test(result)
+                    if ret.wasFail:
+                        logger.error(f"Fail when running test.")
+                    if isInterruptable and not ret.wasFail:
+                        logger.info(f"Launch fastbot after interruptable script.")
                         hybrid_test_count += 1
-                        hybrid_test_options.log_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
-                        logger.info(f"====================launch fastbot after interruptable script=======================")
+                        hybrid_test_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
+                        hybrid_test_options.set_stamp(hybrid_test_stamp)
                         argv = ["python3 -m unittest"] + self.options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
                         unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
-
                 finally:
                     result.printErrors()
 
@@ -825,8 +878,9 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             isInterruptable = hasattr(testMethod, INTERRUPTABLE_MARKER)
 
             # save it into allTestCases, if interruptable, mark as true
-            self.allTestCases[testMethodName] = (t, isInterruptable)
-            logger.info(f"Load TestCase: {getFullPropName(t)} , interruptable: {isInterruptable}")
+            setattr(t, "isInterruptable", isInterruptable)
+            self.allTestCases[testMethodName] = t
+            logger.info(f"Load TestCase: {getFullPropName(t)} , interruptable: {t.isInterruptable}")
 
     def __del__(self):
         """tearDown method. Cleanup the env.
