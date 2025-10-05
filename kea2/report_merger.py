@@ -45,11 +45,11 @@ class TestReportMerger:
                 output_dir = Path(output_dir).resolve() / f"merged_report_{timestamp}"
             
             output_dir.mkdir(parents=True, exist_ok=True)
-            
+
             logger.debug(f"Merging {len(self.result_dirs)} test result directories...")
-            
+
             # Merge different types of data
-            merged_property_stats, property_source_mapping = self._merge_property_results()
+            merged_property_stats, property_source_mapping = self._merge_property_results(output_dir)
             merged_coverage_data = self._merge_coverage_data()
             merged_crash_anr_data = self._merge_crash_dump_data()
 
@@ -86,9 +86,12 @@ class TestReportMerger:
             
             logger.debug(f"Validated result directory: {result_dir}")
     
-    def _merge_property_results(self) -> Tuple[Dict[str, Dict], Dict[str, List[Dict]]]:
+    def _merge_property_results(self, output_dir: Path = None) -> Tuple[Dict[str, Dict], Dict[str, List[Dict]]]:
         """
         Merge property test results from all directories
+
+        Args:
+            output_dir: The output directory where the merged report will be saved (for calculating relative paths)
 
         Returns:
             Tuple of (merged_property_results, property_source_mapping)
@@ -120,41 +123,48 @@ class TestReportMerger:
             # First try to find HTML files directly in the result directory
             html_files = list(result_dir.glob("*.html"))
             if html_files:
-                # Use absolute file:// URL for direct access
-                html_report_path = f"file://{html_files[0].resolve()}"
+                # Calculate relative path from output_dir to the HTML file
+                if output_dir:
+                    try:
+                        html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
+                    except ValueError:
+                        # If on different drives (Windows), use absolute path as fallback
+                        html_report_path = str(html_files[0].resolve())
+                else:
+                    html_report_path = str(html_files[0].resolve())
             else:
                 # Fallback: try to find in output_* subdirectories
                 output_dirs = list(result_dir.glob("output_*"))
-                if output_dirs:
-                    html_files = list(output_dirs[0].glob("*.html"))
-                    if html_files:
-                        # Use absolute file:// URL for direct access
-                        html_report_path = f"file://{html_files[0].resolve()}"
+                html_files = list(output_dirs[0].glob("*.html"))
+                # Calculate relative path from output_dir to the HTML file
+                if output_dir:
+                    try:
+                        html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
+                    except ValueError:
+                        # If on different drives (Windows), use absolute path as fallback
+                        html_report_path = str(html_files[0].resolve())
+                else:
+                    html_report_path = str(html_files[0].resolve())
 
-            try:
-                with open(result_file, 'r', encoding='utf-8') as f:
-                    test_results = json.load(f)
+            with open(result_file, 'r', encoding='utf-8') as f:
+                test_results = json.load(f)
 
-                # Merge results for each property
-                for prop_name, prop_result in test_results.items():
-                    for key in ["precond_satisfied", "executed", "fail", "error"]:
-                        merged_results[prop_name][key] += prop_result.get(key, 0)
+            # Merge results for each property
+            for prop_name, prop_result in test_results.items():
+                for key in ["precond_satisfied", "executed", "fail", "error"]:
+                    merged_results[prop_name][key] += prop_result.get(key, 0)
 
-                    # Track source directories for properties with fail/error
-                    if prop_result.get('fail', 0) > 0 or prop_result.get('error', 0) > 0:
-                        # Check if this directory is already in the mapping
-                        existing_dirs = [item['dir_name'] for item in property_source_mapping[prop_name]]
-                        if dir_name not in existing_dirs:
-                            property_source_mapping[prop_name].append({
-                                'dir_name': dir_name,
-                                'report_path': html_report_path
-                            })
+                # Track source directories for properties with fail/error
+                if prop_result.get('fail', 0) > 0 or prop_result.get('error', 0) > 0:
+                    # Check if this directory is already in the mapping
+                    existing_dirs = [item['dir_name'] for item in property_source_mapping[prop_name]]
+                    if dir_name not in existing_dirs:
+                        property_source_mapping[prop_name].append({
+                            'dir_name': dir_name,
+                            'report_path': html_report_path
+                        })
 
-                logger.debug(f"Merged results from: {result_file}")
-
-            except Exception as e:
-                logger.error(f"Error reading result file {result_file}: {e}")
-                continue
+            logger.debug(f"Merged results from: {result_file}")
 
         return dict(merged_results), dict(property_source_mapping)
     

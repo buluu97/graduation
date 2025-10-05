@@ -299,7 +299,9 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 
 ## Test Reports（测试报告）
 
-Kea2 automatically generates comprehensive HTML test reports after each testing session.
+Kea2 automatically generates comprehensive HTML test reports after each testing session.(The location is in the output/ directory)
+
+If automatic generation fails, you can also manually generate the test report using the command "kea2 report -p 'the path to the folder containing the test data'"
 
 The reports support both single test runs and merged analysis of multiple test sessions, making it easy to track testing progress and identify issues.
 
