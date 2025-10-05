@@ -1,4 +1,5 @@
 from collections import deque
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -147,6 +148,8 @@ class Options:
     act_blacklist_file: str = None
     # Feat4. propertytest args(eg. discover -s xxx -p xxx)
     propertytest_args: str = None
+    # Feat4. unittest args(eg. -v -s xxx -p xxx)
+    unittest_args: List[str] = None
     # Extra args
     extra_args: List[str] = None
 
@@ -166,16 +169,22 @@ class Options:
             self._sanitize_custom_stamp()
 
         global STAMP
-        self._set_output_files_stamp(STAMP)
+        self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
+        self.set_stamp()
 
         self._sanitize_args()
 
         _check_package_installation(self.packageNames)
         _save_bug_report_configs(self)
         
-    def set_stamp(self, stamp: str):
-        self._set_output_files_stamp(stamp)
-        self._sanitize_custom_stamp()
+    def set_stamp(self, stamp: str = None):
+        global STAMP, LOGFILE, RESFILE, PROP_EXEC_RESFILE
+        if stamp:
+            STAMP = stamp
+
+        LOGFILE = f"fastbot_{STAMP}.log"
+        RESFILE = f"result_{STAMP}.json"
+        PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
 
     def _sanitize_custom_stamp(self):
         global STAMP
@@ -202,16 +211,6 @@ class Options:
         if self.agent == 'u2' and self.driverName == None:
             raise ValueError("--driver-name should be specified when customizing script in --agent u2")
 
-    def _set_output_files_stamp(self, stamp: str):
-        global STAMP, LOGFILE, RESFILE, PROP_EXEC_RESFILE
-        self.log_stamp = stamp
-        STAMP = stamp
-
-        self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
-        LOGFILE = f"fastbot_{STAMP}.log"
-        RESFILE = f"result_{STAMP}.json"
-        PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
-
     def _set_driver(self):
         target_device = dict()
         if self.serial:
@@ -220,6 +219,24 @@ class Options:
             target_device["transport_id"] = self.transport_id
         self.Driver.setDevice(target_device)
         ADBDevice.setDevice(self.serial, self.transport_id)
+    
+    def getKeaTestOptions(self, hybrid_test_count: int) -> "Options":
+        """ Get the KeaTestOptions for hybrid test run when switching from unittest to kea2 test.
+        hybrid_test_count: the count of hybrid test runs
+        """
+        if not self.unittest_args:
+            raise RuntimeError("unittest_args is None. Cannot get KeaTestOptions from it")
+        
+        opts = deepcopy(self)
+        
+        time_stamp = TimeStamp().getTimeStamp()
+        hybrid_test_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
+        
+        opts.output_dir = self.output_dir / f"res_{hybrid_test_stamp}"
+        
+        opts.set_stamp(hybrid_test_stamp)
+        opts.unittest_args = []
+        return opts
 
 
 def _check_package_installation(packageNames):
@@ -232,7 +249,7 @@ def _check_package_installation(packageNames):
 
 
 def _save_bug_report_configs(options: Options):
-    output_dir = Path(options.output_dir)
+    output_dir = options.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     configs = {
         "driverName": options.driverName,
@@ -359,7 +376,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
     _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
 
     def _setOuputDir(self):
-        output_dir = Path(self.options.output_dir).absolute()
+        output_dir = self.options.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
         global LOGFILE, RESFILE, PROP_EXEC_RESFILE
         LOGFILE = output_dir / Path(LOGFILE)
@@ -777,8 +794,7 @@ class KeaTextTestResult(TextTestResult):
     def addUnexpectedSuccess(self, test):
         self._wasFail = False
         return super().addUnexpectedSuccess(test)
-    
-    
+
 
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
@@ -819,8 +835,6 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                     )
 
             hybrid_test_count = 0
-            time_stamp = TimeStamp().getTimeStamp()
-            hybrid_test_options = self.options
             for testCaseName, test in self.allTestCases.items():
                 test, isInterruptable = test, getattr(test, "isInterruptable", False)
 
@@ -836,9 +850,8 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                     if isInterruptable and not ret.wasFail:
                         logger.info(f"Launch fastbot after interruptable script.")
                         hybrid_test_count += 1
-                        hybrid_test_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
-                        hybrid_test_options.set_stamp(hybrid_test_stamp)
-                        argv = ["python3 -m unittest"] + self.options.propertytest_args
+                        hybrid_test_options = self.options.getKeaTestOptions(hybrid_test_count)
+                        argv = ["python3 -m unittest"] + hybrid_test_options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
                         unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
                 finally:
