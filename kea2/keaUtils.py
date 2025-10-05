@@ -768,6 +768,9 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
             self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
 
+            hybrid_test_count = 0
+            time_stamp = TimeStamp().getTimeStamp()
+            hybrid_test_options = self.options
             for testCaseName, testCaseTuple in self.allTestCases.items():
                 test, isInterruptable = testCaseTuple
 
@@ -778,10 +781,13 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                 try:
                     ret = test(result)
                     if isInterruptable:
+                        hybrid_test_count += 1
+                        hybrid_test_options.log_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
                         logger.info(f"====================launch fastbot after interruptable script=======================")
                         argv = ["python3 -m unittest"] + self.options.propertytest_args
-                        KeaTestRunner.setOptions(self.options)
+                        KeaTestRunner.setOptions(hybrid_test_options)
                         unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
+
                 finally:
                     result.printErrors()
 
