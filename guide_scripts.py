@@ -1,11 +1,7 @@
 import unittest
 import uiautomator2 as u2
-import sys
 from time import sleep
-from kea2 import precondition, prob, FuzzingTestRunner, Options, interruptable, kea2_breakpoint
-from kea2.u2Driver import U2Driver
-import random
-
+from kea2 import interruptable
 
 class Omni_Notes_Sample(unittest.TestCase):
 

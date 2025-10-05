@@ -1,4 +1,5 @@
 from collections import deque
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -147,6 +148,8 @@ class Options:
     act_blacklist_file: str = None
     # Feat4. propertytest args(eg. discover -s xxx -p xxx)
     propertytest_args: str = None
+    # Feat4. unittest args(eg. -v -s xxx -p xxx)
+    unittest_args: List[str] = None
     # Extra args
     extra_args: List[str] = None
 
@@ -154,39 +157,48 @@ class Options:
         if value is None:
             return
         super().__setattr__(name, value)
-
+    
     def __post_init__(self):
         import logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)
-        
+
         if self.Driver:
-            target_device = dict()
-            if self.serial:
-                target_device["serial"] = self.serial
-            if self.transport_id:
-                target_device["transport_id"] = self.transport_id
-            self.Driver.setDevice(target_device)
-            ADBDevice.setDevice(self.serial, self.transport_id)
-            
-        global LOGFILE, RESFILE, PROP_EXEC_RESFILE, STAMP
+            self._set_driver()
+
         if self.log_stamp:
-            illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
-            for char in illegal_chars:
-                if char in self.log_stamp:
-                    raise ValueError(
-                        f"char: `{char}` is illegal in --log-stamp. current stamp: {self.log_stamp}"
-                    )
-            STAMP = self.log_stamp
-        
-        if not self.take_screenshots and self.pre_failure_screenshots > 0:
-            raise ValueError("--screenshots-before-error should be 0 when --take-screenshots is not set.")
-        
-        self.log_stamp = STAMP
-            
+            self._sanitize_custom_stamp()
+
+        global STAMP
         self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
+        self.set_stamp()
+
+        self._sanitize_args()
+
+        _check_package_installation(self.packageNames)
+        _save_bug_report_configs(self)
+        
+    def set_stamp(self, stamp: str = None):
+        global STAMP, LOGFILE, RESFILE, PROP_EXEC_RESFILE
+        if stamp:
+            STAMP = stamp
+
         LOGFILE = f"fastbot_{STAMP}.log"
         RESFILE = f"result_{STAMP}.json"
         PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
+
+    def _sanitize_custom_stamp(self):
+        global STAMP
+        illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
+        for char in illegal_chars:
+            if char in self.log_stamp:
+                raise ValueError(
+                    f"char: `{char}` is illegal in --log-stamp. current stamp: {self.log_stamp}"
+                )
+        STAMP = self.log_stamp
+    
+    def _sanitize_args(self):
+        if not self.take_screenshots and self.pre_failure_screenshots > 0:
+            raise ValueError("--screenshots-before-error should be 0 when --take-screenshots is not set.")
 
         self.profile_period = int(self.profile_period)
         if self.profile_period < 1:
@@ -198,9 +210,33 @@ class Options:
 
         if self.agent == 'u2' and self.driverName == None:
             raise ValueError("--driver-name should be specified when customizing script in --agent u2")
+
+    def _set_driver(self):
+        target_device = dict()
+        if self.serial:
+            target_device["serial"] = self.serial
+        if self.transport_id:
+            target_device["transport_id"] = self.transport_id
+        self.Driver.setDevice(target_device)
+        ADBDevice.setDevice(self.serial, self.transport_id)
+    
+    def getKeaTestOptions(self, hybrid_test_count: int) -> "Options":
+        """ Get the KeaTestOptions for hybrid test run when switching from unittest to kea2 test.
+        hybrid_test_count: the count of hybrid test runs
+        """
+        if not self.unittest_args:
+            raise RuntimeError("unittest_args is None. Cannot get KeaTestOptions from it")
         
-        _check_package_installation(self.packageNames)
-        _save_bug_report_configs(self)
+        opts = deepcopy(self)
+        
+        time_stamp = TimeStamp().getTimeStamp()
+        hybrid_test_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
+        
+        opts.output_dir = self.output_dir / f"res_{hybrid_test_stamp}"
+        
+        opts.set_stamp(hybrid_test_stamp)
+        opts.unittest_args = []
+        return opts
 
 
 def _check_package_installation(packageNames):
@@ -213,7 +249,7 @@ def _check_package_installation(packageNames):
 
 
 def _save_bug_report_configs(options: Options):
-    output_dir = Path(options.output_dir)
+    output_dir = options.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     configs = {
         "driverName": options.driverName,
@@ -340,7 +376,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
     _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
 
     def _setOuputDir(self):
-        output_dir = Path(self.options.output_dir).absolute()
+        output_dir = self.options.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
         global LOGFILE, RESFILE, PROP_EXEC_RESFILE
         LOGFILE = output_dir / Path(LOGFILE)
@@ -729,10 +765,42 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         self._generate_bug_report()
 
 
+class KeaTextTestResult(TextTestResult):
+    
+    @property
+    def wasFail(self):
+        return self._wasFail
+    
+    def addError(self, test, err):
+        self._wasFail = True
+        return super().addError(test, err)
+    
+    def addFailure(self, test, err):
+        self._wasFail = True
+        return super().addFailure(test, err)
+    
+    def addSuccess(self, test):
+        self._wasFail = False
+        return super().addSuccess(test)
+
+    def addSkip(self, test, reason):
+        self._wasFail = False
+        return super().addSkip(test, reason)
+    
+    def addExpectedFailure(self, test, err):
+        self._wasFail = False
+        return super().addExpectedFailure(test, err)
+    
+    def addUnexpectedSuccess(self, test):
+        self._wasFail = False
+        return super().addUnexpectedSuccess(test)
+
+
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
     allTestCases: Dict[str, Tuple[TestCase, bool]]
     _common_teardown_func = None
+    resultclass = KeaTextTestResult
 
     def __init__(self, stream = None, descriptions = True, verbosity = 1, failfast = False, buffer = False, resultclass = None, warnings = None, *, tb_locals = False):
         super().__init__(stream, descriptions, verbosity, failfast, buffer, resultclass, warnings, tb_locals=tb_locals)
@@ -745,7 +813,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         if len(self.allTestCases) == 0:
             logger.warning("[Warning] No test case has been found.")
 
-        result = self._makeResult()
+        result: KeaTextTestResult = self._makeResult()
         registerResult(result)
         result.failfast = self.failfast
         result.buffer = self.buffer
@@ -766,29 +834,30 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                         message=r"Please use assert\w+ instead.",
                     )
 
-            self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
-
             hybrid_test_count = 0
-            time_stamp = TimeStamp().getTimeStamp()
-            hybrid_test_options = self.options
-            for testCaseName, testCaseTuple in self.allTestCases.items():
-                test, isInterruptable = testCaseTuple
+            for testCaseName, test in self.allTestCases.items():
+                test, isInterruptable = test, getattr(test, "isInterruptable", False)
 
                 # Dependency Injection. driver when doing scripts
+                self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
                 setattr(test, self.options.driverName, self.scriptDriver)
-                print("execute test case %s." % testCaseName, flush=True)
+                logger.info("Executing unittest testCase %s." % testCaseName)
 
                 try:
-                    ret = test(result)
-                    if isInterruptable:
+                    test._common_setUp()
+                    ret: KeaTextTestResult = test(result)
+                    if ret.wasFail:
+                        logger.error(f"Fail when running test.")
+                    if isInterruptable and not ret.wasFail:
+                        logger.info(f"Launch fastbot after interruptable script.")
                         hybrid_test_count += 1
-                        hybrid_test_options.log_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
-                        logger.info(f"====================launch fastbot after interruptable script=======================")
-                        argv = ["python3 -m unittest"] + self.options.propertytest_args
+                        hybrid_test_options = self.options.getKeaTestOptions(hybrid_test_count)
+                        argv = ["python3 -m unittest"] + hybrid_test_options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
                         unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
 
                 finally:
+                    test._common_tearDown()
                     result.printErrors()
 
         return result
@@ -815,9 +884,12 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         # Traverse the TestCase to get all properties
         for t in iter_tests(test):
 
+            def dummy(self): ...
             # remove the hook func in its TestCase
-            t.setUp = types.MethodType(setUp, t)
-            t.tearDown = types.MethodType(tearDown, t)
+            t.setUp = types.MethodType(dummy, t)
+            t.tearDown = types.MethodType(dummy, t)
+            t._common_setUp = types.MethodType(setUp, t)
+            t._common_tearDown = types.MethodType(tearDown, t)
 
             # check if it's interruptable (reflection)
             testMethodName = t._testMethodName
@@ -825,8 +897,9 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             isInterruptable = hasattr(testMethod, INTERRUPTABLE_MARKER)
 
             # save it into allTestCases, if interruptable, mark as true
-            self.allTestCases[testMethodName] = (t, isInterruptable)
-            logger.info(f"Load TestCase: {getFullPropName(t)} , interruptable: {isInterruptable}")
+            setattr(t, "isInterruptable", isInterruptable)
+            self.allTestCases[testMethodName] = t
+            logger.info(f"Load TestCase: {getFullPropName(t)} , interruptable: {t.isInterruptable}")
 
     def __del__(self):
         """tearDown method. Cleanup the env.

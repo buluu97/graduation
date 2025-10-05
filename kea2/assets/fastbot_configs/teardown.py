@@ -6,7 +6,7 @@ class HybridTestCase:
     d: Device
 
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"
-MAIN_ACTIVITY = "it.feio.android.omninotes.alpha/it.feio.android.omninotes.MainActivity"
+MAIN_ACTIVITY = "it.feio.android.omninotes.MainActivity"
 
 
 def setUp(self: HybridTestCase):
@@ -16,5 +16,3 @@ def setUp(self: HybridTestCase):
 
 def tearDown(self: HybridTestCase):
     self.d.app_stop(PACKAGE_NAME)
-    time.sleep(1)
-    self.d.app_start(PACKAGE_NAME, MAIN_ACTIVITY)
