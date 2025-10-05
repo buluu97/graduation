@@ -841,9 +841,10 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                 # Dependency Injection. driver when doing scripts
                 self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
                 setattr(test, self.options.driverName, self.scriptDriver)
-                print("execute test case %s." % testCaseName, flush=True)
+                logger.info("Executing unittest testCase %s." % testCaseName)
 
                 try:
+                    test._common_setUp()
                     ret: KeaTextTestResult = test(result)
                     if ret.wasFail:
                         logger.error(f"Fail when running test.")
@@ -855,6 +856,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                         KeaTestRunner.setOptions(hybrid_test_options)
                         unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
                 finally:
+                    test._common_tearDown()
                     result.printErrors()
 
         return result
@@ -881,9 +883,12 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         # Traverse the TestCase to get all properties
         for t in iter_tests(test):
 
+            def dummy(self): ...
             # remove the hook func in its TestCase
-            t.setUp = types.MethodType(setUp, t)
-            t.tearDown = types.MethodType(tearDown, t)
+            t.setUp = types.MethodType(dummy, t)
+            t.tearDown = types.MethodType(dummy, t)
+            t._common_setUp = types.MethodType(setUp, t)
+            t._common_tearDown = types.MethodType(tearDown, t)
 
             # check if it's interruptable (reflection)
             testMethodName = t._testMethodName

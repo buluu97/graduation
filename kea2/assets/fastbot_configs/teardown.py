@@ -16,5 +16,3 @@ def setUp(self: HybridTestCase):
 
 def tearDown(self: HybridTestCase):
     self.d.app_stop(PACKAGE_NAME)
-    time.sleep(1)
-    self.d.app_start(PACKAGE_NAME, MAIN_ACTIVITY)

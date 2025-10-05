@@ -260,10 +260,11 @@ def run(args=None):
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
         propertytest_args=args.propertytest_args,
+        unittest_args=args.unittest_args,
         extra_args=args.extra,
     )
     
-    guided = True if args.propertytest_args else False
+    guided = True if options.unittest_args else False
     if guided:
         HybridTestRunner.setOptions(options)
         sys.argv = ["python3 -m unittest"] + args.unittest_args
