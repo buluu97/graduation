@@ -801,7 +801,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
     allTestCases: Dict[str, Tuple[TestCase, bool]]
     _common_teardown_func = None
     resultclass = KeaTextTestResult
-    hybrid_report_dirs: List[Path] = []
+    hybrid_report_dirs = []
 
     def __init__(self, stream = None, descriptions = True, verbosity = 1, failfast = False, buffer = False, resultclass = None, warnings = None, *, tb_locals = False):
         super().__init__(stream, descriptions, verbosity, failfast, buffer, resultclass, warnings, tb_locals=tb_locals)
@@ -894,7 +894,6 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             merge_summary = merger.get_merge_summary()
         except Exception as e:
             logger.error(f"Error merging hybrid test reports: {e}")
-            logger.debug(traceback.format_exc())
 
     def collectAllTestCases(self, test: TestSuite):
         """collect all the properties to prepare for PBT
