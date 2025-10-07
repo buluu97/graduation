@@ -801,10 +801,12 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
     allTestCases: Dict[str, Tuple[TestCase, bool]]
     _common_teardown_func = None
     resultclass = KeaTextTestResult
+    hybrid_report_dirs: List[Path] = []
 
     def __init__(self, stream = None, descriptions = True, verbosity = 1, failfast = False, buffer = False, resultclass = None, warnings = None, *, tb_locals = False):
         super().__init__(stream, descriptions, verbosity, failfast, buffer, resultclass, warnings, tb_locals=tb_locals)
         hybrid_mode.set(True)
+        self.hybrid_report_dirs = []
 
     def run(self, test):
         
@@ -852,6 +854,10 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                         logger.info(f"Launch fastbot after interruptable script.")
                         hybrid_test_count += 1
                         hybrid_test_options = self.options.getKeaTestOptions(hybrid_test_count)
+
+                        # Track the sub-report directory for later merging
+                        self.hybrid_report_dirs.append(hybrid_test_options.output_dir)
+
                         argv = ["python3 -m unittest"] + hybrid_test_options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
                         unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
@@ -860,7 +866,35 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
                     test._common_tearDown()
                     result.printErrors()
 
+            # Auto-merge all hybrid test reports after all tests complete
+            if len(self.hybrid_report_dirs) > 0:
+                self._merge_hybrid_reports()
+
         return result
+
+    def _merge_hybrid_reports(self):
+        """
+        Merge all hybrid test reports into a single merged report
+        """
+        try:
+            from kea2.report_merger import TestReportMerger
+
+            if len(self.hybrid_report_dirs) < 2:
+                logger.info("Only one hybrid test report generated, skipping merge.")
+                return
+            
+            main_output_dir = self.options.output_dir
+
+            merger = TestReportMerger()
+            merged_dir = merger.merge_reports(
+                result_paths=self.hybrid_report_dirs,
+                output_dir=main_output_dir
+            )
+
+            merge_summary = merger.get_merge_summary()
+        except Exception as e:
+            logger.error(f"Error merging hybrid test reports: {e}")
+            logger.debug(traceback.format_exc())
 
     def collectAllTestCases(self, test: TestSuite):
         """collect all the properties to prepare for PBT
