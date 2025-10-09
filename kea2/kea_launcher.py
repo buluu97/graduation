@@ -230,7 +230,6 @@ def _sanitize_args(args):
     args.unittest_args = extra_args["unittest"]
     args.propertytest_args = extra_args["propertytest"]
     args.extra = extra_args["extra"]
-    # TODO args.mode not set
 
 
 def run(args=None):
@@ -264,16 +263,14 @@ def run(args=None):
         extra_args=args.extra,
     )
     
-    guided = True if options.unittest_args else False
-    if guided:
+    is_hybrid_test = True if options.unittest_args else False
+    if is_hybrid_test:
         HybridTestRunner.setOptions(options)
-        sys.argv = ["python3 -m unittest"] + args.unittest_args
+        sys.argv = ["python3 -m unittest"] + options.unittest_args
 
         unittest.main(module=None, testRunner=HybridTestRunner)
     else:
         KeaTestRunner.setOptions(options)
-        sys.argv = ["python3 -m unittest"] + args.unittest_args
+        sys.argv = ["python3 -m unittest"] + options.propertytest_args
 
         unittest.main(module=None, testRunner=KeaTestRunner)
-
-
