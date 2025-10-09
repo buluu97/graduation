@@ -1,29 +1,25 @@
 import unittest
 import uiautomator2 as u2
 from time import sleep
-from kea2 import interruptable
+from kea2 import interruptable, kea2_breakpoint
 
-class Omni_Notes_Sample(unittest.TestCase):
+class Omni_Notes_Unittest_Sample(unittest.TestCase):
 
     def setUp(self):
         self.d = u2.connect()
 
-
-    def test_rotation(self):
+    def test_unittest_rotation(self):
         self.d.set_orientation('l')
+        sleep(1)
+        self.d.set_orientation('n')
         sleep(1)
         self.d.set_orientation('r')
         sleep(1)
-        self.d.set_orientation('l')
+        self.d.set_orientation('n')
         sleep(1)
-        self.d.set_orientation('r')
-        sleep(1)
-        self.d.set_orientation('l')
-        sleep(1)
-
 
     @interruptable()
-    def test_add_note_add_category(self):
+    def test_unittest_add_note_add_category(self):
         '''
         add note -> add category
         '''
@@ -33,6 +29,7 @@ class Omni_Notes_Sample(unittest.TestCase):
         sleep(2)
         self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_category").click()
         sleep(0.5)
+        kea2_breakpoint()
         self.d(resourceId="it.feio.android.omninotes.alpha:id/md_buttonDefaultPositive").click()
         sleep(0.5)
         self.d(resourceId="it.feio.android.omninotes.alpha:id/category_title").set_text("aaa")
@@ -40,7 +37,7 @@ class Omni_Notes_Sample(unittest.TestCase):
 
     
     @interruptable()
-    def test_delete_note_search(self):
+    def test_unittest_delete_note_search(self):
         '''
         add note -> delete note -> search title
         '''
@@ -58,7 +55,7 @@ class Omni_Notes_Sample(unittest.TestCase):
 
 
     @interruptable()
-    def test_add_tag_show_tags(self):
+    def test_unitttest_add_tag_show_tags(self):
         '''
         add note -> add tag -> show tags
         '''
@@ -73,8 +70,6 @@ class Omni_Notes_Sample(unittest.TestCase):
         
         self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_tag").click()
 
-        
-    
     def tearDown(self):
         print("================default teardown=============")
 
