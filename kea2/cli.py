@@ -2,9 +2,11 @@
 # cli.py
 
 from __future__ import absolute_import, print_function
+from datetime import datetime
 import sys
 from .utils import getProjectRoot, getLogger
 from .kea_launcher import run
+from .version_manager import check_config_compatibility, get_cur_version
 import argparse
 
 import os
@@ -15,8 +17,7 @@ logger = getLogger(__name__)
 
 
 def cmd_version(args):
-    from importlib.metadata import version
-    print(version("Kea2-python"), flush=True)
+    print(get_cur_version(), flush=True)
 
 
 def cmd_init(args):
@@ -36,9 +37,16 @@ def cmd_init(args):
         src = Path(__file__).parent / "assets" / "quicktest.py"
         dst = cwd / "quicktest.py"
         shutil.copyfile(src, dst)
+    
+    def save_version():
+        import json
+        version_file = configs_dir / "version.json"
+        with open(version_file, "w") as fp:
+            json.dump({"version": get_cur_version(), "init date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, fp, indent=4)
 
     copy_configs()
     copy_samples()
+    save_version()
     logger.info("Kea2 project initialized.")
 
 
@@ -118,7 +126,7 @@ def cmd_merge(args):
         print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
 
     except Exception as e:
-        logger.error(f"Error during merge operation: {e}")
+        logger.error(f"Error during merge operation: {e}")      
 
 
 def cmd_run(args):
@@ -126,6 +134,9 @@ def cmd_run(args):
     if base_dir is None:
         logger.error("kea2 project not initialized. Use `kea2 init`.")
         return
+
+    check_config_compatibility()
+
     run(args)
 
 

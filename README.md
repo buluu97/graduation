@@ -49,11 +49,11 @@ Kea2 currently targets [Android](https://en.wikipedia.org/wiki/Android_(operatin
 
 **The ability of the three features in Kea2**
 
-|  | **Feature 1** | **Feature 2** | **Feature 3** |
-| --- | --- | --- | ---- |
-| **Finding crashes** | :+1: | :+1: | :+1: |
-| **Finding crashes in deep states** |  | :+1: | :+1: |
-| **Finding non-crashing functional (logic) bugs** |  |  | :+1: |
+|                                                  | **Feature 1** | **Feature 2** | **Feature 3** |
+| ------------------------------------------------ | ------------- | ------------- | ------------- |
+| **Finding crashes**                              | :+1:          | :+1:          | :+1:          |
+| **Finding crashes in deep states**               |               | :+1:          | :+1:          |
+| **Finding non-crashing functional (logic) bugs** |               |               | :+1:          |
 
 ## Kea2's Users
 
@@ -110,6 +110,9 @@ Upgrade Kea2 to the specifc latest version (e.g., 0.3.6) if you already installe
 ```bash
 python3 -m pip install -U kea2-python==0.3.6
 ```
+
+
+
 
 ## Quick Test
 

@@ -341,6 +341,16 @@ error | How many times does the test method abort during UI tsting due to some u
 After executing `Kea2 init`, some configuration files will be generated in the `configs` directory. 
 These configuration files belong to `Fastbot`, and their specific introductions are provided in [Introduction to configuration files](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E4%B8%93%E5%AE%B6%E7%B3%BB%E7%BB%9F).
 
+## Update of User Configuration Files
+When updating Kea2, the user's local configuration sometimes needs to be updated. (The latest kea2 version may not be compatible with the old configuration files.)
+
+When runtime error detected, Kea2 will check whether the local configuration files are compatible with the current Kea2 version. If not, a warning message will be printed in the console. Update the local configuration files according to the following instructions.
+
+1. Backup your local configuration files (in case of any unexpected issues during the update process).
+2. delete all the configuration files under "/configs" in the project's root directory.
+3. run `kea2 init` to generate the latest configuration files.
+4. Merge your old configurations into the new configuration files according to your needs.
+
 ## App's Crash Bugs
 Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the output directory specified by `-o`. You can search the keyword `FATAL EXCEPTION` in `fastbot_*.log` to find the concrete information of crash bugs.
 
