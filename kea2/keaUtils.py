@@ -762,7 +762,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         if self.options.Driver:
             self.options.Driver.tearDown()
 
-        self._generate_bug_report()
+        if self.options.agent == "u2":
+            self._generate_bug_report()
 
 
 class KeaTextTestResult(TextTestResult):
