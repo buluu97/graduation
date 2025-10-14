@@ -17,3 +17,5 @@ clean.sh
 
 output/
 quicktest.py
+
+.venv
