@@ -468,7 +468,11 @@ class BugReportGenerator:
             logger.debug(f"Screenshot file {screenshot_path} not exists.")
             return False
 
-        img = Image.open(screenshot_path).convert("RGB")
+        try:
+            img = Image.open(screenshot_path).convert("RGB")
+        except OSError as e:
+            logger.debug(f"Error opening image {screenshot_path}: {e}")
+            return False
         draw = ImageDraw.Draw(img)
         line_width = 5
 
