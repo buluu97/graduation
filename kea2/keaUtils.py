@@ -511,41 +511,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             fb.join()
             print(f"Finish sending monkey events.", flush=True)
             log_watcher.close()
-
-        # Source code from unittest Runner
-        # process the result
-        expectedFails = unexpectedSuccesses = skipped = 0
-        try:
-            results = map(
-                len,
-                (result.expectedFailures, result.unexpectedSuccesses, result.skipped),
-            )
-        except AttributeError:
-            pass
-        else:
-            expectedFails, unexpectedSuccesses, skipped = results
-
-        infos = []
-        if not result.wasSuccessful():
-            self.stream.write("FAILED")
-            failed, errored = len(result.failures), len(result.errors)
-            if failed:
-                infos.append("failures=%d" % failed)
-            if errored:
-                infos.append("errors=%d" % errored)
-        else:
-            self.stream.write("OK")
-        if skipped:
-            infos.append("skipped=%d" % skipped)
-        if expectedFails:
-            infos.append("expected failures=%d" % expectedFails)
-        if unexpectedSuccesses:
-            infos.append("unexpected successes=%d" % unexpectedSuccesses)
-        if infos:
-            self.stream.writeln(" (%s)" % (", ".join(infos),))
-        else:
-            self.stream.write("\n")
-        self.stream.flush()
         
         result.logSummary()
         return result
