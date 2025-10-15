@@ -349,6 +349,17 @@ class JsonResult(TextTestResult):
     def getExcuted(self, test: TestCase):
         return self.res[getFullPropName(test)].executed
     
+    def printError(self, test):
+        if self.lastExecutedInfo.state in ["fail", "error"]:
+            flavour = self.lastExecutedInfo.state.upper()
+            self.stream.writeln("")
+            self.stream.writeln(self.separator1)
+            self.stream.writeln("%s: %s" % (flavour, self.getDescription(test)))
+            self.stream.writeln(self.separator2)
+            self.stream.writeln("%s" % self.lastExecutedInfo.tb)
+            self.stream.writeln(self.separator1)
+            self.stream.flush()
+
     def logSummary(self):
         fails = sum(_.fail for _ in self.res.values())
         errors = sum(_.error for _ in self.res.values())
@@ -496,7 +507,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     try:
                         test(result)
                     finally:
-                        result.printErrors()
+                        result.printError(test)
 
                     result.updateExectedInfo()
                     fb.logScript(result.lastExecutedInfo)
