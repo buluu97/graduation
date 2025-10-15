@@ -28,7 +28,7 @@ hybrid_mode = ContextVar("hybrid_mode", default=False)
 
 
 PRECONDITIONS_MARKER = "preconds"
-PROP_MARKER = "prop"
+PROB_MARKER = "prob"
 MAX_TRIES_MARKER = "max_tries"
 INTERRUPTABLE_MARKER = "interruptable"
 
@@ -70,7 +70,7 @@ def prob(p: float):
         raise ValueError("The propbability should between 0 and 1")
 
     def accept(f):
-        setattr(f, PROP_MARKER, p)
+        setattr(f, PROB_MARKER, p)
         return f
 
     return accept
@@ -442,15 +442,18 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                 self.stepsCount = 0
                 while self.stepsCount < self.options.maxStep:
 
-                    self.stepsCount += 1
-                    logger.info("Sending monkeyEvent {}".format(
-                        f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf")
-                        else f"({self.stepsCount})"
-                        )
-                    )
-
                     try:
-                        xml_raw = fb.stepMonkey(self._monkeyStepInfo)
+                        if fb.executed_prop:
+                            fb.executed_prop = False
+                            xml_raw = fb.dumpHierarchy()
+                        else:
+                            self.stepsCount += 1
+                            logger.info("Sending monkeyEvent {}".format(
+                                f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf")
+                                else f"({self.stepsCount})"
+                                )
+                            )
+                            xml_raw = fb.stepMonkey(self._monkeyStepInfo)
                         propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
                     except u2.HTTPError:
                         logger.info("Connection refused by remote.")
@@ -473,7 +476,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     # filter the properties according to the given p
                     for propName, test in propsSatisfiedPrecond.items():
                         result.addPrecondSatisfied(test)
-                        if getattr(test, "p", 1) >= p:
+                        if getattr(test, PROB_MARKER, 1) >= p:
                             propsNameFilteredByP.append(propName)
 
                     if len(propsNameFilteredByP) == 0:
@@ -483,7 +486,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     execPropName = random.choice(propsNameFilteredByP)
                     test = propsSatisfiedPrecond[execPropName]
                     # Dependency Injection. driver when doing scripts
-                    self.scriptDriver = U2Driver.getScriptDriver(mode="direct")
+                    self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
                     
                     setattr(test, self.options.driverName, self.scriptDriver)
                     print("execute property %s." % execPropName, flush=True)
@@ -497,6 +500,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
                     result.updateExectedInfo()
                     fb.logScript(result.lastExecutedInfo)
+                    fb.executed_prop = True
                     result.flushResult()
 
                 if not end_by_remote:
@@ -507,41 +511,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             fb.join()
             print(f"Finish sending monkey events.", flush=True)
             log_watcher.close()
-
-        # Source code from unittest Runner
-        # process the result
-        expectedFails = unexpectedSuccesses = skipped = 0
-        try:
-            results = map(
-                len,
-                (result.expectedFailures, result.unexpectedSuccesses, result.skipped),
-            )
-        except AttributeError:
-            pass
-        else:
-            expectedFails, unexpectedSuccesses, skipped = results
-
-        infos = []
-        if not result.wasSuccessful():
-            self.stream.write("FAILED")
-            failed, errored = len(result.failures), len(result.errors)
-            if failed:
-                infos.append("failures=%d" % failed)
-            if errored:
-                infos.append("errors=%d" % errored)
-        else:
-            self.stream.write("OK")
-        if skipped:
-            infos.append("skipped=%d" % skipped)
-        if expectedFails:
-            infos.append("expected failures=%d" % expectedFails)
-        if unexpectedSuccesses:
-            infos.append("unexpected successes=%d" % unexpectedSuccesses)
-        if infos:
-            self.stream.writeln(" (%s)" % (", ".join(infos),))
-        else:
-            self.stream.write("\n")
-        self.stream.flush()
         
         result.logSummary()
         return result
@@ -571,6 +540,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         for propName, test in self.allProperties.items():
             valid = True
             prop = getattr(test, propName)
+            p = getattr(prop, PROB_MARKER, 1)
+            setattr(test, PROB_MARKER, p)
             # check if all preconds passed
             for precond in prop.preconds:
                 # Dependency injection. Static driver checker for precond

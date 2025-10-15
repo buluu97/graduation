@@ -29,6 +29,7 @@ class FastbotManager:
         ADBDevice.setDevice(options.serial, options.transport_id)
         self.dev = ADBDevice()
         self.android_release = parse_version(self.dev.getprop("ro.build.version.release"))
+        self.executed_prop = False
 
     def _activateFastbot(self) -> ADBStreamShell_V2:
         """
@@ -163,6 +164,15 @@ class FastbotManager:
         res = r.text
         if res != "OK":
             print(f"[ERROR] Error when logging script: {execution_info}", flush=True)
+    
+    @retry(Exception, tries=2, delay=2)
+    def dumpHierarchy(self):
+        r = self.request(
+            method="POST",
+            path="/jsonrpc/0",
+            data={'jsonrpc': '2.0', 'id': 1, 'method': 'dumpWindowHierarchy', 'params': (False, 50)}
+        )
+        return r.json()['result']
 
     @property
     def device_output_dir(self):
