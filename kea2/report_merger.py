@@ -135,16 +135,20 @@ class TestReportMerger:
             else:
                 # Fallback: try to find in output_* subdirectories
                 output_dirs = list(result_dir.glob("output_*"))
-                html_files = list(output_dirs[0].glob("*.html"))
-                # Calculate relative path from output_dir to the HTML file
-                if output_dir:
-                    try:
-                        html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
-                    except ValueError:
-                        # If on different drives (Windows), use absolute path as fallback
-                        html_report_path = str(html_files[0].resolve())
+                if output_dirs:
+                    html_files = list(output_dirs[0].glob("*.html"))
+                    if html_files:
+                        if output_dir:
+                            try:
+                                html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
+                            except ValueError:
+                                html_report_path = str(html_files[0].resolve())
+                        else:
+                            html_report_path = str(html_files[0].resolve())
+                    else:
+                        logger.debug(f"No HTML report found in {output_dirs[0]}")
                 else:
-                    html_report_path = str(html_files[0].resolve())
+                    logger.debug(f"No output_* directory found in {result_dir}")
 
             with open(result_file, 'r', encoding='utf-8') as f:
                 test_results = json.load(f)
@@ -692,6 +696,5 @@ class TestReportMerger:
         except Exception as e:
             logger.error(f"Error generating HTML report: {e}")
             raise
-
 
 
