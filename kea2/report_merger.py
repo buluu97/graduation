@@ -35,7 +35,6 @@ class TestReportMerger:
         try:
             # Convert paths and validate
             self.result_dirs = [Path(p).resolve() for p in result_paths]
-            self._validate_result_dirs()
             
             # Setup output directory
             timestamp = datetime.now().strftime("%Y%m%d%H_%M%S")
@@ -73,19 +72,6 @@ class TestReportMerger:
             logger.error(f"Error merging test reports: {e}")
             raise
     
-    def _validate_result_dirs(self):
-        """Validate that all result directories exist and contain required files"""
-        for result_dir in self.result_dirs:
-            if not result_dir.exists():
-                raise FileNotFoundError(f"Result directory does not exist: {result_dir}")
-            
-            # Check for required files pattern
-            result_files = list(result_dir.glob("result_*.json"))
-            if not result_files:
-                raise FileNotFoundError(f"No result_*.json file found in: {result_dir}")
-            
-            logger.debug(f"Validated result directory: {result_dir}")
-    
     def _merge_property_results(self, output_dir: Path = None) -> Tuple[Dict[str, Dict], Dict[str, List[Dict]]]:
         """
         Merge property test results from all directories
@@ -111,44 +97,27 @@ class TestReportMerger:
 
         for result_dir in self.result_dirs:
             result_files = list(result_dir.glob("result_*.json"))
+            html_files = list(result_dir.glob("*.html"))
             if not result_files:
                 logger.warning(f"No result file found in {result_dir}")
                 continue
+            if not html_files:
+                logger.warning(f"No html file found in {result_dir}")
+                continue
 
             result_file = result_files[0]  # Take the first (should be only one)
+            html_file = html_files[0]
             dir_name = result_dir.name  # Get the directory name (e.g., res_2025072011_5048015228)
 
             # Find the HTML report file in the result directory
             html_report_path = None
-            # First try to find HTML files directly in the result directory
-            html_files = list(result_dir.glob("*.html"))
-            if html_files:
-                # Calculate relative path from output_dir to the HTML file
-                if output_dir:
-                    try:
-                        html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
-                    except ValueError:
-                        # If on different drives (Windows), use absolute path as fallback
-                        html_report_path = str(html_files[0].resolve())
-                else:
-                    html_report_path = str(html_files[0].resolve())
-            else:
-                # Fallback: try to find in output_* subdirectories
-                output_dirs = list(result_dir.glob("output_*"))
-                if output_dirs:
-                    html_files = list(output_dirs[0].glob("*.html"))
-                    if html_files:
-                        if output_dir:
-                            try:
-                                html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
-                            except ValueError:
-                                html_report_path = str(html_files[0].resolve())
-                        else:
-                            html_report_path = str(html_files[0].resolve())
-                    else:
-                        logger.debug(f"No HTML report found in {output_dirs[0]}")
-                else:
-                    logger.debug(f"No output_* directory found in {result_dir}")
+            
+            # Calculate relative path from output_dir to the HTML file
+            try:
+                html_report_path = os.path.relpath(html_file.resolve(), output_dir.resolve())
+            except ValueError:
+                # If on different drives (Windows), use absolute path as fallback
+                html_report_path = str(html_file.resolve())
 
             with open(result_file, 'r', encoding='utf-8') as f:
                 test_results = json.load(f)
@@ -249,7 +218,6 @@ class TestReportMerger:
             # Find crash dump log file
             output_dirs = list(result_dir.glob("output_*"))
             if not output_dirs:
-                logger.warning(f"No output directory found in {result_dir}")
                 continue
 
             crash_dump_file = output_dirs[0] / "crash-dump.log"

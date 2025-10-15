@@ -102,11 +102,9 @@ def cmd_merge(args):
         for path in args.paths:
             path_obj = Path(path)
             if not path_obj.exists():
-                logger.error(f"Test report path does not exist: {path}")
-                return
+                raise FileNotFoundError(f"{path_obj}")
             if not path_obj.is_dir():
-                logger.error(f"Path is not a directory: {path}")
-                return
+                raise NotADirectoryError(f"{path_obj}")
 
         logger.debug(f"Merging {len(args.paths)} test report directories...")
 
