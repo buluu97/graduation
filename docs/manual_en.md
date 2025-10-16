@@ -100,30 +100,11 @@ We offer two ways to launch Kea2.
 
 ### 1. Launch by shell commands
 
-Kea2 is compatible with `unittest` framework. You can manage your test cases in unittest style. You can launch Kea2 with `kea run` with driver options and sub-command `unittest` (for unittest options).
+You can launch Kea2 by shell commands `kea2 run`.
 
-The shell command:
-```
-kea2 run <Kea2 cmds> unittest <unittest cmds> 
-```
+`kea2 run` is consisted of two parts: the first part is the options for Kea2, and the second part is the sub-command and its arguments.
 
-Sample shell commands:
-
-```bash
-# Launch Kea2 and load one single script quicktest.py.
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
-
-# Launch Kea2 and load multiple scripts from the directory mytests/omni_notes
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -s mytests/omni_notes -p test*.py
-```
-
-If you need to pass extra arguments to the underlying Fastbot, append `--` after the regular arguments, then list the extra arguments. For example, to set the touch event percentage to 30%, run:
-
-```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
-```
-
-### `kea2 run` Options
+### Part 1. `kea2 run` Options
 
 | arg | meaning | default | 
 | --- | --- | --- |
@@ -140,7 +121,39 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 | --profile-period | The period (in the numbers of monkey events) to profile coverage and collect UI screenshots. Specifically, the UI screenshots are stored on the SDcard of the mobile device, and thus you need to set an appropriate value according to the available device storage. | `25` |
 | --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
-| unittest | Specify to load which scripts. This  sub-command `unittest` is fully compatible with unittest. See `python3 -m unittest -h` for more options of unittest. This option is only available in `--agent u2`.
+
+### Part 2. Sub-commands and their arguments
+Kea2 supports three sub-commands: `propertytest`, `unittest`, and `--` (extra arguments).
+
+#### `propertytest` sub-command and test discovery
+Kea2 is compatible with `unittest` framework. You can manage your test cases in unittest style and discover them with [unittest discovery options](https://docs.python.org/3/library/unittest.html#test-discovery). You can launch Kea2 with `kea run` with driver options and sub-command `propertytest`.
+
+The shell command:
+```
+# <unittest discovery cmds> are the unittest discovery commands, e.g., `discover -p quicktest.py`
+kea2 run <Kea2 cmds> propertytest <unittest discovery cmds> 
+```
+Sample shell commands:
+
+```bash
+# Launch Kea2 and load one single script quicktest.py.
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+
+# Launch Kea2 and load multiple scripts from the directory mytests/omni_notes
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -s mytests/omni_notes -p test*.py
+```
+
+#### `unitest` sub-command
+`unittest` sub-command is used for feature 4 (Hybrid Testing). You can launch Kea2 with `kea run` with driver options and sub-command `unittest`. Same as `propertytest`, you can use [unittest discovery options](https://docs.python.org/3/library/unittest.html#test-discovery) to load your test cases.
+
+#### `--` sub-command (extra arguments)
+If you need to pass extra arguments to the underlying Fastbot, append `--` after the regular arguments, then list the extra arguments. For example, to set the touch event percentage to 30%, run:
+
+```bash
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
+```
+
+
 
 
 ### `kea2 report` Options
@@ -355,3 +368,11 @@ When runtime error detected, Kea2 will check whether the local configuration fil
 Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the output directory specified by `-o`. You can search the keyword `FATAL EXCEPTION` in `fastbot_*.log` to find the concrete information of crash bugs.
 
 These crash bugs are also recorded on your device. [See the Fastbot manual for details](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E7%BB%93%E6%9E%9C%E8%AF%B4%E6%98%8E).
+
+## Interacting with Thrid-party Packages
+Fastbot will block the third-party packages (e.g., ad packages) during exploration by default. If you want to interact with these packages, please add `--allow-any-starts` in [extra arguments](#---sub-command-extra-arguments) when launching Kea2.
+
+For example:
+```bash
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
+```
