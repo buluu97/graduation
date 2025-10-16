@@ -94,17 +94,17 @@ def test_func1(self):
 The decorator `@max_tries` takes an integer as an argument. The number represents the maximum number of times function `test_func1` will be executed when the precondition is satisfied. The default value is `inf` (infinite).
 
 
-## Launching Kea2
+## Launch Kea2
 
 We offer two ways to launch Kea2.
 
-### 1. Launch by shell commands
+### 1. Launch Kea2 by shell commands
 
 You can launch Kea2 by shell commands `kea2 run`.
 
 `kea2 run` is consisted of two parts: the first part is the options for Kea2, and the second part is the sub-command and its arguments.
 
-### Part 1. `kea2 run` Options
+### 1.1 `kea2 run` Options
 
 | arg | meaning | default | 
 | --- | --- | --- |
@@ -122,7 +122,7 @@ You can launch Kea2 by shell commands `kea2 run`.
 | --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
 
-### Part 2. Sub-commands and their arguments
+### 1.2 Sub-commands and their arguments
 Kea2 supports three sub-commands: `propertytest`, `unittest`, and `--` (extra arguments).
 
 #### `propertytest` sub-command and test discovery
@@ -153,105 +153,7 @@ If you need to pass extra arguments to the underlying Fastbot, append `--` after
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
 ```
 
-
-
-
-### `kea2 report` Options
-
-The `kea2 report` command generates an HTML test report from existing test results. This command analyzes test data and creates a comprehensive visual report showing test execution statistics, coverage information, property violations, and crash details.
-
-| arg | meaning | required | default |
-| --- | --- | --- | --- |
-| -p, --path | Path to the directory containing test results (res_* directory) | Yes | |
-
-**Usage Examples:**
-
-```bash
-# Generate report from a test result directory
-kea2 report -p res_20240101_120000
-
-# Generate report with debug mode enabled
-kea2 -d report -p res_20240101_120000
-
-# Generate report using relative path
-kea2 report -p ./output/res_20240101_120000
-```
-
-**What the report includes:**
-- **Test Summary**: Total bugs found, execution time, coverage percentage
-- **Property Test Results**: Execution statistics for each test property (preconditions satisfied, executed, failed, errors)
-- **Code Coverage**: Activity coverage trends and detailed coverage information
-- **Property Violations**: Detailed information about failed test properties with error traces
-- **Crash Events**: Application crashes detected during testing
-- **ANR Events**: Application Not Responding events
-- **Screenshots**: UI screenshots captured during testing (if enabled)
-- **Activity Traversal**: History of activities visited during testing
-
-**Output:**
-The report command generates:
-- An HTML report file (`bug_report.html`) in the specified test result directory
-- Interactive charts and visualizations for coverage and execution trends
-- Detailed error information with stack traces for debugging
-
-**Input Directory Structure:**
-The command expects a test result directory with the following structure:
-```
-res_<timestamp>/
-├── result_<timestamp>.json          # Property test results
-├── output_<timestamp>/
-│   ├── steps.log                    # Test execution steps
-│   ├── coverage.log                 # Coverage data
-│   ├── crash-dump.log               # Crash and ANR events
-│   └── screenshots/                 # UI screenshots (if enabled)
-└── property_exec_info_<timestamp>.json  # Property execution details
-```
-
-### `kea2 merge` Options
-
-The `kea2 merge` command allows you to merge multiple test report directories and generate a combined report. This is useful when you have run multiple test sessions and want to consolidate the results into a single comprehensive report.
-
-| arg | meaning | required | default |
-| --- | --- | --- | --- |
-| -p, --paths | Paths to test report directories (res_* directories) to merge. At least 2 paths are required. | Yes | |
-| -o, --output | Output directory for merged report | No | `merged_report_<timestamp>` |
-
-**Usage Examples:**
-
-```bash
-# Merge two test report directories
-kea2 merge -p res_20240101_120000 res_20240102_130000
-
-# Merge multiple test report directories with custom output
-kea2 merge -p res_20240101_120000 res_20240102_130000 res_20240103_140000 -o my_merged_report
-
-# Enable debug mode while merging
-kea2 -d merge -p res_20240101_120000 res_20240102_130000
-```
-
-**What gets merged:**
-- Property test execution statistics (preconditions satisfied, executed, failed, errors)
-- Code coverage data (activities covered, coverage percentage)
-- Crash and ANR events
-- Test execution steps and timing information
-
-**Output:**
-The merge command generates:
-- A merged report directory containing consolidated data
-- An HTML report (`merged_report.html`) with visual summaries
-- Merge metadata including source directories and timestamp
-
-### `kea` options
-
-| arg | meaning | default |
-| --- | --- | --- |
-| -d | Enable debug mode | |
-
-> ```bash
-> # add -d to enable debug mode
-> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
-> ```
-
-### 2. Launch by `unittest.main`
+### 2. Launch Kea2 by `unittest.main`
 
 Like unittest, we can launch Kea2 through the method `unittest.main`.
 
@@ -322,7 +224,107 @@ device_output_root: str = "/sdcard"
 debug: bool = False
 ```
 
-## Examining the running statistics of scripts .
+
+## Manage Kea2 reports
+
+### Generate kea2 report (`kea2 report`)
+
+The `kea2 report` command generates an HTML test report from existing test results. This command analyzes test data and creates a comprehensive visual report showing test execution statistics, coverage information, property violations, and crash details.
+
+| arg | meaning | required | default |
+| --- | --- | --- | --- |
+| -p, --path | Path to the directory containing test results (res_* directory) | Yes | |
+
+**Usage Examples:**
+
+```bash
+# Generate report from a test result directory
+kea2 report -p res_20240101_120000
+
+# Generate report with debug mode enabled
+kea2 -d report -p res_20240101_120000
+
+# Generate report using relative path
+kea2 report -p ./output/res_20240101_120000
+```
+
+**What the report includes:**
+- **Test Summary**: Total bugs found, execution time, coverage percentage
+- **Property Test Results**: Execution statistics for each test property (preconditions satisfied, executed, failed, errors)
+- **Code Coverage**: Activity coverage trends and detailed coverage information
+- **Property Violations**: Detailed information about failed test properties with error traces
+- **Crash Events**: Application crashes detected during testing
+- **ANR Events**: Application Not Responding events
+- **Screenshots**: UI screenshots captured during testing (if enabled)
+- **Activity Traversal**: History of activities visited during testing
+
+**Output:**
+The report command generates:
+- An HTML report file (`bug_report.html`) in the specified test result directory
+- Interactive charts and visualizations for coverage and execution trends
+- Detailed error information with stack traces for debugging
+
+**Input Directory Structure:**
+The command expects a test result directory with the following structure:
+```
+res_<timestamp>/
+├── result_<timestamp>.json          # Property test results
+├── output_<timestamp>/
+│   ├── steps.log                    # Test execution steps
+│   ├── coverage.log                 # Coverage data
+│   ├── crash-dump.log               # Crash and ANR events
+│   └── screenshots/                 # UI screenshots (if enabled)
+└── property_exec_info_<timestamp>.json  # Property execution details
+```
+
+### Merge multiple test reports (`kea2 merge`)
+
+The `kea2 merge` command allows you to merge multiple test report directories and generate a combined report. This is useful when you have run multiple test sessions and want to consolidate the results into a single comprehensive report.
+
+| arg | meaning | required | default |
+| --- | --- | --- | --- |
+| -p, --paths | Paths to test report directories (res_* directories) to merge. At least 2 paths are required. | Yes | |
+| -o, --output | Output directory for merged report | No | `merged_report_<timestamp>` |
+
+**Usage Examples:**
+
+```bash
+# Merge two test report directories
+kea2 merge -p res_20240101_120000 res_20240102_130000
+
+# Merge multiple test report directories with custom output
+kea2 merge -p res_20240101_120000 res_20240102_130000 res_20240103_140000 -o my_merged_report
+
+# Enable debug mode while merging
+kea2 -d merge -p res_20240101_120000 res_20240102_130000
+```
+
+**What gets merged:**
+- Property test execution statistics (preconditions satisfied, executed, failed, errors)
+- Code coverage data (activities covered, coverage percentage)
+- Crash and ANR events
+- Test execution steps and timing information
+
+**Output:**
+The merge command generates:
+- A merged report directory containing consolidated data
+- An HTML report (`merged_report.html`) with visual summaries
+- Merge metadata including source directories and timestamp
+
+## Debug Mode (`kea2 -d ...`)
+
+You can enable debug mode by adding the `-d` option when using Kea2. In debug mode, Kea2 will print more detailed logs to help diagnose issues.
+
+| arg | meaning | default |
+| --- | --- | --- |
+| -d | Enable debug mode | |
+
+> ```bash
+> # add -d to enable debug mode
+> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
+> ```
+
+## Examining the running statistics of scripts
 
 If you want to examine whether your scripts have been executed or how many times they have been executed during testing. Open the file `result.json` after the testing is finished.
 
@@ -370,7 +372,7 @@ Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the outp
 These crash bugs are also recorded on your device. [See the Fastbot manual for details](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E7%BB%93%E6%9E%9C%E8%AF%B4%E6%98%8E).
 
 ## Interacting with Thrid-party Packages
-Fastbot will block the third-party packages (e.g., ad packages) during exploration by default. If you want to interact with these packages, please add `--allow-any-starts` in [extra arguments](#---sub-command-extra-arguments) when launching Kea2.
+Kea2 will block the third-party packages (e.g., ad packages) during exploration by default. If you want to interact with these packages, please add `--allow-any-starts` in [extra arguments](#---sub-command-extra-arguments) when launching Kea2.
 
 For example:
 ```bash
