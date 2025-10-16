@@ -19,7 +19,8 @@ from kea2.logWatcher import LogWatcher
 from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
 from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
 from kea2.fastbotManager import FastbotManager
-from kea2.adbUtils import ADBDevice, adb_shell
+from kea2.adbUtils import ADBDevice
+from kea2.mixin import BetterConsoleLogExtensionMixin
 import uiautomator2 as u2
 import types
 
@@ -290,11 +291,15 @@ def getFullPropName(testCase: TestCase):
     ])
 
 
-class JsonResult(TextTestResult):
+class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
     
     res: PBTTestResult
     lastExecutedInfo: PropertyExecutionInfo
     executionInfoStore: PropertyExecutionInfoStore = deque()
+
+    def __init__(self, stream, descriptions, verbosity):
+        super().__init__(stream, descriptions, verbosity)
+        self.showAll = True
 
     @classmethod
     def setProperties(cls, allProperties: Dict):
@@ -500,7 +505,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
                     
                     setattr(test, self.options.driverName, self.scriptDriver)
-                    print("execute property %s." % execPropName, flush=True)
 
                     result.addExcuted(test, self.stepsCount)
                     fb.logScript(result.lastExecutedInfo)
