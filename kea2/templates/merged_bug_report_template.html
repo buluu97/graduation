@@ -1567,11 +1567,13 @@
                     <thead>
                         <tr>
                             <th>Index</th>
-                            <th>Property Name</th>
-                            <th>Precondition Satisfied</th>
-                            <th>Executed</th>
-                            <th>Fails <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
-                            <th>Errors <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Property Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties if property_stats_summary is defined else property_stats|length }}</span></th>
+                            <th>Precondition Satisfied <span class="badge bg-success ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Total Executions <span class="badge bg-info ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Passes <span class="badge bg-secondary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Fails <span class="badge bg-danger ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Errors <span class="badge bg-warning ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Skipped <span class="badge bg-light text-dark ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_not_executed if property_stats_summary is defined else 0 }}</span></th>
                         </tr>
                     </thead>
                     <tbody id="property-stats-container">
@@ -1580,15 +1582,19 @@
                             data-index="{{ loop.index }}"
                             data-property-name="{{ property_name }}"
                             data-precond-satisfied="{{ test_result.precond_satisfied|default(0) }}"
-                            data-executed="{{ test_result.executed|default(0) }}"
+                            data-executed="{{ test_result.executed_total|default(test_result.executed|default(0)) }}"
+                            data-pass="{{ test_result.pass_count|default(0) }}"
                             data-fails="{{ test_result.fail|default(0) }}"
-                            data-errors="{{ test_result.error|default(0) }}">
+                            data-errors="{{ test_result.error|default(0) }}"
+                            data-not-executed="{{ test_result.not_executed|default(0) }}">
                             <td>{{ loop.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ property_name }}</span></td>
                             <td>{{ test_result.precond_satisfied|default(0) }}</td>
-                            <td>{{ test_result.executed|default(0) }}</td>
+                            <td>{{ test_result.executed_total|default(test_result.executed|default(0)) }}</td>
+                            <td>{{ test_result.pass_count|default(0) }}</td>
                             <td><span class="badge bg-danger text-white">{{ test_result.fail|default(0) }}</span></td>
                             <td><span class="badge bg-warning text-dark">{{ test_result.error|default(0) }}</span></td>
+                            <td>{{ test_result.not_executed|default(0) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -585,6 +585,44 @@ class TestReportMerger:
         # Calculate total bugs found (only property bugs, not including crashes/ANRs)
         total_bugs_found = property_bugs_found
 
+        # Prepare enhanced property statistics with derived metrics
+        processed_property_stats = {}
+        property_stats_summary = {
+            "total_properties": 0,
+            "total_precond_satisfied": 0,
+            "total_executions": 0,
+            "total_executed": 0,
+            "total_passes": 0,
+            "total_fails": 0,
+            "total_errors": 0,
+            "total_not_executed": 0,
+        }
+
+        for prop_name, stats in property_stats.items():
+            precond_satisfied = stats.get("precond_satisfied", 0)
+            total_executions = stats.get("executed", 0)
+            fail_count = stats.get("fail", 0)
+            error_count = stats.get("error", 0)
+
+            pass_count = max(total_executions - fail_count - error_count, 0)
+            not_executed_count = max(precond_satisfied - total_executions, 0)
+
+            processed_property_stats[prop_name] = {
+                **stats,
+                "executed_total": total_executions,
+                "pass_count": pass_count,
+                "not_executed": not_executed_count,
+            }
+
+            property_stats_summary["total_properties"] += 1
+            property_stats_summary["total_precond_satisfied"] += precond_satisfied
+            property_stats_summary["total_executions"] += total_executions
+            property_stats_summary["total_executed"] += total_executions
+            property_stats_summary["total_passes"] += pass_count
+            property_stats_summary["total_fails"] += fail_count
+            property_stats_summary["total_errors"] += error_count
+            property_stats_summary["total_not_executed"] += not_executed_count
+
         # Prepare final data
         final_data = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -592,7 +630,8 @@ class TestReportMerger:
             'property_bugs_found': property_bugs_found,
             'all_properties_count': all_properties_count,
             'executed_properties_count': executed_properties_count,
-            'property_stats': property_stats,
+            'property_stats': processed_property_stats,
+            'property_stats_summary': property_stats_summary,
             'property_source_mapping': property_source_mapping or {},
             'crash_events': crash_events,
             'anr_events': anr_events,
@@ -664,5 +703,4 @@ class TestReportMerger:
         except Exception as e:
             logger.error(f"Error generating HTML report: {e}")
             raise
-
 
