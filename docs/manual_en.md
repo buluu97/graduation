@@ -123,9 +123,10 @@ You can launch Kea2 by shell commands `kea2 run`.
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
 
 ### 1.2 Sub-commands and their arguments
-Kea2 supports three sub-commands: `propertytest`, `unittest`, and `--` (extra arguments).
+Kea2 supports 3 sub-commands: `propertytest`, `unittest`, and `--` (extra arguments).
 
-#### `propertytest` sub-command and test discovery
+#### **1.2.1 `propertytest` sub-command and test discovery (property based testing)**
+
 Kea2 is compatible with `unittest` framework. You can manage your test cases in unittest style and discover them with [unittest discovery options](https://docs.python.org/3/library/unittest.html#test-discovery). You can launch Kea2 with `kea run` with driver options and sub-command `propertytest`.
 
 The shell command:
@@ -143,10 +144,12 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -s mytests/omni_notes -p test*.py
 ```
 
-#### `unitest` sub-command
+#### **1.2.2 `unitest` sub-command (hybrid test)**
 `unittest` sub-command is used for feature 4 (Hybrid Testing). You can launch Kea2 with `kea run` with driver options and sub-command `unittest`. Same as `propertytest`, you can use [unittest discovery options](https://docs.python.org/3/library/unittest.html#test-discovery) to load your test cases.
 
-#### `--` sub-command (extra arguments)
+
+#### **1.2.3 `--` sub-command (extra arguments)**
+
 If you need to pass extra arguments to the underlying Fastbot, append `--` after the regular arguments, then list the extra arguments. For example, to set the touch event percentage to 30%, run:
 
 ```bash
