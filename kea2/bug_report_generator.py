@@ -868,7 +868,6 @@ class BugReportGenerator:
             "total_properties": 0,
             "total_precond_satisfied": 0,
             "total_executed": 0,
-            "total_executions": 0,
             "total_passes": 0,
             "total_fails": 0,
             "total_errors": 0,
@@ -885,7 +884,6 @@ class BugReportGenerator:
             stats_summary["total_properties"] += 1
             stats_summary["total_precond_satisfied"] += result.get("precond_satisfied", 0)
             stats_summary["total_executed"] += executed_count
-            stats_summary["total_executions"] += executed_count
             stats_summary["total_passes"] += pass_count
             stats_summary["total_fails"] += fail_count
             stats_summary["total_errors"] += error_count

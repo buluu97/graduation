@@ -590,7 +590,6 @@ class TestReportMerger:
         property_stats_summary = {
             "total_properties": 0,
             "total_precond_satisfied": 0,
-            "total_executions": 0,
             "total_executed": 0,
             "total_passes": 0,
             "total_fails": 0,
@@ -616,7 +615,6 @@ class TestReportMerger:
 
             property_stats_summary["total_properties"] += 1
             property_stats_summary["total_precond_satisfied"] += precond_satisfied
-            property_stats_summary["total_executions"] += total_executions
             property_stats_summary["total_executed"] += total_executions
             property_stats_summary["total_passes"] += pass_count
             property_stats_summary["total_fails"] += fail_count
@@ -703,4 +701,3 @@ class TestReportMerger:
         except Exception as e:
             logger.error(f"Error generating HTML report: {e}")
             raise
-
