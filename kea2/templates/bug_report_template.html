@@ -279,12 +279,76 @@
             width: 8%;
             min-width: 70px;
         }
-        
+
         .table-custom th:nth-child(7), .table-custom td:nth-child(7) { /* Error Details */
             width: 45%;
             min-width: 400px;
             text-align: center;
             position: relative;
+        }
+
+        /* Property Checking Statistics specific adjustments */
+        .table-property-stats th,
+        .table-property-stats td {
+            padding: 20px 14px;
+            line-height: 1.65;
+        }
+
+        .table-property-stats th:nth-child(1),
+        .table-property-stats td:nth-child(1) {
+            width: 6%;
+            min-width: 60px;
+        }
+
+        .table-property-stats th:nth-child(2),
+        .table-property-stats td:nth-child(2) {
+            width: 22%;
+            min-width: 200px;
+            text-align: left;
+        }
+
+        .table-property-stats th:nth-child(3),
+        .table-property-stats td:nth-child(3) {
+            width: 10%;
+            min-width: 90px;
+        }
+
+        .table-property-stats th:nth-child(4),
+        .table-property-stats td:nth-child(4) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(5),
+        .table-property-stats td:nth-child(5) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(6),
+        .table-property-stats td:nth-child(6) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(7),
+        .table-property-stats td:nth-child(7) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(8),
+        .table-property-stats td:nth-child(8) {
+            width: 26%;
+            min-width: 260px;
+            text-align: left;
+        }
+
+        .table-property-stats td:nth-child(8) {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 0.75rem;
         }
         
         .table-custom tbody tr:nth-of-type(odd) {
@@ -1610,7 +1674,7 @@
             </div>
             
             <div class="table-responsive">
-                <table class="table table-custom">
+                <table class="table table-custom table-property-stats">
                     <thead>
                         <tr>
                             <th>Index</th>
@@ -1670,7 +1734,7 @@
                             {% if error_list|length == 1 %}
                                 <!-- Single error detail row -->
                                 <tr class="collapse" id="single-error-detail-{{ property_index }}">
-                                    <td colspan="7">
+                                    <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <div class="mb-2">
                                                 <span class="badge bg-{{ 'danger' if error_list[0].state == 'fail' else 'warning' }}">
@@ -1702,7 +1766,7 @@
                             {% else %}
                                 <!-- Multiple errors detail row -->
                                 <tr class="collapse" id="multi-error-detail-{{ property_index }}">
-                                    <td colspan="7">
+                                    <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <!-- Error summary -->
                                             <div class="mb-3">
