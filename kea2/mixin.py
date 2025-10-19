@@ -2,6 +2,9 @@ from unittest import TextTestResult, TestCase
 
 
 class BetterConsoleLogExtensionMixin:
+    def __init__(self, stream, descriptions, verbosity):
+        super().__init__(stream, descriptions, verbosity)
+        self.showAll = True
     
     def getDescription(self: "TextTestResult", test: "TestCase"):
         doc_first_line = test.shortDescription()

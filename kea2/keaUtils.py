@@ -752,7 +752,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             self._generate_bug_report()
 
 
-class KeaTextTestResult(TextTestResult):
+class KeaTextTestResult(BetterConsoleLogExtensionMixin, TextTestResult):
     
     @property
     def wasFail(self):
@@ -933,4 +933,4 @@ def kea2_breakpoint():
     The normal launch in unittest will not be affected.
     """
     if hybrid_mode.get():
-        raise SkipTest("Skip the breakpoint in hybrid mode.")
+        raise SkipTest("Skip the test after the breakpoint and run kea2 in hybrid mode.")

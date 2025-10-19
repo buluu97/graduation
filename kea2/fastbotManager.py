@@ -102,7 +102,9 @@ class FastbotManager:
             _http_request(dev=self.dev, device_port=8090, method="GET", path="/ping")
 
         try:
-            retry_call(_check_alive_request, tries=10, delay=2)
+            logger.info("Connecting to fastbot server...")
+            retry_call(_check_alive_request, tries=10, delay=2, logger=logger)
+            logger.info("Connected to fastbot server.")
         except requests.ConnectionError:
             raise RuntimeError("Failed to connect fastbot")
 
