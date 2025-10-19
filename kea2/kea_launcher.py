@@ -266,11 +266,10 @@ def run(args=None):
     is_hybrid_test = True if options.unittest_args else False
     if is_hybrid_test:
         HybridTestRunner.setOptions(options)
-        sys.argv = ["python3 -m unittest"] + options.unittest_args
-
-        unittest.main(module=None, testRunner=HybridTestRunner)
+        testRunner = HybridTestRunner
+        argv = ["python3 -m unittest"] + options.unittest_args
     else:
         KeaTestRunner.setOptions(options)
-        sys.argv = ["python3 -m unittest"] + options.propertytest_args
-
-        unittest.main(module=None, testRunner=KeaTestRunner)
+        testRunner = KeaTestRunner
+        argv = ["python3 -m unittest"] + options.propertytest_args
+    unittest.main(module=None, argv=argv, testRunner=testRunner)
