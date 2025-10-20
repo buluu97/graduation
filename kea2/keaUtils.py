@@ -611,7 +611,12 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     yield test
 
         # Traverse the TestCase to get all properties
+        _result = TextTestResult(self.stream, self.descriptions, self.verbosity)
         for t in iter_tests(test):
+            # Find all the _FailedTest (Caused by ImportError) and directly run it to report errors
+            if type(t).__name__ == "_FailedTest":
+                t(_result)
+                continue
             testMethodName = t._testMethodName
             # get the test method name and check if it's a property
             testMethod = getattr(t, testMethodName)
@@ -622,6 +627,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                 # save it into allProperties for PBT
                 self.allProperties[testMethodName] = t
                 print(f"[INFO] Load property: {getFullPropName(t)}", flush=True)
+        # Print errors caused by ImportError
+        _result.printErrors()
 
     @property
     def _blockWidgetFuncs(self):
