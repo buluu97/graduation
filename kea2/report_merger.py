@@ -50,7 +50,7 @@ class TestReportMerger:
             # Merge different types of data
             merged_property_stats, property_source_mapping = self._merge_property_results(output_dir)
             merged_coverage_data = self._merge_coverage_data()
-            merged_crash_anr_data = self._merge_crash_dump_data()
+            merged_crash_anr_data = self._merge_crash_dump_data(output_dir)
 
             # Calculate final statistics
             final_data = self._calculate_final_statistics(merged_property_stats, merged_coverage_data, merged_crash_anr_data, property_source_mapping)
@@ -204,7 +204,7 @@ class TestReportMerger:
             "total_steps": total_steps
         }
 
-    def _merge_crash_dump_data(self) -> Dict:
+    def _merge_crash_dump_data(self, output_dir: Path = None) -> Dict:
         """
         Merge crash and ANR data from all directories
 
@@ -215,6 +215,19 @@ class TestReportMerger:
         all_anr_events = []
 
         for result_dir in self.result_dirs:
+            dir_name = result_dir.name
+
+            # Locate corresponding HTML report for hyperlinking
+            html_report_path = None
+            html_files = list(result_dir.glob("*.html"))
+            if not html_files:
+                continue
+            html_file = html_files[0]
+            try:
+                html_report_path = os.path.relpath(html_file.resolve(), output_dir.resolve())
+            except ValueError:
+                html_report_path = str(html_file.resolve())
+
             # Find crash dump log file
             output_dirs = list(result_dir.glob("output_*"))
             if not output_dirs:
@@ -228,6 +241,15 @@ class TestReportMerger:
             try:
                 # Parse crash and ANR events from this file
                 crash_events, anr_events = self._parse_crash_dump_file(crash_dump_file)
+
+                for crash in crash_events:
+                    crash["source_directory"] = dir_name
+                    crash["report_path"] = html_report_path
+
+                for anr in anr_events:
+                    anr["source_directory"] = dir_name
+                    anr["report_path"] = html_report_path
+
                 all_crash_events.extend(crash_events)
                 all_anr_events.extend(anr_events)
 
@@ -512,7 +534,11 @@ class TestReportMerger:
 
             # Use first 3 lines of stack trace for deduplication
             stack_lines = stack_trace.split('\n')[:3]
-            crash_key = (exception_type, '\n'.join(stack_lines))
+            crash_key = (
+                exception_type,
+                '\n'.join(stack_lines),
+                crash.get("source_directory", "")
+            )
 
             if crash_key not in seen_crashes:
                 seen_crashes.add(crash_key)
@@ -537,7 +563,7 @@ class TestReportMerger:
             # Create a hash key based on reason and process
             reason = anr.get("reason", "")
             process = anr.get("process", "")
-            anr_key = (reason, process)
+            anr_key = (reason, process, anr.get("source_directory", ""))
 
             if anr_key not in seen_anrs:
                 seen_anrs.add(anr_key)

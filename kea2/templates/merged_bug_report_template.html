@@ -1442,6 +1442,7 @@
                                     <th>Time</th>
                                     <th>Exception</th>
                                     <th>Process</th>
+                                    <th>Report Source</th>
                                     <th>Details</th>
                                 </tr>
                             </thead>
@@ -1452,6 +1453,26 @@
                                     <td>{{ crash.time }}</td>
                                     <td>{{ crash.exception_type }}</td>
                                     <td>{{ crash.process }}</td>
+                                    <td>
+                                        {% if crash.report_path %}
+                                        <a href="{{ crash.report_path }}" target="_blank" class="text-decoration-none">
+                                            <span class="badge bg-info text-white me-2 mb-1"
+                                                  style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                                  title="Click to open original report"
+                                                  onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                                <i class="bi bi-folder me-1"></i>{{ crash.source_directory or 'Unknown' }}
+                                                <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7em;"></i>
+                                            </span>
+                                        </a>
+                                        {% elif crash.source_directory %}
+                                        <span class="badge bg-info text-white me-2 mb-1"
+                                              style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
+                                            <i class="bi bi-folder me-1"></i>{{ crash.source_directory }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary" type="button"
                                                 data-bs-toggle="collapse" data-bs-target="#crash-detail-{{ loop.index }}"
@@ -1465,7 +1486,7 @@
                                     </td>
                                 </tr>
                                 <tr class="collapse" id="crash-detail-{{ loop.index }}">
-                                    <td colspan="5">
+                                    <td colspan="6">
                                         <div class="bg-light p-3 rounded">
                                             <h6 class="text-danger">Stack Trace:</h6>
                                             <pre class="text-danger mb-0 text-start" id="stack-trace-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ crash.stack_trace }}</pre>
@@ -1482,6 +1503,26 @@
                                     <td>{{ anr.reason }}</td>
                                     <td>{{ anr.process }}</td>
                                     <td>
+                                        {% if anr.report_path %}
+                                        <a href="{{ anr.report_path }}" target="_blank" class="text-decoration-none">
+                                            <span class="badge bg-info text-white me-2 mb-1"
+                                                  style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                                  title="Click to open original report"
+                                                  onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                                <i class="bi bi-folder me-1"></i>{{ anr.source_directory or 'Unknown' }}
+                                                <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7em;"></i>
+                                            </span>
+                                        </a>
+                                        {% elif anr.source_directory %}
+                                        <span class="badge bg-info text-white me-2 mb-1"
+                                              style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
+                                            <i class="bi bi-folder me-1"></i>{{ anr.source_directory }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         <button class="btn btn-sm btn-outline-primary" type="button"
                                                 data-bs-toggle="collapse" data-bs-target="#anr-detail-{{ loop.index }}"
                                                 aria-expanded="false" aria-controls="anr-detail-{{ loop.index }}">
@@ -1494,7 +1535,7 @@
                                     </td>
                                 </tr>
                                 <tr class="collapse" id="anr-detail-{{ loop.index }}">
-                                    <td colspan="5">
+                                    <td colspan="6">
                                         <div class="bg-light p-3 rounded">
                                             <h6 class="text-dark">ANR Details:</h6>
                                             <pre class="text-dark mb-0 text-start" id="stack-trace-anr-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ anr.trace }}</pre>
