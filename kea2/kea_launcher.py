@@ -153,7 +153,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     parser.add_argument(
         "extra",
         nargs=argparse.REMAINDER,
-        help="Extra args for unittest <args>",
+        help="Extra args (e.g. propertytest & --). See docs (https://github.com/ecnusse/Kea2/blob/main/docs/manual_en.md) for details.",
     )
 
 
