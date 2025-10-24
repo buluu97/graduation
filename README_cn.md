@@ -24,7 +24,7 @@
 </div>
 </br>
 
-Kea2是一个易用的移动应用模糊测试工具。其核心*创新点*是能够将自动化UI测试与脚本（通常由人工编写）融合，从而赋予自动化UI测试以人类智能，有效发现*崩溃错误*及*非崩溃功能（逻辑）错误*。
+Kea2是一个易用的移动应用模糊测试工具。其核心*创新点*是能够将自动化UI测试与脚本（通常由人工编写）融合，从而赋予自动化UI测试以业务知识，有效发现*崩溃错误*及*非崩溃功能（逻辑）错误*。
 
 Kea2目前基于[Fastbot](https://github.com/bytedance/Fastbot_Android)（*一款工业级自动化UI测试工具*）及[uiautomator2](https://github.com/openatx/uiautomator2)（*一款易用且稳定的Android自动化库*）进行构建。Kea2目前支持[Android](https://en.wikipedia.org/wiki/Android_(operating_system))应用。
 
@@ -138,7 +138,7 @@ python3 quicktest.py
 利用Fastbot的全部能力对你的App进行压力测试，查找*稳定性错误*（即*崩溃错误*）；
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent native --running-minutes 10 --throttle 200
+kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200
 ```
 
 如需了解各选项含义，请参见我们的[手册](docs/manual_en.md#launching-kea2)。
@@ -186,7 +186,7 @@ kea2 run -h
 
 ```bash
 # 启动Kea2并加载单个脚本 quicktest.py。
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
 ```
 
 ## 特性 3（运行增强版Fastbot：加入自动断言）
