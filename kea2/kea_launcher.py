@@ -269,7 +269,7 @@ def run(args=None):
         HybridTestRunner.setOptions(options)
         testRunner = HybridTestRunner
         argv = ["python3 -m unittest"] + options.unittest_args
-    else:
+    if not is_hybrid_test or options.agent == "u2":
         KeaTestRunner.setOptions(options)
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args

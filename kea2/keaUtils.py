@@ -112,11 +112,11 @@ class Options:
     Kea and Fastbot configurations
     """
     # the driver_name in script (if self.d, then d.) 
-    driverName: str
+    driverName: str = None
     # the driver (only U2Driver available now)
-    Driver: AbstractDriver
+    Driver: AbstractDriver = None
     # list of package names. Specify the apps under test
-    packageNames: List[str]
+    packageNames: List[str] = None
     # target device
     serial: str = None
     # target device with transport_id
