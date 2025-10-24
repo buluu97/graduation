@@ -4,6 +4,7 @@ from retry.api import retry_call
 from dataclasses import asdict
 import requests
 from packaging.version import parse as parse_version
+from time import sleep
 
 from uiautomator2.core import HTTPResponse, _http_request
 from kea2.adbUtils import ADBDevice, ADBStreamShell_V2
@@ -169,10 +170,10 @@ class FastbotManager:
     
     @retry(Exception, tries=2, delay=2)
     def dumpHierarchy(self):
+        sleep(self.options.throttle / 1000)
         r = self.request(
-            method="POST",
-            path="/jsonrpc/0",
-            data={'jsonrpc': '2.0', 'id': 1, 'method': 'dumpWindowHierarchy', 'params': (False, 50)}
+            method="GET",
+            path="/dumpHierarchy",
         )
         return r.json()['result']
 
