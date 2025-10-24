@@ -316,12 +316,16 @@ The reports support both single test runs and merged analysis of multiple test s
 
 ## Documentations（更多文档）
 
+
+### :blue_book: [User Manual](docs/manual_en.md) (Important!)
 You can find the [user manual](docs/manual_en.md), which includes:
 - Examples of using Kea2 on WeChat (in Chinese);
 - How to define Kea2's scripts and use the decorators (e.g., `@precondition`、`@prob`、`@max_tries`);
 - How to run Kea2 and Kea2's command line options
 - How to find and understand Kea2's testing results
 - How to [whitelist or blacklist](docs/blacklisting.md) specific activities, UI widgets and UI regions during fuzzing
+
+### Other resources about Kea2 (in Chinese)
 - [Q&A for Kea2 and PBT (对Kea2和PBT技术的常见问题和回答)](https://sy8pzmhmun.feishu.cn/wiki/SLGwwqgzIiEuC3kwmV8cSZY0nTg?from=from_copylink) 
 - [Kea2 101 (Kea2 从0到1 的入门教程与最佳实践，建议新手阅读)](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)
 - [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/?vd_source=ab7968b8d764666d85d24af49d9b8891)
