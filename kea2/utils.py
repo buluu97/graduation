@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 import traceback
-from typing import TYPE_CHECKING, Callable, Dict
+from typing import Callable, Dict, Optional
 
 import time
 from functools import wraps
