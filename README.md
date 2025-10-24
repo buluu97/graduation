@@ -143,9 +143,8 @@ Otherwise, please help [file a bug report](https://github.com/ecnusse/Kea2/issue
 
 Test your app with the full capability of Fastbot for stress testing and finding *stability problems* (i.e., *crashing bugs*); 
 
-
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent native --running-minutes 10 --throttle 200
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200
 ```
 
 To understand the meanings of the options, you can see our [manual](docs/manual_en.md#launching-kea2).
@@ -194,7 +193,7 @@ You can find the full example in script `quicktest.py`, and run this script with
 
 ```bash
 # Launch Kea2 and load one single script quicktest.py.
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
 ```
 
 ## Feature 3(运行增强版Fastbot：加入自动断言)
@@ -296,10 +295,10 @@ You can find the full example in `guide_scripts.py`, `property_omninotes.py`  an
 
 ```bash
 # Guide with guide_scripts.py and launch fuzzing test after every script.
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py 
+kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py 
 
 # Guide with guide_scripts.py and launch fuzzing test after every script(check properties during fuzzing).
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p quickstart2.py
+kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p quickstart2.py
 ```
 
 
