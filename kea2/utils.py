@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 import traceback
-from typing import Optional
+from typing import Callable, Dict, Optional
 
 import time
 from functools import wraps
@@ -134,3 +134,25 @@ def catchException(log_info: str):
                 print(''.join(tb), end='', flush=True)
         return wrapper
     return accept
+
+
+def loadFuncsFromFile(file_path: str) -> Dict[str, Callable]:
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"{file_path} not found.")
+
+    def __get_module():
+        import importlib.util
+        module_name = Path(file_path).stem
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    mod = __get_module()
+
+    import inspect
+    funcs = dict()
+    for func_name, func in inspect.getmembers(mod, inspect.isfunction):
+        funcs[func_name] = func
+
+    return funcs

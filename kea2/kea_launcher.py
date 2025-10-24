@@ -2,6 +2,9 @@ import sys
 import argparse
 import unittest
 from typing import List
+import os
+
+
 
 def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"):
     parser = subparsers.add_parser("run", help="run kea2")
@@ -150,15 +153,19 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     parser.add_argument(
         "extra",
         nargs=argparse.REMAINDER,
-        help="Extra args for unittest <args>",
+        help="Extra args (e.g. propertytest & --). See docs (https://github.com/ecnusse/Kea2/blob/main/docs/manual_en.md) for details.",
     )
 
 
-def unittest_info_logger(args):
+def extra_args_info_logger(args):
     if args.agent == "native":
         print("[Warning] Property not availble in native agent.", flush=True)
     if args.unittest_args:
         print("Captured unittest args:", args.unittest_args, flush=True)
+    if args.propertytest_args:
+        print("Captured propertytest args:", args.propertytest_args, flush=True)
+    if args.extra:
+        print("Captured extra args (Will be appended to fastbot launcher):", args.extra, flush=True)
 
 
 def driver_info_logger(args):
@@ -195,26 +202,44 @@ def parse_args(argv: List):
 
 
 def _sanitize_args(args):
-    setattr(args, "unittest_args", []) #Assign the default value prior to other assignments.
-    if args.extra:
-        args.extra = args.extra[1:] if args.extra[0] == "--" else args.extra
-        unittest_index = args.extra.index("unittest") if "unittest" in args.extra else -1
-        if unittest_index != -1:
-            unittest_args = args.extra[unittest_index+1:]
-            args.unittest_args = unittest_args
-            args.extra = args.extra[:unittest_index]
+    args.mode = None
+    args.propertytest_args = None
+    if args.agent == "u2" and not args.driver_name:
+        if args.extra == []:
+            args.driver_name = "d"
+        else:
+            raise ValueError("--driver-name should be specified when customizing script in --agent u2")
+    
+    extra_args = {
+        "unittest": [],
+        "propertytest": [],
+        "extra": []
+    }    
+
+    for i in range(len(args.extra)):
+        if args.extra[i] == "unittest":
+            current = "unittest"
+        elif args.extra[i] == "propertytest":
+            current = "propertytest"
+        elif args.extra[i] == "--":
+            current = "extra"
+        else:
+            extra_args[current].append(args.extra[i])
+    setattr(args, "unittest_args", [])
+    setattr(args, "propertytest_args", [])
+    args.unittest_args = extra_args["unittest"]
+    args.propertytest_args = extra_args["propertytest"]
+    args.extra = extra_args["extra"]
+
 
 def run(args=None):
     if args is None:
         args = parse_args(sys.argv[1:])
     _sanitize_args(args)
     driver_info_logger(args)
-    unittest_info_logger(args)
-    if args.extra:
-        print("[Warning] Captured extra args:", args.extra, flush=True)
-        print("The extra args will be passed into fastbot launcher.", flush=True)
+    extra_args_info_logger(args)
 
-    from kea2 import KeaTestRunner, Options
+    from kea2 import KeaTestRunner, Options, HybridTestRunner
     from kea2.u2Driver import U2Driver
     options = Options(
         agent=args.agent,
@@ -234,14 +259,18 @@ def run(args=None):
         device_output_root=args.device_output_root,
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
+        propertytest_args=args.propertytest_args,
+        unittest_args=args.unittest_args,
         extra_args=args.extra,
     )
-
-    KeaTestRunner.setOptions(options)
-    sys.argv = ["python3 -m unittest"] + args.unittest_args
-
-    unittest.main(module=None, testRunner=KeaTestRunner)
-
-
-if __name__ == "__main__":
-    run()
+    
+    is_hybrid_test = True if options.unittest_args else False
+    if is_hybrid_test:
+        HybridTestRunner.setOptions(options)
+        testRunner = HybridTestRunner
+        argv = ["python3 -m unittest"] + options.unittest_args
+    else:
+        KeaTestRunner.setOptions(options)
+        testRunner = KeaTestRunner
+        argv = ["python3 -m unittest"] + options.propertytest_args
+    unittest.main(module=None, argv=argv, testRunner=testRunner)

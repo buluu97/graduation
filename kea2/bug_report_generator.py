@@ -375,21 +375,32 @@ class BugReportGenerator:
                 minutes, seconds = divmod(remainder, 60)
                 data["total_testing_time"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-        # Calculate bug count directly from result data
+        # Enrich property statistics with derived metrics and calculate bug count
+        enriched_property_stats = {}
         for property_name, test_result in self.test_result.items():
             # Check if failed or error
-            if test_result["fail"] > 0 or test_result["error"] > 0:
+            if test_result.get("fail", 0) > 0 or test_result.get("error", 0) > 0:
                 data["bugs_found"] += 1
 
-        # Store the raw result data for direct use in HTML template
-        data["property_stats"] = self.test_result
+            executed_count = test_result.get("executed", 0)
+            fail_count = test_result.get("fail", 0)
+            error_count = test_result.get("error", 0)
+            pass_count = max(executed_count - fail_count - error_count, 0)
+
+            enriched_property_stats[property_name] = {
+                **test_result,
+                "pass_count": pass_count
+            }
+
+        # Store the enriched result data for direct use in HTML template
+        data["property_stats"] = enriched_property_stats
 
         # Calculate properties statistics
         data["all_properties_count"] = len(self.test_result)
         data["executed_properties_count"] = sum(1 for result in self.test_result.values() if result.get("executed", 0) > 0)
 
         # Calculate detailed property statistics for table headers
-        property_stats_summary = self._calculate_property_stats_summary(self.test_result)
+        property_stats_summary = self._calculate_property_stats_summary(enriched_property_stats)
         data["property_stats_summary"] = property_stats_summary
 
         # Process coverage data
@@ -857,20 +868,28 @@ class BugReportGenerator:
             "total_properties": 0,
             "total_precond_satisfied": 0,
             "total_executed": 0,
+            "total_passes": 0,
             "total_fails": 0,
             "total_errors": 0,
             "properties_with_errors": 0
         }
 
         for property_name, result in test_result.items():
+            executed_count = result.get("executed", result.get("executed_total", 0))
+            fail_count = result.get("fail", 0)
+            error_count = result.get("error", 0)
+            pass_count = result.get("pass_count",
+                                    max(executed_count - fail_count - error_count, 0))
+
             stats_summary["total_properties"] += 1
             stats_summary["total_precond_satisfied"] += result.get("precond_satisfied", 0)
-            stats_summary["total_executed"] += result.get("executed", 0)
-            stats_summary["total_fails"] += result.get("fail", 0)
-            stats_summary["total_errors"] += result.get("error", 0)
+            stats_summary["total_executed"] += executed_count
+            stats_summary["total_passes"] += pass_count
+            stats_summary["total_fails"] += fail_count
+            stats_summary["total_errors"] += error_count
 
             # Count properties that have errors or fails
-            if result.get("fail", 0) > 0 or result.get("error", 0) > 0:
+            if fail_count > 0 or error_count > 0:
                 stats_summary["properties_with_errors"] += 1
 
         return stats_summary
@@ -1032,86 +1051,6 @@ class BugReportGenerator:
             else:
                 event['screenshot_id'] = ""
 
-    # def _parse_crash_events(self, content: str) -> List[Dict]:
-    #     """
-    #     Parse crash events from crash-dump.log content
-    #
-    #     Args:
-    #         content: Content of crash-dump.log file
-    #
-    #     Returns:
-    #         List[Dict]: List of crash event dictionaries
-    #     """
-    #     crash_events = []
-    #
-    #     # Pattern to match crash blocks
-    #     crash_pattern = r'(\d{14})\ncrash:\n(.*?)\n// crash end'
-    #
-    #     for match in re.finditer(crash_pattern, content, re.DOTALL):
-    #         timestamp_str = match.group(1)
-    #         crash_content = match.group(2)
-    #
-    #         # Parse timestamp (format: YYYYMMDDHHMMSS)
-    #         try:
-    #             timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-    #             formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-    #         except ValueError:
-    #             formatted_time = timestamp_str
-    #
-    #         # Extract crash information
-    #         crash_info = self._extract_crash_info(crash_content)
-    #
-    #         crash_event = {
-    #             "time": formatted_time,
-    #             "exception_type": crash_info.get("exception_type", "Unknown"),
-    #             "process": crash_info.get("process", "Unknown"),
-    #             "stack_trace": crash_info.get("stack_trace", "")
-    #         }
-    #
-    #         crash_events.append(crash_event)
-    #
-    #     return crash_events
-    #
-    # def _parse_anr_events(self, content: str) -> List[Dict]:
-    #     """
-    #     Parse ANR events from crash-dump.log content
-    #
-    #     Args:
-    #         content: Content of crash-dump.log file
-    #
-    #     Returns:
-    #         List[Dict]: List of ANR event dictionaries
-    #     """
-    #     anr_events = []
-    #
-    #     # Pattern to match ANR blocks
-    #     anr_pattern = r'(\d{14})\nanr:\n(.*?)\nanr end'
-    #
-    #     for match in re.finditer(anr_pattern, content, re.DOTALL):
-    #         timestamp_str = match.group(1)
-    #         anr_content = match.group(2)
-    #
-    #         # Parse timestamp (format: YYYYMMDDHHMMSS)
-    #         try:
-    #             timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-    #             formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-    #         except ValueError:
-    #             formatted_time = timestamp_str
-    #
-    #         # Extract ANR information
-    #         anr_info = self._extract_anr_info(anr_content)
-    #
-    #         anr_event = {
-    #             "time": formatted_time,
-    #             "reason": anr_info.get("reason", "Unknown"),
-    #             "process": anr_info.get("process", "Unknown"),
-    #             "trace": anr_info.get("trace", "")
-    #         }
-    #
-    #         anr_events.append(anr_event)
-    #
-    #     return anr_events
-
     def _extract_crash_info(self, crash_content: str) -> Dict:
         """
         Extract crash information from crash content
@@ -1250,7 +1189,7 @@ class BugReportGenerator:
 if __name__ == "__main__":
     print("Generating bug report")
     # OUTPUT_PATH = "<Your output path>"
-    OUTPUT_PATH = "P:/Python/Kea2/output/res_2025090122_1216279438"
+    OUTPUT_PATH = "/Users/drifter327/Code/Kea2/output/res_2025090122_1216279438"
 
     report_generator = BugReportGenerator()
     report_path = report_generator.generate_report(OUTPUT_PATH)

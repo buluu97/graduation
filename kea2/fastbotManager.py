@@ -4,6 +4,7 @@ from retry.api import retry_call
 from dataclasses import asdict
 import requests
 from packaging.version import parse as parse_version
+from time import sleep
 
 from uiautomator2.core import HTTPResponse, _http_request
 from kea2.adbUtils import ADBDevice, ADBStreamShell_V2
@@ -102,7 +103,9 @@ class FastbotManager:
             _http_request(dev=self.dev, device_port=8090, method="GET", path="/ping")
 
         try:
-            retry_call(_check_alive_request, tries=10, delay=2)
+            logger.info("Connecting to fastbot server...")
+            retry_call(_check_alive_request, tries=10, delay=2, logger=logger)
+            logger.info("Connected to fastbot server.")
         except requests.ConnectionError:
             raise RuntimeError("Failed to connect fastbot")
 
@@ -167,10 +170,10 @@ class FastbotManager:
     
     @retry(Exception, tries=2, delay=2)
     def dumpHierarchy(self):
+        sleep(self.options.throttle / 1000)
         r = self.request(
-            method="POST",
-            path="/jsonrpc/0",
-            data={'jsonrpc': '2.0', 'id': 1, 'method': 'dumpWindowHierarchy', 'params': (False, 50)}
+            method="GET",
+            path="/dumpHierarchy",
         )
         return r.json()['result']
 

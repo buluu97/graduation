@@ -8,7 +8,7 @@ import adbutils
 import types
 import rtree
 import re
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Literal, Union, Optional
 from http.client import HTTPResponse
 from lxml import etree
 from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
@@ -501,10 +501,18 @@ class U2Driver(AbstractDriver):
             U2ScriptDriver.setTransportId(kwarg["transport_id"])
 
     @classmethod
-    def getScriptDriver(self):
-        if self.scriptDriver is None:
-            self.scriptDriver = U2ScriptDriver()
-        return self.scriptDriver.getInstance()
+    def getScriptDriver(cls, mode:Literal["direct", "proxy"]="proxy") -> u2.Device:
+        """
+        get the uiautomator2 device instance
+        mode: direct or proxy
+        direct: connect to device directly (device server port: 9008)
+        proxy: connect to device via kea2 agent (device server port: 8090)
+        """
+        if cls.scriptDriver is None:
+            cls.scriptDriver = U2ScriptDriver()
+        _instance = cls.scriptDriver.getInstance()
+        _instance._device_server_port = 9008 if mode == "direct" else 8090
+        return _instance
 
     @classmethod
     def getStaticChecker(self, hierarchy=None):

@@ -35,7 +35,6 @@ class TestReportMerger:
         try:
             # Convert paths and validate
             self.result_dirs = [Path(p).resolve() for p in result_paths]
-            self._validate_result_dirs()
             
             # Setup output directory
             timestamp = datetime.now().strftime("%Y%m%d%H_%M%S")
@@ -51,7 +50,7 @@ class TestReportMerger:
             # Merge different types of data
             merged_property_stats, property_source_mapping = self._merge_property_results(output_dir)
             merged_coverage_data = self._merge_coverage_data()
-            merged_crash_anr_data = self._merge_crash_dump_data()
+            merged_crash_anr_data = self._merge_crash_dump_data(output_dir)
 
             # Calculate final statistics
             final_data = self._calculate_final_statistics(merged_property_stats, merged_coverage_data, merged_crash_anr_data, property_source_mapping)
@@ -72,19 +71,6 @@ class TestReportMerger:
         except Exception as e:
             logger.error(f"Error merging test reports: {e}")
             raise
-    
-    def _validate_result_dirs(self):
-        """Validate that all result directories exist and contain required files"""
-        for result_dir in self.result_dirs:
-            if not result_dir.exists():
-                raise FileNotFoundError(f"Result directory does not exist: {result_dir}")
-            
-            # Check for required files pattern
-            result_files = list(result_dir.glob("result_*.json"))
-            if not result_files:
-                raise FileNotFoundError(f"No result_*.json file found in: {result_dir}")
-            
-            logger.debug(f"Validated result directory: {result_dir}")
     
     def _merge_property_results(self, output_dir: Path = None) -> Tuple[Dict[str, Dict], Dict[str, List[Dict]]]:
         """
@@ -111,40 +97,27 @@ class TestReportMerger:
 
         for result_dir in self.result_dirs:
             result_files = list(result_dir.glob("result_*.json"))
+            html_files = list(result_dir.glob("*.html"))
             if not result_files:
                 logger.warning(f"No result file found in {result_dir}")
                 continue
+            if not html_files:
+                logger.warning(f"No html file found in {result_dir}")
+                continue
 
             result_file = result_files[0]  # Take the first (should be only one)
+            html_file = html_files[0]
             dir_name = result_dir.name  # Get the directory name (e.g., res_2025072011_5048015228)
 
             # Find the HTML report file in the result directory
             html_report_path = None
-            # First try to find HTML files directly in the result directory
-            html_files = list(result_dir.glob("*.html"))
-            if html_files:
-                # Calculate relative path from output_dir to the HTML file
-                if output_dir:
-                    try:
-                        html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
-                    except ValueError:
-                        # If on different drives (Windows), use absolute path as fallback
-                        html_report_path = str(html_files[0].resolve())
-                else:
-                    html_report_path = str(html_files[0].resolve())
-            else:
-                # Fallback: try to find in output_* subdirectories
-                output_dirs = list(result_dir.glob("output_*"))
-                html_files = list(output_dirs[0].glob("*.html"))
-                # Calculate relative path from output_dir to the HTML file
-                if output_dir:
-                    try:
-                        html_report_path = os.path.relpath(html_files[0].resolve(), output_dir.resolve())
-                    except ValueError:
-                        # If on different drives (Windows), use absolute path as fallback
-                        html_report_path = str(html_files[0].resolve())
-                else:
-                    html_report_path = str(html_files[0].resolve())
+            
+            # Calculate relative path from output_dir to the HTML file
+            try:
+                html_report_path = os.path.relpath(html_file.resolve(), output_dir.resolve())
+            except ValueError:
+                # If on different drives (Windows), use absolute path as fallback
+                html_report_path = str(html_file.resolve())
 
             with open(result_file, 'r', encoding='utf-8') as f:
                 test_results = json.load(f)
@@ -231,7 +204,7 @@ class TestReportMerger:
             "total_steps": total_steps
         }
 
-    def _merge_crash_dump_data(self) -> Dict:
+    def _merge_crash_dump_data(self, output_dir: Path = None) -> Dict:
         """
         Merge crash and ANR data from all directories
 
@@ -242,10 +215,22 @@ class TestReportMerger:
         all_anr_events = []
 
         for result_dir in self.result_dirs:
+            dir_name = result_dir.name
+
+            # Locate corresponding HTML report for hyperlinking
+            html_report_path = None
+            html_files = list(result_dir.glob("*.html"))
+            if not html_files:
+                continue
+            html_file = html_files[0]
+            try:
+                html_report_path = os.path.relpath(html_file.resolve(), output_dir.resolve())
+            except ValueError:
+                html_report_path = str(html_file.resolve())
+
             # Find crash dump log file
             output_dirs = list(result_dir.glob("output_*"))
             if not output_dirs:
-                logger.warning(f"No output directory found in {result_dir}")
                 continue
 
             crash_dump_file = output_dirs[0] / "crash-dump.log"
@@ -256,6 +241,15 @@ class TestReportMerger:
             try:
                 # Parse crash and ANR events from this file
                 crash_events, anr_events = self._parse_crash_dump_file(crash_dump_file)
+
+                for crash in crash_events:
+                    crash["source_directory"] = dir_name
+                    crash["report_path"] = html_report_path
+
+                for anr in anr_events:
+                    anr["source_directory"] = dir_name
+                    anr["report_path"] = html_report_path
+
                 all_crash_events.extend(crash_events)
                 all_anr_events.extend(anr_events)
 
@@ -540,7 +534,11 @@ class TestReportMerger:
 
             # Use first 3 lines of stack trace for deduplication
             stack_lines = stack_trace.split('\n')[:3]
-            crash_key = (exception_type, '\n'.join(stack_lines))
+            crash_key = (
+                exception_type,
+                '\n'.join(stack_lines),
+                crash.get("source_directory", "")
+            )
 
             if crash_key not in seen_crashes:
                 seen_crashes.add(crash_key)
@@ -565,7 +563,7 @@ class TestReportMerger:
             # Create a hash key based on reason and process
             reason = anr.get("reason", "")
             process = anr.get("process", "")
-            anr_key = (reason, process)
+            anr_key = (reason, process, anr.get("source_directory", ""))
 
             if anr_key not in seen_anrs:
                 seen_anrs.add(anr_key)
@@ -613,6 +611,42 @@ class TestReportMerger:
         # Calculate total bugs found (only property bugs, not including crashes/ANRs)
         total_bugs_found = property_bugs_found
 
+        # Prepare enhanced property statistics with derived metrics
+        processed_property_stats = {}
+        property_stats_summary = {
+            "total_properties": 0,
+            "total_precond_satisfied": 0,
+            "total_executed": 0,
+            "total_passes": 0,
+            "total_fails": 0,
+            "total_errors": 0,
+            "total_not_executed": 0,
+        }
+
+        for prop_name, stats in property_stats.items():
+            precond_satisfied = stats.get("precond_satisfied", 0)
+            total_executions = stats.get("executed", 0)
+            fail_count = stats.get("fail", 0)
+            error_count = stats.get("error", 0)
+
+            pass_count = max(total_executions - fail_count - error_count, 0)
+            not_executed_count = max(precond_satisfied - total_executions, 0)
+
+            processed_property_stats[prop_name] = {
+                **stats,
+                "executed_total": total_executions,
+                "pass_count": pass_count,
+                "not_executed": not_executed_count,
+            }
+
+            property_stats_summary["total_properties"] += 1
+            property_stats_summary["total_precond_satisfied"] += precond_satisfied
+            property_stats_summary["total_executed"] += total_executions
+            property_stats_summary["total_passes"] += pass_count
+            property_stats_summary["total_fails"] += fail_count
+            property_stats_summary["total_errors"] += error_count
+            property_stats_summary["total_not_executed"] += not_executed_count
+
         # Prepare final data
         final_data = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -620,7 +654,8 @@ class TestReportMerger:
             'property_bugs_found': property_bugs_found,
             'all_properties_count': all_properties_count,
             'executed_properties_count': executed_properties_count,
-            'property_stats': property_stats,
+            'property_stats': processed_property_stats,
+            'property_stats_summary': property_stats_summary,
             'property_source_mapping': property_source_mapping or {},
             'crash_events': crash_events,
             'anr_events': anr_events,
@@ -692,6 +727,3 @@ class TestReportMerger:
         except Exception as e:
             logger.error(f"Error generating HTML report: {e}")
             raise
-
-
-

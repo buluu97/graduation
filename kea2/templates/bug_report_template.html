@@ -279,12 +279,76 @@
             width: 8%;
             min-width: 70px;
         }
-        
+
         .table-custom th:nth-child(7), .table-custom td:nth-child(7) { /* Error Details */
             width: 45%;
             min-width: 400px;
             text-align: center;
             position: relative;
+        }
+
+        /* Property Checking Statistics specific adjustments */
+        .table-property-stats th,
+        .table-property-stats td {
+            padding: 20px 14px;
+            line-height: 1.65;
+        }
+
+        .table-property-stats th:nth-child(1),
+        .table-property-stats td:nth-child(1) {
+            width: 6%;
+            min-width: 60px;
+        }
+
+        .table-property-stats th:nth-child(2),
+        .table-property-stats td:nth-child(2) {
+            width: 22%;
+            min-width: 200px;
+            text-align: left;
+        }
+
+        .table-property-stats th:nth-child(3),
+        .table-property-stats td:nth-child(3) {
+            width: 10%;
+            min-width: 90px;
+        }
+
+        .table-property-stats th:nth-child(4),
+        .table-property-stats td:nth-child(4) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(5),
+        .table-property-stats td:nth-child(5) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(6),
+        .table-property-stats td:nth-child(6) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(7),
+        .table-property-stats td:nth-child(7) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(8),
+        .table-property-stats td:nth-child(8) {
+            width: 26%;
+            min-width: 260px;
+            text-align: left;
+        }
+
+        .table-property-stats td:nth-child(8) {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 0.75rem;
         }
         
         .table-custom tbody tr:nth-of-type(odd) {
@@ -1610,13 +1674,14 @@
             </div>
             
             <div class="table-responsive">
-                <table class="table table-custom">
+                <table class="table table-custom table-property-stats">
                     <thead>
                         <tr>
                             <th>Index</th>
                             <th>Property Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties }}</span></th>
                             <th>Precondition Satisfied <span class="badge bg-success ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied }}</span></th>
                             <th>Executed <span class="badge bg-info ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed }}</span></th>
+                            <th>Passes <span class="badge bg-secondary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes }}</span></th>
                             <th>Fails <span class="badge bg-danger ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
                             <th>Errors <span class="badge bg-warning ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
                             <th>Error Details</th>
@@ -1629,12 +1694,14 @@
                             data-property-name="{{ property_name }}"
                             data-precond-satisfied="{{ test_result.precond_satisfied|default(0) }}"
                             data-executed="{{ test_result.executed|default(0) }}"
+                            data-pass="{{ test_result.pass_count|default(0) }}"
                             data-fails="{{ test_result.fail|default(0) }}"
                             data-errors="{{ test_result.error|default(0) }}">
                             <td>{{ loop.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ property_name }}</span></td>
                             <td>{{ test_result.precond_satisfied|default(0) }}</td>
                             <td>{{ test_result.executed|default(0) }}</td>
+                            <td>{{ test_result.pass_count|default(0) }}</td>
                             <td><span class="badge bg-danger text-white">{{ test_result.fail|default(0) }}</span></td>
                             <td><span class="badge bg-warning text-dark">{{ test_result.error|default(0) }}</span></td>
                             <td>
@@ -1667,7 +1734,7 @@
                             {% if error_list|length == 1 %}
                                 <!-- Single error detail row -->
                                 <tr class="collapse" id="single-error-detail-{{ property_index }}">
-                                    <td colspan="7">
+                                    <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <div class="mb-2">
                                                 <span class="badge bg-{{ 'danger' if error_list[0].state == 'fail' else 'warning' }}">
@@ -1699,7 +1766,7 @@
                             {% else %}
                                 <!-- Multiple errors detail row -->
                                 <tr class="collapse" id="multi-error-detail-{{ property_index }}">
-                                    <td colspan="7">
+                                    <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <!-- Error summary -->
                                             <div class="mb-3">
