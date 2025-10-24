@@ -251,6 +251,7 @@ def run(args=None):
         running_mins=args.running_minutes,
         maxStep=args.max_step,
         throttle=args.throttle_ms,
+        output_dir=args.output_dir,
         log_stamp=args.log_stamp,
         profile_period=args.profile_period,
         take_screenshots=args.take_screenshots,

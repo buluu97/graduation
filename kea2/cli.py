@@ -219,9 +219,10 @@ def main():
     args = parser.parse_args()
 
     import logging
-    logging.basicConfig(level=logging.INFO)
+    from .utils import LoggingLevel
+    LoggingLevel.set_level(logging.INFO)
     if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        LoggingLevel.set_level(logging.DEBUG)
         logger.debug("args: %s", args)
 
     if args.subparser:

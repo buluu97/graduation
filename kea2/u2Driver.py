@@ -349,9 +349,11 @@ class _HindenWidgetFilter:
             import traceback, uuid
             traceback.print_exc()
             logger.error(f"Error in setting covered widgets")
-            with open(f"kea2_error_tree_{uuid.uuid4().hex}.xml", "wb") as f:
-                xml_bytes = etree.tostring(root, pretty_print=True, encoding="utf-8", xml_declaration=True)
-                f.write(xml_bytes)
+            from .utils import LoggingLevel
+            if LoggingLevel.level <= logging.DEBUG:
+                with open(f"kea2_error_tree_{uuid.uuid4().hex}.xml", "wb") as f:
+                    xml_bytes = etree.tostring(root, pretty_print=True, encoding="utf-8", xml_declaration=True)
+                    f.write(xml_bytes)
 
         # xml_bytes = etree.tostring(root, pretty_print=True, encoding="utf-8", xml_declaration=True)
         # with open("filtered_tree.xml", "wb") as f:

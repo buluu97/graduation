@@ -6,28 +6,7 @@ from typing import TYPE_CHECKING, Callable, Dict
 
 import time
 from functools import wraps
-if TYPE_CHECKING:
-    from .keaUtils import Options
 
-
-def getLogger(name: str) -> logging.Logger:
-    logger = logging.getLogger(name)
-
-    def enable_pretty_logging():
-        if not logger.handlers:
-            # Configure handler
-            handler = logging.StreamHandler()
-            handler.flush = lambda: handler.stream.flush()  # 确保每次都flush
-            formatter = logging.Formatter('[%(levelname)1s][%(asctime)s %(module)s:%(lineno)d pid:%(process)d] %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            logger.propagate = False
-
-    enable_pretty_logging()
-    return logger
-
-
-logger = getLogger(__name__)
 
 
 def singleton(cls):
@@ -38,6 +17,51 @@ def singleton(cls):
             _instance[cls] = cls()
         return _instance[cls]
     return inner
+
+
+
+class LoggingLevel:
+    level = logging.INFO
+    _instance: Optional["LoggingLevel"] = None  # 单例缓存
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    @classmethod
+    def set_level(cls, level: int):
+        cls.level = level
+
+
+class DynamicLevelFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.levelno >= LoggingLevel.level
+
+
+def getLogger(name: str) -> logging.Logger:
+    logger = logging.getLogger(name)
+
+    def enable_pretty_logging():
+        if not logger.handlers:
+            # Configure handler
+            handler = logging.StreamHandler()
+            handler.flush = lambda: handler.stream.flush()
+            handler.setFormatter(logging.Formatter('[%(levelname)1s][%(asctime)s %(module)s:%(lineno)d pid:%(process)d] %(message)s'))
+            handler.setLevel(logging.NOTSET)
+            handler.addFilter(DynamicLevelFilter())
+            logger.addHandler(handler)
+            logger.setLevel(logging.DEBUG)
+            logger.propagate = False
+
+    enable_pretty_logging()
+    return logger
+
+
+logger = getLogger(__name__)
+
+
+
 
 @singleton
 class TimeStamp:
