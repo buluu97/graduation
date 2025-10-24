@@ -241,9 +241,13 @@ For the preceding always-holding property, we can write the following script to 
 
 You can run this example by using the similar command line in Feature 2.
 
-## Feature 4(脚本驱动的性质测试)
+## Feature 4 (Experimental feature, 实验中，脚本与遍历的混合测试)
 
-Kea2 supports reusing existing "guiding scripts" to reach specific UI pages or functionalities **before** running fuzzing tests.  After the fuzzing test stops, Kea2 will restart the app, launch another guiding script and repeat the procedure until all guiding scripts are tested. This feature enables Kea2 to utilize existing app knowledge(guiding scripts) and begin fuzzing from a "deep" enough app state.
+> This feature is still under development. We are looking forward to your feedback! Contact us if you're interested in this feature.
+
+Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
+
+For example, you may already have some existing Ui test scripts "login and add a friend", This feature allows you to use the existing script, set some breakpoints (i.e., interruptable points) in the script, and launch Fastbot to explore the app after every breakpoint. By using this feature, you can do the login first and then launch Fastbot to explore the app after login. Which helps Fastbot to explore deep app states. (fastbot can't do login by itself easily).
 
 ### Example
 

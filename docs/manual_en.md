@@ -144,7 +144,10 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -s mytests/omni_notes -p test*.py
 ```
 
-#### **1.2.2 `unitest` sub-command (hybrid test)**
+#### **1.2.2 (Expirimental Feature) `unitest` sub-command (hybrid test)**
+
+> This feature is still under development. We are looking forward to your feedback! Contact us if you're interested in this feature.
+
 `unittest` sub-command is used for feature 4 (Hybrid Testing). You can launch Kea2 with `kea run` with driver options and sub-command `unittest`. Same as `propertytest`, you can use [unittest discovery options](https://docs.python.org/3/library/unittest.html#test-discovery) to load your test cases.
 
 
