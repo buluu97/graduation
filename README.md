@@ -250,46 +250,11 @@ For example, you may already have some existing Ui test scripts "login and add a
 
 ### Example
 
-Assuming you already have some existing guiding scripts(`test_add_note_add_category` and `test_delete_note_search`) written in `unittest`: 
-
-```python
-class Omni_Notes_Sample(unittest.TestCase):
-
-    def setUp(self):
-        self.d = u2.connect()
-
-    @interruptable() 
-    # interruptable: launch fuzzing test after this testcase
-    def test_add_note_add_category(self):
-        '''
-        add note -> add category
-        '''
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/fab_expand_menu_button").long_click()
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/detail_content").set_text("Hello world")
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_category").click()
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/md_buttonDefaultPositive").click()
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/category_title").set_text("aaa")
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/save").click()
-    
-    @interruptable()
-    def test_delete_note_search(self):
-        '''
-        add note -> delete note
-        '''
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/fab_expand_menu_button").long_click()
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/detail_title").set_text("Hello112233")
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/detail_content").set_text("Hello world")
-        self.d(description="drawer open").click()
-        self.d(resourceId="it.feio.android.omninotes.alpha:id/note_title").long_click()
-        self.d(description="More options").click()
-        self.d(text="Trash").click()
-```
+See [guide_scripts.py](guide_scripts.py) for a full example.
 
 By the decorator `@interruptable`, you can mark the testcase as "interruptable" so that Kea2 can recognize this script and launch fuzzing test after it returns. 
 
 Since the state of app is probably unpredicted after fuzzing tests, Kea2 provides a `common_teardown` function to clean up the environment between previous script and next script. The function can be manually specified in `configs/teardown.py`.
-
-The fuzzing test can be configured using the similar command line in Feature 2 and Feature 3. 
 
 You can find the full example in `guide_scripts.py`, `property_omninotes.py`  and `configs/teardown.py` .  You can run one of the following commands:
 
@@ -300,8 +265,6 @@ kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --th
 # Guide with guide_scripts.py and launch fuzzing test after every script(check properties during fuzzing).
 kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p quickstart2.py
 ```
-
-
 
 ## Test Reports（测试报告）
 
