@@ -1733,7 +1733,7 @@
                             {% set property_index = loop.index %}
                             {% if error_list|length == 1 %}
                                 <!-- Single error detail row -->
-                                <tr class="collapse" id="single-error-detail-{{ property_index }}">
+                                <tr class="collapse property-detail-row" data-detail-for="{{ property_name }}" id="single-error-detail-{{ property_index }}">
                                     <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <div class="mb-2">
@@ -1765,7 +1765,7 @@
                                 </tr>
                             {% else %}
                                 <!-- Multiple errors detail row -->
-                                <tr class="collapse" id="multi-error-detail-{{ property_index }}">
+                                <tr class="collapse property-detail-row" data-detail-for="{{ property_name }}" id="multi-error-detail-{{ property_index }}">
                                     <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <!-- Error summary -->
@@ -2319,6 +2319,18 @@
                 function sortTable(column, order) {
                     const container = document.getElementById('property-stats-container');
                     const rows = Array.from(container.getElementsByClassName('property-stat-row'));
+                    const detailRowMap = new Map();
+
+                    // Capture current detail rows so they can move with their parent property row
+                    const detailRows = Array.from(container.querySelectorAll('.property-detail-row'));
+                    detailRows.forEach(function(detailRow) {
+                        const key = detailRow.dataset.detailFor;
+                        if (!key) return;
+                        if (!detailRowMap.has(key)) {
+                            detailRowMap.set(key, []);
+                        }
+                        detailRowMap.get(key).push(detailRow);
+                    });
                     
                     rows.sort(function(a, b) {
                         let valueA, valueB;
@@ -2338,11 +2350,18 @@
                         }
                     });
                     
-                    // Clear container and append sorted rows
-                    container.innerHTML = '';
+                    const fragment = document.createDocumentFragment();
                     rows.forEach(function(row) {
-                        container.appendChild(row);
+                        fragment.appendChild(row);
+                        const detailKey = row.dataset.propertyName;
+                        const relatedDetailRows = detailRowMap.get(detailKey) || [];
+                        relatedDetailRows.forEach(function(detailRow) {
+                            fragment.appendChild(detailRow);
+                        });
                     });
+
+                    container.innerHTML = '';
+                    container.appendChild(fragment);
                     
                     // Re-initialize pagination after sorting
                     initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
