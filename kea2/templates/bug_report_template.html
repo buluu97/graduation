@@ -1286,6 +1286,24 @@
                                 <span class="stat-label">Executed Properties</span>
                             </div>
                         </div>
+                        {% if triggered_crash_count %}
+                        <div class="col-md-2 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-exclamation-octagon text-danger" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-danger">{{ triggered_crash_count }}</span>
+                                <span class="stat-label">Triggered Crash</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if triggered_anr_count %}
+                        <div class="col-md-2 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-warning">{{ triggered_anr_count }}</span>
+                                <span class="stat-label">Triggered ANR</span>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -1610,7 +1628,12 @@
                         <tr class="property-violation-row" data-page="1">
                             <td>{{ violation.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ violation.property_name }}</span></td>
-                            <td><a href="#{{ violation.interaction_pages[0] }}" class="link-button">{{ violation.interaction_pages[0] }} ~ {{ violation.interaction_pages[1] }}</a></td>
+                            <td>
+                                <a href="#{{ violation.interaction_pages|last }}" class="link-button"
+                                   onclick="scrollToScreenshot('{{ violation.interaction_pages|last }}')">
+                                    {{ violation.interaction_pages[0] }} ~ {{ violation.interaction_pages[1] }}
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
