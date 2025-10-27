@@ -592,6 +592,8 @@ class BugReportGenerator:
             'activity_count_history': data["activity_count_history"],
             'crash_events': data["crash_events"],
             'anr_events': data["anr_events"],
+            'triggered_crash_count': len(data["crash_events"]),
+            'triggered_anr_count': len(data["anr_events"]),
             'property_stats_summary': data["property_stats_summary"]
         }
 
