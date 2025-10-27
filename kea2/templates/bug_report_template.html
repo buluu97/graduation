@@ -1610,7 +1610,12 @@
                         <tr class="property-violation-row" data-page="1">
                             <td>{{ violation.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ violation.property_name }}</span></td>
-                            <td><a href="#{{ violation.interaction_pages[0] }}" class="link-button">{{ violation.interaction_pages[0] }} ~ {{ violation.interaction_pages[1] }}</a></td>
+                            <td>
+                                <a href="#{{ violation.interaction_pages|last }}" class="link-button"
+                                   onclick="scrollToScreenshot('{{ violation.interaction_pages|last }}')">
+                                    {{ violation.interaction_pages[0] }} ~ {{ violation.interaction_pages[1] }}
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
