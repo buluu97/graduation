@@ -12,7 +12,6 @@ import random
 import warnings
 from dataclasses import dataclass, asdict
 from kea2.absDriver import AbstractDriver
-from functools import wraps
 from kea2.bug_report_generator import BugReportGenerator
 from kea2.resultSyncer import ResultSyncer
 from kea2.logWatcher import LogWatcher
