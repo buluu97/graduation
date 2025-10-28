@@ -257,6 +257,7 @@ def _save_bug_report_configs(options: Options):
         "take_screenshots": options.take_screenshots,
         "pre_failure_screenshots": options.pre_failure_screenshots,
         "device_output_root": options.device_output_root,
+        "log_stamp": options.log_stamp if options.log_stamp else STAMP,
     }
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
         json.dump(configs, fp, indent=4)
