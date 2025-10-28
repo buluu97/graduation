@@ -592,6 +592,7 @@ class BugReportGenerator:
         # Prepare template data
         template_data = {
             'timestamp': timestamp,
+            'log_stamp': data.get("timestamp", ""),
             'bugs_found': data["bugs_found"],
             'total_testing_time': data["total_testing_time"],
             'executed_events': data["executed_events"],

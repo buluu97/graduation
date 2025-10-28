@@ -373,6 +373,31 @@
             display: block;
             margin-top: 5px;
         }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 24px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 20px 16px;
+            border-radius: 12px;
+            background-color: #f8fafc;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .summary-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        .summary-item i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 12px;
+        }
         
         .chart-container {
             background-color: white;
@@ -1234,6 +1259,7 @@
         <div class="container">
             <h1><i class="bi bi-bug"></i> Kea2 Test Report</h1>
             <p class="lead">Test Time: {{ timestamp }}</p>
+            <p class="lead">Timestamp: {{ log_stamp }}</p>
         </div>
     </header>
 
@@ -1243,67 +1269,42 @@
             <div class="col-12">
                 <div class="summary-card">
                     <h2 class="section-title">Test Summary</h2>
-                    <div class="row g-4">
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-bug text-danger" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-danger">{{ bugs_found }}</span>
-                                <span class="stat-label">Bugs Found</span>
-                            </div>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <i class="bi bi-bug text-danger"></i>
+                            <span class="stat-value value-danger">{{ bugs_found }}</span>
+                            <span class="stat-label">Property Violations</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-clock-history text-primary" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-highlight">{{ total_testing_time }}</span>
-                                <span class="stat-label">Total Testing Time</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-clock-history text-primary"></i>
+                            <span class="stat-value value-highlight">{{ total_testing_time }}</span>
+                            <span class="stat-label">Total Testing Time</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-activity text-success" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-success">{{ executed_events }}</span>
-                                <span class="stat-label">Executed Events</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-activity text-success"></i>
+                            <span class="stat-value value-success">{{ executed_events }}</span>
+                            <span class="stat-label">Executed Events</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-pie-chart text-warning" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-warning">{{ coverage_percent }}%</span>
-                                <span class="stat-label">Activity Coverage</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-pie-chart text-warning"></i>
+                            <span class="stat-value value-warning">{{ coverage_percent }}%</span>
+                            <span class="stat-label">Activity Coverage</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-list-check text-info" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-highlight">{{ all_properties_count }}</span>
-                                <span class="stat-label">All Properties</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-list-check text-info"></i>
+                            <span class="stat-value value-highlight">{{ executed_properties_count }}/{{ all_properties_count }}</span>
+                            <span class="stat-label">Executed Properties</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-check-square text-secondary" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-success">{{ executed_properties_count }}</span>
-                                <span class="stat-label">Executed Properties</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-exclamation-octagon text-danger"></i>
+                            <span class="stat-value value-danger">{{ triggered_crash_count }}</span>
+                            <span class="stat-label">Triggered Crash</span>
                         </div>
-                        {% if triggered_crash_count %}
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-exclamation-octagon text-danger" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-danger">{{ triggered_crash_count }}</span>
-                                <span class="stat-label">Triggered Crash</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-hourglass-split text-warning"></i>
+                            <span class="stat-value value-warning">{{ triggered_anr_count }}</span>
+                            <span class="stat-label">Triggered ANR</span>
                         </div>
-                        {% endif %}
-                        {% if triggered_anr_count %}
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-warning">{{ triggered_anr_count }}</span>
-                                <span class="stat-label">Triggered ANR</span>
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
