@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+from time import perf_counter
 import traceback
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
@@ -453,11 +454,13 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
                 resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
                 resultSyncer.run()
-
-                end_by_remote = False
+                start_time = perf_counter()
+                fb_is_running = True
                 self.stepsCount = 0
                 while self.stepsCount < self.options.maxStep:
-
+                    if self.shouldStop(start_time):
+                        logger.info("Exploration time up (--running-minutes).")
+                        break
                     try:
                         if fb.executed_prop:
                             fb.executed_prop = False
@@ -475,7 +478,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         logger.info("Connection refused by remote.")
                         if fb.get_return_code() == 0:
                             logger.info("Exploration times up (--running-minutes).")
-                            end_by_remote = True
+                            fb_is_running = False
                             break
                         raise RuntimeError("Fastbot Aborted.")
 
@@ -518,7 +521,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     fb.executed_prop = True
                     result.flushResult()
 
-                if not end_by_remote:
+                if fb_is_running:
                     fb.stopMonkey()
                 result.flushResult()
                 resultSyncer.close()
@@ -529,6 +532,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         
         result.logSummary()
         return result
+    
+    def shouldStop(self, start_time):
+        if self.options.running_mins is None:
+            return False
+        return (perf_counter() - start_time) >= self.options.running_mins * 60
 
     @property
     def _monkeyStepInfo(self):
