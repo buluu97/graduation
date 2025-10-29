@@ -21,6 +21,7 @@ from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
 from kea2.fastbotManager import FastbotManager
 from kea2.adbUtils import ADBDevice
 from kea2.mixin import BetterConsoleLogExtensionMixin
+from datetime import datetime
 import uiautomator2 as u2
 import types
 
@@ -259,6 +260,7 @@ def _save_bug_report_configs(options: Options):
         "pre_failure_screenshots": options.pre_failure_screenshots,
         "device_output_root": options.device_output_root,
         "log_stamp": options.log_stamp if options.log_stamp else STAMP,
+        "test_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
         json.dump(configs, fp, indent=4)
