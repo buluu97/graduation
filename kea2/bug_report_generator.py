@@ -291,7 +291,7 @@ class BugReportGenerator:
             with open(report_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
 
-            logger.debug(f"Bug report saved to: {report_path}")
+            logger.info(f"Bug report saved to: {report_path}")
             return str(report_path)
 
         except Exception as e:
