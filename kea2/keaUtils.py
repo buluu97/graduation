@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+from time import perf_counter
 import traceback
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
@@ -20,6 +21,7 @@ from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
 from kea2.fastbotManager import FastbotManager
 from kea2.adbUtils import ADBDevice
 from kea2.mixin import BetterConsoleLogExtensionMixin
+from datetime import datetime
 import uiautomator2 as u2
 import types
 
@@ -258,6 +260,7 @@ def _save_bug_report_configs(options: Options):
         "pre_failure_screenshots": options.pre_failure_screenshots,
         "device_output_root": options.device_output_root,
         "log_stamp": options.log_stamp if options.log_stamp else STAMP,
+        "test_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
         json.dump(configs, fp, indent=4)
@@ -453,11 +456,13 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
                 resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
                 resultSyncer.run()
-
-                end_by_remote = False
+                start_time = perf_counter()
+                fb_is_running = True
                 self.stepsCount = 0
                 while self.stepsCount < self.options.maxStep:
-
+                    if self.shouldStop(start_time):
+                        logger.info("Exploration time up (--running-minutes).")
+                        break
                     try:
                         if fb.executed_prop:
                             fb.executed_prop = False
@@ -475,7 +480,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         logger.info("Connection refused by remote.")
                         if fb.get_return_code() == 0:
                             logger.info("Exploration times up (--running-minutes).")
-                            end_by_remote = True
+                            fb_is_running = False
                             break
                         raise RuntimeError("Fastbot Aborted.")
 
@@ -518,7 +523,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     fb.executed_prop = True
                     result.flushResult()
 
-                if not end_by_remote:
+                if fb_is_running:
                     fb.stopMonkey()
                 result.flushResult()
                 resultSyncer.close()
@@ -529,6 +534,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         
         result.logSummary()
         return result
+    
+    def shouldStop(self, start_time):
+        if self.options.running_mins is None:
+            return False
+        return (perf_counter() - start_time) >= self.options.running_mins * 60
 
     @property
     def _monkeyStepInfo(self):

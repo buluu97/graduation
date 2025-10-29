@@ -179,6 +179,13 @@ class BugReportGenerator:
             self._test_result: TestResult = json.load(f)
 
         return self._test_result
+    
+    @property 
+    def config(self) -> Dict:
+        if not hasattr(self, '_config'):
+            with open(self.result_dir / "bug_report_config.json", "r", encoding="utf-8") as fp:
+                self._config = json.load(fp)
+        return self._config
 
     def __init__(self, result_dir=None):
         """
@@ -222,10 +229,8 @@ class BugReportGenerator:
         """
         self.result_dir = Path(result_dir)
         
-        if (self.result_dir / "bug_report_config.json").exists():
-            with open(self.result_dir / "bug_report_config.json", "r", encoding="utf-8") as fp:
-                config = json.load(fp)
-                self.log_stamp = config.get("log_stamp", "")
+        if self.config:
+            self.log_stamp = self.config.get("log_stamp", "")
                 
         if self.log_stamp:
             output_dir = self.result_dir / f"output_{self.log_stamp}"
@@ -300,6 +305,7 @@ class BugReportGenerator:
         """
         data: ReportData = {
             "timestamp": self.log_stamp,
+            "test_time": self.config.get("test_time", ""),
             "bugs_found": 0,
             "executed_events": 0,
             "total_testing_time": 0,
@@ -316,7 +322,7 @@ class BugReportGenerator:
             "property_execution_trend": [],
             "activity_count_history": {},
             "crash_events": [],
-            "anr_events": []
+            "anr_events": [],
         }
 
         # Parse steps.log file to get test step numbers and screenshot mappings
@@ -592,6 +598,7 @@ class BugReportGenerator:
         # Prepare template data
         template_data = {
             'timestamp': timestamp,
+            'test_time': data.get("test_time", ""),
             'log_stamp': data.get("timestamp", ""),
             'bugs_found': data["bugs_found"],
             'total_testing_time': data["total_testing_time"],
