@@ -140,6 +140,8 @@ class Options:
     take_screenshots: bool = False
     # Screenshots before failure (Dump n screenshots before failure. 0 means take screenshots for every step)
     pre_failure_screenshots: int = 0
+    # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
+    post_failure_screenshots: int = 0
     # The root of output dir on device
     device_output_root: str = "/sdcard"
     # the debug mode
@@ -200,7 +202,10 @@ class Options:
     
     def _sanitize_args(self):
         if not self.take_screenshots and self.pre_failure_screenshots > 0:
-            raise ValueError("--screenshots-before-error should be 0 when --take-screenshots is not set.")
+            raise ValueError("--pre-failure-screenshots should be 0 when --take-screenshots is not set.")
+        
+        if self.pre_failure_screenshots < self.post_failure_screenshots:
+            raise ValueError("--post-failure-screenshots should be smaller than --pre-failure-screenshots.") 
 
         self.profile_period = int(self.profile_period)
         if self.profile_period < 1:
@@ -258,6 +263,7 @@ def _save_bug_report_configs(options: Options):
         "packageNames": options.packageNames,
         "take_screenshots": options.take_screenshots,
         "pre_failure_screenshots": options.pre_failure_screenshots,
+        "post_failure_screenshots": options.post_failure_screenshots,
         "device_output_root": options.device_output_root,
         "log_stamp": options.log_stamp if options.log_stamp else STAMP,
         "test_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

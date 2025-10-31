@@ -117,6 +117,7 @@ class FastbotManager:
         post_data = {
             "takeScreenshots": options.take_screenshots,
             "preFailureScreenshots": options.pre_failure_screenshots,
+            "postFailureScreenshots": options.post_failure_screenshots,
             "logStamp": stamp,
             "deviceOutputRoot": options.device_output_root,
         }

@@ -291,7 +291,7 @@ class BugReportGenerator:
             with open(report_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
 
-            logger.debug(f"Bug report saved to: {report_path}")
+            logger.info(f"Bug report saved to: {report_path}")
             return str(report_path)
 
         except Exception as e:
@@ -973,7 +973,7 @@ class BugReportGenerator:
 
         # Pattern to match crash blocks with optional screenshot information
         # Look for StepsCount and CrashScreen before the timestamp
-        crash_pattern = r'(?:StepsCount:\s*(\d+)\s*\nCrashScreen:\s*([^\n]+)\s*\n)?(\d{14})\ncrash:\n(.*?)\n// crash end'
+        crash_pattern = r'(?:StepsCount:\s*(\d+)\s*\nCrashScreen:\s*([^\n]*)\s*\n)?(\d{14})\ncrash:\n(.*?)\n// crash end'
 
         for match in re.finditer(crash_pattern, content, re.DOTALL):
             steps_count = match.group(1)
@@ -990,6 +990,11 @@ class BugReportGenerator:
 
             # Extract crash information
             crash_info = self._extract_crash_info(crash_content)
+
+            if not crash_screen and steps_count:
+                _crash_screens = list(self.data_path.screenshots_dir.glob(f'screenshot-{steps_count}-*.png'))
+                if _crash_screens:
+                    crash_screen = str(_crash_screens[0].name)
 
             crash_event = {
                 "time": formatted_time,
