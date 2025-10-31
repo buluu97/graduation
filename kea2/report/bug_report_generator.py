@@ -178,7 +178,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         """Set up Jinja2 environment for HTML template rendering"""
         try:
             self.jinja_env = Environment(
-                loader=PackageLoader("kea2", "templates"),
+                loader=PackageLoader("kea2.report", "templates"),
                 autoescape=select_autoescape(['html', 'xml'])
             )
         except (ImportError, ValueError):

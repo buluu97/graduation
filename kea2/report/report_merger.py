@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 from collections import defaultdict
 
-from kea2.utils import getLogger
+from ..utils import getLogger, catchException
 
 logger = getLogger(__name__)
 
@@ -682,6 +682,7 @@ class TestReportMerger:
             "merge_timestamp": datetime.now().isoformat()
         }
 
+    @catchException("Error generating HTML report")
     def _generate_html_report(self, data: Dict, output_dir: Path) -> str:
         """
         Generate HTML report using the merged template
@@ -693,37 +694,32 @@ class TestReportMerger:
         Returns:
             Path to the generated HTML report
         """
+        from jinja2 import Environment, FileSystemLoader, PackageLoader, select_autoescape
+
+        # Set up Jinja2 environment
         try:
-            from jinja2 import Environment, FileSystemLoader, PackageLoader, select_autoescape
+            jinja_env = Environment(
+                loader=PackageLoader("kea2.report", "templates"),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
+        except (ImportError, ValueError):
+            # Fallback to file system loader
+            current_dir = Path(__file__).parent
+            templates_dir = current_dir / "templates"
 
-            # Set up Jinja2 environment
-            try:
-                jinja_env = Environment(
-                    loader=PackageLoader("kea2", "templates"),
-                    autoescape=select_autoescape(['html', 'xml'])
-                )
-            except (ImportError, ValueError):
-                # Fallback to file system loader
-                current_dir = Path(__file__).parent
-                templates_dir = current_dir / "templates"
+            jinja_env = Environment(
+                loader=FileSystemLoader(templates_dir),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
 
-                jinja_env = Environment(
-                    loader=FileSystemLoader(templates_dir),
-                    autoescape=select_autoescape(['html', 'xml'])
-                )
+        # Render template
+        template = jinja_env.get_template("merged_bug_report_template.html")
+        html_content = template.render(**data)
 
-            # Render template
-            template = jinja_env.get_template("merged_bug_report_template.html")
-            html_content = template.render(**data)
+        # Save HTML report
+        report_file = output_dir / "merged_report.html"
+        with open(report_file, 'w', encoding='utf-8') as f:
+            f.write(html_content)
 
-            # Save HTML report
-            report_file = output_dir / "merged_report.html"
-            with open(report_file, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-
-            logger.debug(f"HTML report generated: {report_file}")
-            return str(report_file)
-
-        except Exception as e:
-            logger.error(f"Error generating HTML report: {e}")
-            raise
+        logger.debug(f"HTML report generated: {report_file}")
+        return str(report_file)
