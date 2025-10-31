@@ -2,8 +2,6 @@ import sys
 import argparse
 import unittest
 from typing import List
-import os
-
 
 
 def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"):

@@ -1,15 +1,13 @@
 import functools
 import random
 import socket
-import time
 from time import sleep
 import uiautomator2 as u2
 import adbutils
 import types
 import rtree
 import re
-from typing import Any, Dict, List, Literal, Union, Optional
-from http.client import HTTPResponse
+from typing import List, Literal, Union, Optional
 from lxml import etree
 from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
 from .adbUtils import list_forwards, remove_forward, create_forward

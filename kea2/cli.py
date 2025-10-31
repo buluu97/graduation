@@ -71,7 +71,7 @@ def cmd_report(args):
 
 def cmd_merge(args):
     """Merge multiple test report directories and generate a combined report"""
-    from .report_merger import TestReportMerger
+    from .report.report_merger import TestReportMerger
 
     try:
         # Validate input paths
