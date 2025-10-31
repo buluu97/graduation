@@ -93,12 +93,11 @@ def cmd_merge(args):
         merger = TestReportMerger()
 
         # Merge test reports
-        merged_dir = merger.merge_reports(args.paths, args.output)
+        merged_report = merger.merge_reports(args.paths, args.output)
 
         # Print results
         print(f"✅ Test reports merged successfully!", flush=True)
-        print(f"📁 Merged report directory: {merged_dir}", flush=True)
-        print(f"📊 Merged report: {merged_dir}/merged_report.html", flush=True)
+        print(f"📊 Merged report: {merged_report}", flush=True)
 
         # Get merge summary
         merge_summary = merger.get_merge_summary()
