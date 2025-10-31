@@ -13,7 +13,7 @@ import random
 import warnings
 from dataclasses import dataclass, asdict
 from kea2.absDriver import AbstractDriver
-from kea2.bug_report_generator import BugReportGenerator
+from kea2.report.bug_report_generator import BugReportGenerator
 from kea2.resultSyncer import ResultSyncer
 from kea2.logWatcher import LogWatcher
 from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
@@ -762,8 +762,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
     @catchException("Error when generating bug report")
     def _generate_bug_report(self):
         logger.info("Generating bug report")
-        report_generator = BugReportGenerator(self.options.output_dir)
-        report_generator.generate_report()
+        BugReportGenerator(self.options.output_dir).generate_report()
 
     def __del__(self):
         """tearDown method. Cleanup the env.
