@@ -19,8 +19,11 @@ authors = [
 kea2 = "kea2.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["kea2"]
+include = ["kea2*"]
 
 [tool.setuptools.package-data]
-kea2 = ["assets/**/*", "templates/**/*"]
+kea2 = [
+    "assets/**/*", 
+    "report/templates/**/*"
+]
 

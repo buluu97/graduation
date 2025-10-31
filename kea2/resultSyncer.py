@@ -1,7 +1,10 @@
-from pathlib import Path
 import threading
+
+from pathlib import Path
+
 from .adbUtils import ADBDevice
 from .utils import getLogger
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .keaUtils import Options

@@ -1,29 +1,32 @@
-from collections import deque
-from copy import deepcopy
+import random
+import warnings
+import types
+import traceback
 import json
 import os
+
+from collections import deque
+from copy import deepcopy
 from pathlib import Path
 from time import perf_counter
-import traceback
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
 from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
 from unittest import main as unittest_main
-import random
-import warnings
 from dataclasses import dataclass, asdict
-from kea2.absDriver import AbstractDriver
-from kea2.bug_report_generator import BugReportGenerator
-from kea2.resultSyncer import ResultSyncer
-from kea2.logWatcher import LogWatcher
-from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
-from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
-from kea2.fastbotManager import FastbotManager
-from kea2.adbUtils import ADBDevice
-from kea2.mixin import BetterConsoleLogExtensionMixin
 from datetime import datetime
+
 import uiautomator2 as u2
-import types
+
+from .absDriver import AbstractDriver
+from .report.bug_report_generator import BugReportGenerator
+from .resultSyncer import ResultSyncer
+from .logWatcher import LogWatcher
+from .utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
+from .u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
+from .fastbotManager import FastbotManager
+from .adbUtils import ADBDevice
+from .mixin import BetterConsoleLogExtensionMixin
 
 
 hybrid_mode = ContextVar("hybrid_mode", default=False)
@@ -762,8 +765,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
     @catchException("Error when generating bug report")
     def _generate_bug_report(self):
         logger.info("Generating bug report")
-        report_generator = BugReportGenerator(self.options.output_dir)
-        report_generator.generate_report()
+        BugReportGenerator(self.options.output_dir).generate_report()
 
     def __del__(self):
         """tearDown method. Cleanup the env.
@@ -886,7 +888,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         Merge all hybrid test reports into a single merged report
         """
         try:
-            from kea2.report_merger import TestReportMerger
+            from kea2.report.report_merger import TestReportMerger
 
             if len(self.hybrid_report_dirs) < 2:
                 logger.info("Only one hybrid test report generated, skipping merge.")

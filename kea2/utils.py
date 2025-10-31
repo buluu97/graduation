@@ -1,12 +1,11 @@
-import logging
 import os
-from pathlib import Path
+import logging
 import traceback
-from typing import Callable, Dict, Optional
-
 import time
-from functools import wraps
 
+from pathlib import Path
+from functools import wraps
+from typing import Callable, Dict, Optional
 
 
 def singleton(cls):
@@ -17,7 +16,6 @@ def singleton(cls):
             _instance[cls] = cls()
         return _instance[cls]
     return inner
-
 
 
 class LoggingLevel:
