@@ -32,15 +32,20 @@ Note that if a test method is not decorated with `@precondition`.
 This test method will never be activated during automated UI testing, and will be treated as a normal `unittset` test method.
 Thus, you need to explicitly specify `@precondition(lambda self: True)` when the test method should be always executed. When a test method is not decorated with `@prob`, the default probability is 1 (always execute when precondition satisfied). 
 
+Here's an recommended way to write your Kea2's scripts. (You can use it as a template.)
+
 ```python
 import unittest
+from uiautomator2 import Device  # Import u2 for typing
 from kea2 import precondition
 
 class MyFirstTest(unittest.TestCase):
+    d: Device  # Type hint for uiautomator2's Device
 
     @prob(0.7)
     @precondition(lambda self: ...)
     def test_func1(self):
+        self.d(...)  # Use self.d to interact with the device
         ...
 ```
 
@@ -194,41 +199,57 @@ if __name__ == "__main__":
 ```
 
 We can directly run the script `mytest.py` to launch Kea2, e.g.,
-```python
+```bash
 python3 mytest.py
 ```
 
 Here's all the available options in `Options`.
 
 ```python
-# the driver_name in script (if self.d, then d.) 
-driverName: str
-# the driver (only U2Driver available now)
-Driver: U2Driver
-# list of package names. Specify the apps under test
-packageNames: List[str]
-# target device
-serial: str = None
-# test agent. "u2" is the default agent
-agent: "u2" | "native" = "u2"
-# max step in exploration (availble in stage 2~3)
-maxStep: int # default "inf"
-# time(mins) for exploration
-running_mins: int = 10
-# time(ms) to wait when exploring the app
-throttle: int = 200
-# the output_dir for saving logs and results
-output_dir: str = "output"
-# the stamp for log file and result file, default: current time stamp
-log_stamp: str = None
-# the profiling period to get the coverage result.
-profile_period: int = 25
-# take screenshots for every step
-take_screenshots: bool = False
-# The root of output dir on device
-device_output_root: str = "/sdcard"
-# the debug mode
-debug: bool = False
+    # the driver_name in script (if self.d, then d.) 
+    driverName: str = None
+    # the driver (only U2Driver available now)
+    Driver: AbstractDriver = None
+    # list of package names. Specify the apps under test
+    packageNames: List[str] = None
+    # target device
+    serial: str = None
+    # target device with transport_id
+    transport_id: str = None
+    # test agent. "native" for stage 1 and "u2" for stage 1~3
+    agent: Literal["u2", "native"] = "u2"
+    # max step in exploration (availble in stage 2~3)
+    maxStep: Union[str, float] = float("inf")
+    # time(mins) for exploration
+    running_mins: int = 10
+    # time(ms) to wait when exploring the app
+    throttle: int = 200
+    # the output_dir for saving logs and results
+    output_dir: str = "output"
+    # the stamp for log file and result file, default: current time stamp
+    log_stamp: str = None
+    # the profiling period to get the coverage result.
+    profile_period: int = 25
+    # take screenshots for every step
+    take_screenshots: bool = False
+    # Screenshots before failure (Dump n screenshots before failure. 0 means take screenshots for every step)
+    pre_failure_screenshots: int = 0
+    # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
+    post_failure_screenshots: int = 0
+    # The root of output dir on device
+    device_output_root: str = "/sdcard"
+    # the debug mode
+    debug: bool = False
+    # Activity WhiteList File
+    act_whitelist_file: str = None
+    # Activity BlackList File
+    act_blacklist_file: str = None
+    # propertytest sub-commands args (eg. discover -s xxx -p xxx)
+    propertytest_args: str = None
+    # unittest sub-commands args (Feat 4)
+    unittest_args: List[str] = None
+    # Extra args (directly passed to fastbot)
+    extra_args: List[str] = None
 ```
 
 
@@ -248,11 +269,8 @@ The `kea2 report` command generates an HTML test report from existing test resul
 # Generate report from a test result directory
 kea2 report -p res_20240101_120000
 
-# Generate report with debug mode enabled
-kea2 -d report -p res_20240101_120000
-
-# Generate report using relative path
-kea2 report -p ./output/res_20240101_120000
+# Generate multiple reports
+kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001
 ```
 
 **What the report includes:**
@@ -275,6 +293,7 @@ The report command generates:
 The command expects a test result directory with the following structure:
 ```
 res_<timestamp>/
+├── bug_report_config.json           # Report configuration (Includes test infos)
 ├── result_<timestamp>.json          # Property test results
 ├── output_<timestamp>/
 │   ├── steps.log                    # Test execution steps
