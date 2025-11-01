@@ -227,13 +227,19 @@ For the preceding always-holding property, we can write the following script to 
         lambda self: self.d(description="input_box").exists
     )
     def test_input_box(self):
+
+        # genenerate a random non-empty string (this is also property-based testing by feeding random text inputs!)
         from hypothesis.strategies import text, ascii_letters
         random_str = text(alphabet=ascii_letters).example()
+
+        # input this non-empty string into the input box 
         self.d(description="input_box").set_text(random_str)
+
+        # check whether the send button exists
         assert self.d(description="send_button").exist
 
         # we can even do more assertions, e.g.,
-        #       the input string should exist on the message sending page
+        #       the input string should successfully appear on the message sending page
         assert self.d(text=random_str).exist
 ```
 >  We use [hypothesis](https://github.com/HypothesisWorks/hypothesis) to generate random texts.
