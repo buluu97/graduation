@@ -9,7 +9,7 @@
     <img src="https://github.com/user-attachments/assets/84e47b87-2dd2-4d7e-91d1-e8c1d1db0cf4" style="border-radius: 14px; width: 20%; height: 20%;"/> 
 </div>
 
-The group has reached its capacity. Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat group.
+Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat discussion group. Of course, we are also ready on GitHub to answer your questions/feedback.
 
 ### Github repo link
 [https://github.com/ecnusse/Kea2](https://github.com/ecnusse/Kea2)
@@ -61,11 +61,11 @@ Kea2 (and its idea) has been used/integrated by
 
 - [OPay Business](https://play.google.com/store/apps/details?id=team.opay.pay.merchant.service) --- a financial & payment app. OPay uses Kea2 for regression testing on POS machines and mobile devices.
 
-- [WeChat's iExplorer]() --- WeChat's in-house testing platform
+- [WeChat's iExplorer]() --- WeChat's in-house testing platform (coming with an interactive UI-based tool to ease writing scripts)
 
-- [WeChat Payment's UAT]() --- WeChat Payment's in-house testing platform
+- [WeChat Payment's UAT]() --- WeChat Payment's in-house testing platform (fully automated property-based testing by synthesizing properties from the system specifications)
 
-- [DevEco Testing](https://developer.huawei.com/consumer/cn/deveco-testing/) --- Huawei's Official Testing Platform for HarmonyOS 
+- [DevEco Testing](https://developer.huawei.com/consumer/cn/deveco-testing/) --- Huawei's Official Testing Platform for HarmonyOS (Kea2 is built upon Hypium)
 
 - [ByteDance's Fastbot](https://github.com/bytedance/Fastbot_Android)
 
@@ -111,7 +111,12 @@ Upgrade Kea2 to the specifc latest version (e.g., 0.3.6) if you already installe
 python3 -m pip install -U kea2-python==0.3.6
 ```
 
+Initialize Kea2 under your preferred working directory:
+```python
+kea2 init
+```
 
+> This initialization step is always needed if it is your first time to run Kea2. If you have upgraded Kea2, you are also recommended to rerun this step to ensure any potential new configurations of Kea2 would take effect.
 
 
 ## Quick Test
@@ -122,17 +127,12 @@ Kea2 connects to and runs on Android devices. We recommend you to do a quick tes
 
 2. Run `quicktest.py` to test a sample app `omninotes` (released as `omninotes.apk` in Kea2's repository). The script `quicktest.py` will automatically install and test this sample app for a short time.
 
-Initialize Kea2 under your preferred working directory:
-```python
-kea2 init
-```
-
-> This step is always needed if it is your first time to run Kea2.
-
 Run the quick test:
 ```python
 python3 quicktest.py
 ```
+
+> This quick test would automatically download `omninotes.apk`. If the download fails, please copy `omninotes.apk` from Kea2's repository (top-level) to your working directory and execute the quick test command again.
 
 If you can see the app `omninotes` is successfully running and tested, Kea2 works!
 Otherwise, please help [file a bug report](https://github.com/ecnusse/Kea2/issues) with the error message to us. Thank you!
@@ -268,13 +268,14 @@ kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --th
 
 ## Test Reports（测试报告）
 
-Kea2 automatically generates comprehensive HTML test reports after each testing session.(The location is in the output/ directory)
+Kea2 automatically generates a HTML test report after each testing session. You can find the report in `output/` under your working directory.
 
-If automatic generation fails, you can also manually generate the test report using the command "kea2 report -p 'the path to the folder containing the test data'"
+You can also manually generate the test report by `kea2 report` (see `kea2 report -h` for details).
 
-The reports support both single test runs and merged analysis of multiple test sessions, making it easy to track testing progress and identify issues.
+You can also merge the test report from multiple testing sessions by `kea2 merge` (see `kea2 merge -h` for details).
+The merged test report is quite useful if you would test your apps for multiple sessions.
 
-- [View detailed test report documentation](docs/test_report_introduction.md)
+You can find a sample [test report](https://ecnusse.github.io/Kea2_sample_report/) from Opay (Thank you!). You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
 
 ## Documentations（更多文档）
 
@@ -290,7 +291,8 @@ You can find the [user manual](docs/manual_en.md), which includes:
 ### Other resources about Kea2 (in Chinese)
 - [Q&A for Kea2 and PBT (对Kea2和PBT技术的常见问题和回答)](https://sy8pzmhmun.feishu.cn/wiki/SLGwwqgzIiEuC3kwmV8cSZY0nTg?from=from_copylink) 
 - [Kea2 101 (Kea2 从0到1 的入门教程与最佳实践，建议新手阅读)](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)
-- [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/?vd_source=ab7968b8d764666d85d24af49d9b8891)
+- [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/)
+- [Kea2 工具快速介绍 (2025.11, bilibili 录播)](https://www.bilibili.com/video/BV1WAyUBDEMw/)
 
 Some blogs on Kea/Kea2 (in Chinese):
 - [别再苦哈哈写测试脚本了，生成它们吧！(一)](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
