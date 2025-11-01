@@ -72,21 +72,36 @@ class Omni_Notes_Sample(unittest.TestCase):
 
 
 URL = "https://github.com/federicoiosue/Omni-Notes/releases/download/6.2.0_alpha/OmniNotes-alphaRelease-6.2.0.apk"
+FALL_BACK_URL = "https://gitee.com/XixianLiang/Kea2/raw/main/omninotes.apk"
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"
 FILE_NAME = "omninotes.apk"
+
+
+def download_omninotes():
+    import socket
+    socket.setdefaulttimeout(30)
+    try:
+        import urllib.request
+        urllib.request.urlretrieve(URL, FILE_NAME)
+    except Exception as e:
+        print(f"[WARN] Download from {URL} failed: {e}. Try to download from fallback URL {FALL_BACK_URL}", flush=True)
+        try:
+            urllib.request.urlretrieve(FALL_BACK_URL, FILE_NAME)
+        except Exception as e2:
+            print(f"[ERROR] Download from fallback URL {FALL_BACK_URL} also failed: {e2}", flush=True)
+            raise e2
 
 
 def check_installation(serial=None):
     import os
     from pathlib import Path
-    if not os.path.exists(Path(".") / FILE_NAME):
-        print(f"[INFO] omninote.apk not exists. Downloading from {URL}", flush=True)
-        import urllib.request
-        urllib.request.urlretrieve(URL, FILE_NAME)
-
+    
     d = u2.connect(serial)
     # automatically install omni-notes
     if PACKAGE_NAME not in d.app_list():
+        if not os.path.exists(Path(".") / FILE_NAME):
+            print(f"[INFO] omninote.apk not exists. Downloading from {URL}", flush=True)
+            download_omninotes()
         print("[INFO] Installing omninotes.", flush=True)
         d.app_install(FILE_NAME)
     d.stop_uiautomator()
