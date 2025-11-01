@@ -65,6 +65,6 @@ jobs:
       - name: Enable auto-merge (rebase)
         if: steps.cpr.outputs.pull-request-number != ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           gh pr merge ${{ steps.cpr.outputs.pull-request-number }} --rebase --auto
