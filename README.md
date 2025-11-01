@@ -106,9 +106,9 @@ python3 -m pip install -U kea2-python
 ```
 > If you're using mirror sites like Tsinghua or USTC, you may fail to upgrade. Because these sites may not have the latest version yet. In this case, you can try to install Kea2 by specifying the latest version manually, or use `pypi.org` directly by `pip install kea2-python -i https://pypi.org/simple`.
 
-Upgrade Kea2 to the specifc latest version (e.g., 0.3.6) if you already installed Kea2 before:
+Upgrade Kea2 to the specifc latest version (e.g., 1.0.0) if you already installed Kea2 before:
 ```bash
-python3 -m pip install -U kea2-python==0.3.6
+python3 -m pip install -U kea2-python==1.0.0
 ```
 
 Initialize Kea2 under your preferred working directory:
@@ -123,12 +123,12 @@ kea2 init
 
 Kea2 connects to and runs on Android devices. We recommend you to do a quick test to ensure that Kea2 is compatible with your devices.
 
-1. Connect to a real Android device or an Android emulator (only one device is enough) and make sure you can see the connected device by running `adb devices`. 
+1. Connect to a real Android device or an Android emulator and make sure you can see the connected device by running `adb devices`. 
 
 2. Run `quicktest.py` to test a sample app `omninotes` (released as `omninotes.apk` in Kea2's repository). The script `quicktest.py` will automatically install and test this sample app for a short time.
 
 Run the quick test:
-```python
+```bash
 python3 quicktest.py
 ```
 
@@ -147,7 +147,7 @@ Test your app with the full capability of Fastbot for stress testing and finding
 kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200
 ```
 
-To understand the meanings of the options, you can see our [manual](docs/manual_en.md#launching-kea2).
+To understand the meanings of the options, you can see our [user manual](docs/manual_en.md#launching-kea2).
 
 > The usage is similar to the the original Fastbot's [shell commands](https://github.com/bytedance/Fastbot_Android?tab=readme-ov-file#run-fastbot-with-shell-command). 
 
@@ -336,7 +336,7 @@ kea2的核心作用：
 
     提供了条件触发器。 在FB跑路的时候，会不停遍历条件触发器，一旦触发，挂起FB，开始执行触发器指定的 ui test 及 assert。执行完毕，继续切回FB跑路。
 
-hea2做了什么：
+kea2做了什么：
 
     替换了FB的条件触发功能。
     替换了FB的黑名单，黑控件功能。
