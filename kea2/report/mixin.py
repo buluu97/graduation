@@ -439,6 +439,9 @@ class ScreenshotsMixin:
             prop_name = step_data["Info"].get('propName', '')
             state = step_data["Info"].get('state', 'N/A')
             caption = f"{prop_name}: {state}" if prop_name else f"{state}"
+        elif step_data["Type"] == "Fuzz":
+            monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
+            caption = f"Monkey Step {monkey_steps_count}: Fuzz"
 
         screenshot_name = step_data["Screenshot"]
 

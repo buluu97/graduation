@@ -390,7 +390,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
     def _parse_step_data(self, raw_step_info: str) -> StepData:
         step_data: StepData = json.loads(raw_step_info)
-        step_data["Info"] = json.loads(step_data["Info"])
+        if step_data["Type"] in {"Monkey", "Script", "ScriptInfo"}:
+            step_data["Info"] = json.loads(step_data["Info"])
         return step_data
 
 
