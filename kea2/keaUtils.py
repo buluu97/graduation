@@ -600,6 +600,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     continue
                 validProps[propName] = test
 
+        staticCheckerDriver.clear_cache()
+
         print(f"{len(validProps)} precond satisfied.", flush=True)
         if len(validProps) > 0:
             print("[INFO] Valid properties:",flush=True)
