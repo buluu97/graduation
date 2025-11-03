@@ -407,3 +407,29 @@ For example:
 ```bash
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
 ```
+
+## Tips to Enhance Kea2 performance
+
+Currently, we have an algorithm in `@precondition` decorator and `widgets.block.py` to enhence the performance of the tool. The algorithm only support basic selector (No parent-child relationship) in uiautomator2. If you have many properties with complex preconditions and observed performance issue, you're recommanded to specify it in xpath.
+
+| | **Recommand** | **Not recommand** |
+| -- | -- | -- |
+| **Selector** | `d(text="1").exist` | `d(text="1").child(text="2").exist` |
+
+If you need to specify `parent-child` relation ship in `@precondition`, specify it in xpath.
+
+for example: 
+
+```python
+# Do not use: 
+# @precondition(lambda self: 
+#      self.d(className="android.widget.ListView").child(text="Bluetooth")
+# ):
+# ...
+
+# Use
+@precondition(lambda self: 
+    self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
+):
+...
+```

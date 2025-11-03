@@ -364,7 +364,7 @@ kea2做了什么：
 
 > Guided, Stochastic Model-Based GUI Testing of Android Apps. ESEC/FSE 2017.  [pdf](https://dl.acm.org/doi/10.1145/3106237.3106298)
 
-### Maintainers/Contributors
+## Maintainers/Contributors
 
 Kea2 has been actively developed and maintained by the people in [ecnusse](https://github.com/ecnusse):
 
@@ -382,7 +382,13 @@ Kea2 has been actively developed and maintained by the people in [ecnusse](https
 
 Kea2 has also received many valuable insights, advices, feedbacks and lessons shared by several industrial people from Bytedance ([Zhao Zhang](https://github.com/zhangzhao4444), Yuhui Su from the Fastbot team), OPay (Tiesong Liu), WeChat (Haochuan Lu, Yuetang Deng), Huawei, Xiaomi and etc. Kudos!
 
-### Star History
+### Become a Contributor!
+
+Kea2 is an open-source project and we are calling for more contributors to join us!
+
+See [Developer guide](DEVELOP.md) for more details.
+
+## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=ecnusse/Kea2&type=Date)](https://www.star-history.com/#ecnusse/Kea2&Date)
 
