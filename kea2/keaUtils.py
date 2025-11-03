@@ -153,11 +153,11 @@ class Options:
     act_whitelist_file: str = None
     # Activity BlackList File
     act_blacklist_file: str = None
-    # Feat4. propertytest args(eg. discover -s xxx -p xxx)
+    # propertytest sub-commands args (eg. discover -s xxx -p xxx)
     propertytest_args: str = None
-    # Feat4. unittest args(eg. -v -s xxx -p xxx)
+    # unittest sub-commands args (Feat 4)
     unittest_args: List[str] = None
-    # Extra args
+    # Extra args (directly passed to fastbot)
     extra_args: List[str] = None
 
     def __setattr__(self, name, value):

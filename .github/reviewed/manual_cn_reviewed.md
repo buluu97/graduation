@@ -121,6 +121,8 @@ def test_func1(self):
 | --pre-failure-screenshots | 失败前截取的截图数量。0 表示每步都截图。该选项仅在 `--take-screenshots` 设置时有效。 | `0` |
 | --post-failure-screenshots | 失败后截取的截图数量。应小于等于 `--pre-failure-screenshots`。该选项仅在 `--take-screenshots` 设置时有效。 | `0` |
 | --device-output-root | 设备输出目录根路径，Kea2 将暂存截图和结果日志到 `"<device-output-root>/output_*********/"`。确保该目录可访问。 | `/sdcard` |
+| --act-whitelist-file | Activity 白名单文件。测试过程中仅能探索文件中列出的 Activity。 |  |
+| --act-blacklist-file | Activity 黑名单文件。测试过程中会避免探索文件中列出的 Activity。 |  |
 
 ### 1.2 子命令及其参数
 
