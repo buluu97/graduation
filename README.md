@@ -28,7 +28,7 @@ Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) 
 
 Kea2 is an easy-to-use tool for fuzzing mobile apps. Its key *novelty* is able to fuse automated UI testing with scripts (usually written by human), thus empowering automated UI testing with human intelligence for effectively finding *crashing bugs* as well as *non-crashing functional (logic) bugs*. 
 
-Kea2 is currently built on top of [Fastbot](https://github.com/bytedance/Fastbot_Android), *an industrial-strength automated UI testing tool*, and [uiautomator2](https://github.com/openatx/uiautomator2), *an easy-to-use and stable Android automation library*.
+Kea2 is currently built on top of [Fastbot](https://github.com/ecnusse/Fastbot_Android) 3.0 (a modified/enhanced version of the original [FastBot](https://github.com/bytedance/Fastbot_Android) 2.0), *an industrial-strength automated UI testing tool from ByteDance*, and [uiautomator2](https://github.com/openatx/uiautomator2), *an easy-to-use and stable Android automation library*. 
 Kea2 currently targets [Android](https://en.wikipedia.org/wiki/Android_(operating_system)) apps. 
 
 ## Novelty & Important features
@@ -75,7 +75,7 @@ Please let us know and willing to hear your feedback/questions if you are also u
 Kea2 currently works with:
 - [unittest](https://docs.python.org/3/library/unittest.html) as the testing framework to manage the scripts;
 - [uiautomator2](https://github.com/openatx/uiautomator2) as the UI test driver; 
-- [Fastbot](https://github.com/bytedance/Fastbot_Android) as the backend automated UI testing tool.
+- [Fastbot](https://github.com/bytedance/Fastbot_Android) as the backend automated UI testing tool. 
 
 In the future, Kea2 will be extended to support
 - [pytest](https://docs.pytest.org/en/stable/), another popular python testing framework;
