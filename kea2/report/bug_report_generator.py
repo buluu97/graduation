@@ -280,7 +280,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 info = step_data.get("Info", {})
 
                 # Count Monkey events separately
-                if step_type == "Monkey":
+                if step_type == "Monkey" or step_type == "Fuzz":
                     monkey_events_count += 1
 
                 # If screenshots are enabled, mark the screenshot
