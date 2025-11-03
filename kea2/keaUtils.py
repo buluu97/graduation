@@ -255,7 +255,7 @@ def _check_package_installation(packageNames):
     for package in packageNames:
         if package not in installed_packages:
             logger.error(f"package {package} not installed. Abort.")
-            raise ValueError("package not installed")
+            raise ValueError(f"{package} not installed")
 
 
 def _save_bug_report_configs(options: Options):

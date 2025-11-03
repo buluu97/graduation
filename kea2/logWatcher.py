@@ -46,7 +46,7 @@ class LogWatcher:
                 raise RuntimeError(
                     "[Error] Fatal Execption while running fastbot:\n" + 
                     exception_body + 
-                    "\nSee fastbot.log for details."
+                    f"\nSee {self.log_file} for details."
                 )
         
         statistic_match = PATTERN_STATISTIC.search(content)
