@@ -5,7 +5,8 @@
 
 ## Kea2's tutorials 
 
-1. A small tutorial of applying Kea2's Feature 2 and 3 on [WeChat](Scenario_Examples_zh.md).
+1. [A guide of making use of Kea2's Feature 2 and 3 to test your app. (Take WeChat for example)](Scenario_Examples_zh.md).
+2. [A guide of writing Kea2's scripts to stress test a particular feature of your app. (Take lark for example)](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc).
 
 ## Kea2's scripts
 
