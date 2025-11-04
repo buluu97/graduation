@@ -255,7 +255,7 @@ def _check_package_installation(packageNames):
     for package in packageNames:
         if package not in installed_packages:
             logger.error(f"package {package} not installed. Abort.")
-            raise ValueError("package not installed")
+            raise ValueError(f"{package} not installed")
 
 
 def _save_bug_report_configs(options: Options):
@@ -599,6 +599,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     print(f"{getFullPropName(test)} has reached its max_tries. Skip.", flush=True)
                     continue
                 validProps[propName] = test
+
+        staticCheckerDriver.clear_cache()
 
         print(f"{len(validProps)} precond satisfied.", flush=True)
         if len(validProps) > 0:

@@ -411,15 +411,25 @@ class _HindenWidgetFilter:
 
 
 class U2StaticDevice(u2.Device):
+    
     def __init__(self, script_driver=None):
         self.xml: etree._Element = None
-        self._script_driver = script_driver
+        self._script_driver:u2.Device = script_driver
+        self._app_current = None
 
     def __call__(self, **kwargs):
         ui = StaticU2UiObject(session=self, selector=u2.Selector(**kwargs))
         if self._script_driver:
             ui.jsonrpc = self._script_driver.jsonrpc
         return ui
+    
+    def clear_cache(self):
+        self._app_current = None
+    
+    def app_current(self):
+        if not self._app_current:
+            self._app_current = self._script_driver.app_current()
+        return self._app_current
 
     @property
     def xpath(self) -> u2.xpath.XPathEntry:
