@@ -147,7 +147,7 @@ class Options:
     # Activity BlackList File
     act_blacklist_file: str = None
     # Feat4. propertytest args(eg. discover -s xxx -p xxx)
-    propertytest_args: str = None
+    propertytest_args: List[str] = None
     # Feat4. unittest args(eg. -v -s xxx -p xxx)
     unittest_args: List[str] = None
     # Extra args
@@ -167,8 +167,11 @@ class Options:
 
         if self.log_stamp:
             self._sanitize_custom_stamp()
+        else:
+            global STAMP
+            STAMP = TimeStamp().getTimeStamp()
 
-        global STAMP
+        # global STAMP
         self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
         self.set_stamp()
 
@@ -527,6 +530,12 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             log_watcher.close()
         
         result.logSummary()
+        
+        if self.options.Driver:
+            self.options.Driver.tearDown()
+        if self.options.agent == "u2":
+            self._generate_bug_report()
+
         return result
 
     @property
@@ -748,14 +757,14 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         report_generator = BugReportGenerator(self.options.output_dir)
         report_generator.generate_report()
 
-    def __del__(self):
-        """tearDown method. Cleanup the env.
-        """
-        if self.options.Driver:
-            self.options.Driver.tearDown()
+    # def __del__(self):
+    #     """tearDown method. Cleanup the env.
+    #     """
+    #     if self.options.Driver:
+    #         self.options.Driver.tearDown()
 
-        if self.options.agent == "u2":
-            self._generate_bug_report()
+    #     if self.options.agent == "u2":
+    #         self._generate_bug_report()
 
 
 class KeaTextTestResult(BetterConsoleLogExtensionMixin, TextTestResult):

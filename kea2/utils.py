@@ -63,7 +63,7 @@ logger = getLogger(__name__)
 
 
 
-@singleton
+# @singleton 不用单例模式
 class TimeStamp:
     time_stamp = None
 
