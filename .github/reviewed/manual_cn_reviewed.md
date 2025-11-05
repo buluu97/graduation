@@ -4,7 +4,8 @@
 
 ## Kea2 教程
 
-1. [微信](Scenario_Examples_zh.md) 上应用 Kea2 功能 2 和 3 的小教程。
+1. [使用 Kea2 的功能 2 和 功能 3 进行测试 (以微信为例)](Scenario_Examples_zh.md)
+2. [编写 Kea2 脚本对应用特定功能进行压力测试（以飞书为例）](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc)
 
 ## Kea2 脚本
 
