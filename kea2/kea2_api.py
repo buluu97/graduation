@@ -1,37 +1,13 @@
 from typing import Optional, List, Callable, Any, Union, Dict
 import unittest
-from pathlib import Path
-import sys
 import os
-import threading
 import inspect
-from dataclasses import dataclass
-from kea2 import KeaTestRunner, Options, precondition, prob, max_tries
+from .keaUtils import KeaTestRunner, Options
 from .u2Driver import U2Driver
 from .utils import getLogger, TimeStamp
 from .adbUtils import ADBDevice
-import time
 
 logger = getLogger(__name__)
-
-try:
-    from dotenv import load_dotenv, find_dotenv
-    _env_path = find_dotenv(usecwd=True)
-    if not _env_path:
-        from .utils import getProjectRoot
-        root = getProjectRoot()
-        if root:
-            _env_path = root / ".env"
-    
-    if Path(_env_path).exists():
-        load_dotenv(_env_path)
-        logger.info(f"Loaded .env from: {_env_path}")
-    else:
-        logger.warning(f".env not found at: {_env_path}")
-except ImportError:
-    logger.warning("python-dotenv not installed, skipping .env load. Install with: pip install python-dotenv")
-
-
 
 
 class Kea2Breakpoint(unittest.SkipTest):
@@ -59,7 +35,7 @@ class Kea2Tester:
     This class allows users to directly launch Kea2 property tests in existing test scripts.
     
     Environment Variables:
-        CURRENT_MODE: Controls whether to enable Kea2 testing
+        KEA2_HYBRID_MODE: Controls whether to enable Kea2 testing
             - "kea2": Enable Kea2 testing, trigger a breakpoint after testing is completed
             - Other values or not set: Skip Kea2 testing, continue executing the original script
             
@@ -87,7 +63,7 @@ class Kea2Tester:
         Returns:
             dict: Test result dictionary containing the following keys:
                 - executed (bool): Whether Kea2 testing was executed
-                - skipped (bool): Whether Kea2 testing was skipped (CURRENT_MODE != kea2)
+                - skipped (bool): Whether Kea2 testing was skipped (KEA2_HYBRID_MODE != kea2)
                 - caller_info (Dict|None): Caller information (file, class, method name)
                 - output_dir (Path|None): Test output directory
                 - bug_report (Path|None): Bug report HTML file path
@@ -101,12 +77,12 @@ class Kea2Tester:
 
         self._caller_info = self._get_caller_info()
         
-        current_mode = os.environ.get('CURRENT_MODE', '').lower()
+        hybrid_mode = bool(os.environ.get('KEA2_HYBRID_MODE', '').lower())
         
-        if current_mode != 'kea2':
-            logger.info(f"CURRENT_MODE={current_mode or '(not set)'}, skipping Kea2 testing.")
-            logger.info("To enable Kea2 testing, set: export CURRENT_MODE=kea2")
-            logger.info("Or create a .env file in project root with: CURRENT_MODE=kea2")
+        if not hybrid_mode:
+            logger.info(f"KEA2_HYBRID_MODE={hybrid_mode or '(not set)'}, skipping Kea2 testing.")
+            logger.info("To enable Kea2 testing, set: export KEA2_HYBRID_MODE=kea2")
+            logger.info("Or create a .env file in project root with: KEA2_HYBRID_MODE=kea2")
             return {
                 'executed': False,
                 'skipped': True,
@@ -117,7 +93,7 @@ class Kea2Tester:
                 'log_file': None
             }
         
-        logger.info("CURRENT_MODE=kea2, starting Kea2 property testing...")
+        logger.info("KEA2_HYBRID_MODE=kea2, starting Kea2 property testing...")
         logger.info(f"Kea2 测试启动位置：")
         if self._caller_info:
             logger.info(f"   File: {self._caller_info['file']}")
@@ -229,6 +205,3 @@ class Kea2Tester:
                 'class': 'N/A',
                 'method': 'Unknown'
             }
-    
-
-    

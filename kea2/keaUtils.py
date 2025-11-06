@@ -40,7 +40,7 @@ PropName = NewType("PropName", str)
 PropertyStore = NewType("PropertyStore", Dict[PropName, TestCase])
 
 
-STAMP = TimeStamp().getTimeStamp()
+STAMP: str
 LOGFILE: str
 RESFILE: str
 PROP_EXEC_RESFILE: str
@@ -165,13 +165,11 @@ class Options:
         if self.Driver:
             self._set_driver()
 
-        if self.log_stamp:
-            self._sanitize_custom_stamp()
-        else:
-            global STAMP
-            STAMP = TimeStamp().getTimeStamp()
+        global STAMP
+        if not self.log_stamp:
+            STAMP = TimeStamp().getCurrentTimeStamp()
+        self._sanitize_stamp()
 
-        # global STAMP
         self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
         self.set_stamp()
 
@@ -189,15 +187,13 @@ class Options:
         RESFILE = f"result_{STAMP}.json"
         PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
 
-    def _sanitize_custom_stamp(self):
-        global STAMP
+    def _sanitize_stamp(self):
         illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
         for char in illegal_chars:
-            if char in self.log_stamp:
+            if char in STAMP:
                 raise ValueError(
-                    f"char: `{char}` is illegal in --log-stamp. current stamp: {self.log_stamp}"
+                    f"char: `{char}` is illegal in --log-stamp. current stamp: {STAMP}"
                 )
-        STAMP = self.log_stamp
     
     def _sanitize_args(self):
         if not self.take_screenshots and self.pre_failure_screenshots > 0:
@@ -530,12 +526,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             log_watcher.close()
         
         result.logSummary()
-        
-        if self.options.Driver:
-            self.options.Driver.tearDown()
+
         if self.options.agent == "u2":
             self._generate_bug_report()
 
+        self.tearDown()
         return result
 
     @property
@@ -543,7 +538,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         r = self._get_block_widgets()
         r["steps_count"] = self.stepsCount
         return r
-    
+
     def _get_block_widgets(self):
         block_dict = self._getBlockedWidgets()
         block_widgets: List[str] = block_dict['widgets']
@@ -757,14 +752,16 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         report_generator = BugReportGenerator(self.options.output_dir)
         report_generator.generate_report()
 
-    # def __del__(self):
-    #     """tearDown method. Cleanup the env.
-    #     """
-    #     if self.options.Driver:
-    #         self.options.Driver.tearDown()
-
-    #     if self.options.agent == "u2":
-    #         self._generate_bug_report()
+    def tearDown(self):
+        """tearDown method. Cleanup the env.
+        """
+        if self.options.Driver:
+            self.options.Driver.tearDown()
+    
+    def __del__(self):
+        """tearDown method. Cleanup the env.
+        """
+        self.tearDown()
 
 
 class KeaTextTestResult(BetterConsoleLogExtensionMixin, TextTestResult):

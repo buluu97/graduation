@@ -13,9 +13,8 @@ from http.client import HTTPResponse
 from lxml import etree
 from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
 from .adbUtils import list_forwards, remove_forward, create_forward
-from .utils import TimeStamp, getLogger
+from .utils import getLogger
 
-TIME_STAMP = TimeStamp().getTimeStamp()
 
 import logging
 logging.getLogger("urllib3").setLevel(logging.INFO)

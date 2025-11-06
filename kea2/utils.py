@@ -63,7 +63,7 @@ logger = getLogger(__name__)
 
 
 
-# @singleton 不用单例模式
+@singleton
 class TimeStamp:
     time_stamp = None
 
@@ -72,6 +72,10 @@ class TimeStamp:
             import datetime
             cls.time_stamp = datetime.datetime.now().strftime('%Y%m%d%H_%M%S%f')
         return cls.time_stamp
+    
+    def getCurrentTimeStamp(cls):
+        import datetime
+        return datetime.datetime.now().strftime('%Y%m%d%H_%M%S%f')
 
 
 from uiautomator2 import Device
