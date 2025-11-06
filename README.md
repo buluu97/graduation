@@ -228,7 +228,8 @@ For the preceding always-holding property, we can write the following script to 
     )
     def test_input_box(self):
 
-        # genenerate a random non-empty string (this is also property-based testing by feeding random text inputs!)
+        # genenerate a random non-empty string (this is also property-based testing
+        #                                       by feeding random text inputs!)
         from hypothesis.strategies import text, ascii_letters
         random_str = text(alphabet=ascii_letters).example()
 
