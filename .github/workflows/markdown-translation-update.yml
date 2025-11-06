@@ -1,4 +1,4 @@
-name: Translate Monitored Documents on Update
+name: Translate Documents
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
       - 'main'
     paths:
       - '**.md'
+      - '.github/scripts/**'
+      - '.github/workflows/markdown-translation-update.yml'
 
 permissions:
   contents: write
