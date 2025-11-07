@@ -56,8 +56,7 @@ class U2ScriptDriver(AbstractScriptDriver):
             print("[INFO] Connecting to uiautomator2. Please wait ...")
             self.d = u2.connect(adb)
             sleep(5)
-            self.d._device_server_port = 8090
-
+        self.d._device_server_port = 8090
         return self.d
 
     def _remove_remote_port(self, port:int):
