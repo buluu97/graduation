@@ -1,0 +1,138 @@
+import pytest
+import uiautomator2 as u2
+from time import sleep
+from kea2 import Kea2Tester, Options
+from kea2.u2Driver import U2Driver
+import os
+
+
+PACKAGE_NAME = "it.feio.android.omninotes.alpha"
+DEVICE_SERIAL = "emulator-5554"
+
+
+@pytest.fixture(scope="function")
+def setup_and_teardown():
+    """测试前后的 setup 和 teardown 操作，替代 unittest 的 setUp 和 tearDown"""
+    print("\n" + "="*60)
+    print("setup: 连接设备并重新启动应用")
+    print("="*60)
+    
+    # 初始化设备连接
+    d = u2.connect(DEVICE_SERIAL)
+    d.app_stop(PACKAGE_NAME)
+    d.app_start(PACKAGE_NAME)
+    sleep(2)
+    
+    yield d  # 将设备对象传递给测试用例
+    
+    # 测试结束后的清理工作
+    print("\n" + "="*60)
+    print("teardown: 清理工作")
+    print("="*60)
+
+
+def test_case1_add_tag_show_tags(setup_and_teardown):
+    """add note -> add tag -> show tags"""
+    d = setup_and_teardown
+    
+    d(resourceId="it.feio.android.omninotes.alpha:id/fab_expand_menu_button").long_click()
+    d(resourceId="it.feio.android.omninotes.alpha:id/detail_content").set_text("hello kea2! #hello")
+    d(description="More options").click()
+    
+    if d(text="Disable checklist").exists():
+        d(text="Disable checklist").click()
+    else:
+        d.press("back")
+    
+    if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+        tester = Kea2Tester()
+        result = tester.run_kea2_testing(
+            Options(
+                driverName="d",
+                Driver=U2Driver,
+                packageNames=[PACKAGE_NAME],
+                propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
+                serial=DEVICE_SERIAL,
+                running_mins=2,
+                maxStep=20
+            )            
+        )
+        print(result)
+        del tester
+        print("你可以在这里进行清理或重启操作")
+        return
+
+    d(resourceId="it.feio.android.omninotes.alpha:id/menu_tag").click()
+
+
+def test_case2_add_category(setup_and_teardown):
+    """add note -> add category -> start kea2 testing"""
+    d = setup_and_teardown
+    
+    d(resourceId="it.feio.android.omninotes.alpha:id/fab_expand_menu_button").long_click()
+    sleep(1)
+    d(resourceId="it.feio.android.omninotes.alpha:id/detail_content").set_text("Hello world")
+    sleep(2)
+    d(resourceId="it.feio.android.omninotes.alpha:id/menu_category").click()
+    sleep(0.5)
+    d(resourceId="it.feio.android.omninotes.alpha:id/md_buttonDefaultPositive").click()
+    sleep(0.5)
+    d(resourceId="it.feio.android.omninotes.alpha:id/category_title").set_text("aaa")
+    d(resourceId="it.feio.android.omninotes.alpha:id/save").click()        
+
+    if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+
+        tester = Kea2Tester()
+        result = tester.run_kea2_testing(
+            Options(
+                driverName="d",
+                Driver=U2Driver,
+                packageNames=[PACKAGE_NAME],
+                propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
+                serial=DEVICE_SERIAL,
+                running_mins=2,
+                maxStep=20
+            )            
+        )
+        print(result)
+        del tester
+        print("你可以在这里进行清理或重启操作")
+        return
+    
+    print("在KEA2_HYBRID_MODE等于kea2时，这里不会执行")
+
+
+def test_case3_delete_note_search(setup_and_teardown):
+    """add note -> delete note -> search title"""
+    d = setup_and_teardown
+    
+    d(resourceId="it.feio.android.omninotes.alpha:id/fab_expand_menu_button").long_click()
+    d(resourceId="it.feio.android.omninotes.alpha:id/detail_title").set_text("Hello112233")
+    d(resourceId="it.feio.android.omninotes.alpha:id/detail_content").set_text("Hello world")
+    d(description="drawer open").click()
+    d(resourceId="it.feio.android.omninotes.alpha:id/note_title").long_click()
+    d(description="More options").click()
+    d(text="Trash").click()
+
+    if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+
+        tester = Kea2Tester()
+        result = tester.run_kea2_testing(
+            Options(
+                driverName="d",
+                Driver=U2Driver,
+                packageNames=[PACKAGE_NAME],
+                propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
+                serial=DEVICE_SERIAL,
+                running_mins=2,
+                maxStep=20
+            )            
+        )
+        print(result)
+        del tester
+        print("你可以在这里进行清理或重启操作")
+        return
+
+    d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").click()
+    d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").set_text("Hello112233")
+    d.press("enter")

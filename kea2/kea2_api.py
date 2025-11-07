@@ -10,24 +10,6 @@ from .adbUtils import ADBDevice
 logger = getLogger(__name__)
 
 
-class Kea2Breakpoint(unittest.SkipTest):
-    """
-        Kea2 Breakpoint Exception (inherits from unittest.SkipTest)
-        This exception is thrown after Kea2 testing is completed to terminate the execution of subsequent user scripts.
-        The exception will mark the test as SKIPPED (rather than FAILED), indicating that Kea2 testing has been completed.
-        
-        - Subsequent script code will not execute
-        - The test is marked as SKIPPED, which does not affect the test pass rate
-        - Other testcases will continue to execute
-
-        Attributes:message: Exception message (displayed in the test report)output_dir: Test output directory (optional)
-    """
-    def __init__(self, message="Kea2 testing completed. Stopping further script execution.", output_dir=None):
-        self.message = message
-        self.output_dir = output_dir  
-        super().__init__(self.message)
-
-
 class Kea2Tester:
     """
     Kea2 property tester
@@ -46,19 +28,12 @@ class Kea2Tester:
         self.properties: List[unittest.TestCase] = []
         self._caller_info: Optional[Dict[str, str]] = None
     
-    def run_kea2_testing(
-        self, 
-        option: Options,
-        enable_breakpoint: bool = True,
-    ) -> Dict[str, Any]:
+    def run_kea2_testing(self, option: Options) -> Dict[str, Any]:
         """
         Launch kea2 property test
         
         Args:
             option: Kea2 and Fastbot configuration options
-            enable_breakpoint: Whether to enable the breakpoint function (default True)
-                - True: Throw Kea2Breakpoint exception after Kea2 testing is completed to terminate subsequent scripts
-                - False: Return normally after Kea2 testing is completed, continue executing subsequent scripts
         
         Returns:
             dict: Test result dictionary containing the following keys:
@@ -70,28 +45,9 @@ class Kea2Tester:
                 - result_json (Path|None): Test result JSON file path
                 - log_file (Path|None): Fastbot log file path
         
-        Raises:
-            Kea2Breakpoint: Thrown when enable_breakpoint=True and Kea2 testing is completed
-        
         """
 
         self._caller_info = self._get_caller_info()
-        
-        hybrid_mode = bool(os.environ.get('KEA2_HYBRID_MODE', '').lower())
-        
-        if not hybrid_mode:
-            logger.info(f"KEA2_HYBRID_MODE={hybrid_mode or '(not set)'}, skipping Kea2 testing.")
-            logger.info("To enable Kea2 testing, set: export KEA2_HYBRID_MODE=kea2")
-            logger.info("Or create a .env file in project root with: KEA2_HYBRID_MODE=kea2")
-            return {
-                'executed': False,
-                'skipped': True,
-                'caller_info': self._caller_info,
-                'output_dir': None,
-                'bug_report': None,
-                'result_json': None,
-                'log_file': None
-            }
         
         logger.info("KEA2_HYBRID_MODE=kea2, starting Kea2 property testing...")
         logger.info(f"Kea2 测试启动位置：")
@@ -115,21 +71,11 @@ class Kea2Tester:
         
         result = self._build_test_result()
         
-        if enable_breakpoint:
-            logger.info("Kea2 breakpoint enabled. Stopping further script execution.")
-            logger.info(f"Test results saved to: {result['output_dir']}")
-
-            raise Kea2Breakpoint(
-                f"Kea2 testing completed. Results saved to: {result['output_dir']}",
-                output_dir=result['output_dir']
-            )
-        
-        logger.info("Kea2 breakpoint disabled. Returning test results.")
         return result
     
     def _build_test_result(self) -> Dict[str, Any]:
         """
-        构建测试结果字典
+        build test result dict
         
         Returns:
             dict: Dictionary containing output directory and paths to various report files
