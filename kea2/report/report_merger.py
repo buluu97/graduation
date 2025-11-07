@@ -20,9 +20,10 @@ class TestReportMerger:
     def __init__(self):
         self.merged_data = {}
         self.result_dirs = []
+        self._package_name: Optional[str] = None
     
     @catchException("Error merging reports")
-    def merge_reports(self, result_paths: List[Union[str, Path]], output_dir: Optional[Union[str, Path]] = None) -> Path:
+    def merge_reports(self, result_paths: List[Union[str, Path]], output_dir: Optional[Union[str, Path]] = None) -> Optional[Path]:
         """
         Merge multiple test result directories
         
@@ -31,10 +32,17 @@ class TestReportMerger:
             output_dir: Output directory for merged data (optional)
             
         Returns:
-            Path to the merged data directory
+            Path to the merged data directory, or None if validation fails
         """
         # Convert paths and validate
         self.result_dirs = [Path(p).resolve() for p in result_paths]
+        self._package_name = None
+
+        package_name, fatal_error = self._determine_package_name()
+        if fatal_error:
+            logger.error("Aborting merge because package validation failed.")
+            return None
+        self._package_name = package_name
         
         # Setup output directory
         timestamp = datetime.now().strftime("%Y%m%d%H_%M%S")
@@ -59,7 +67,8 @@ class TestReportMerger:
         final_data['merge_info'] = {
             'merge_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'source_count': len(self.result_dirs),
-            'source_directories': [str(Path(d).name) for d in self.result_dirs]
+            'source_directories': [str(Path(d).name) for d in self.result_dirs],
+            'package_name': self._package_name or ""
         }
 
         # Generate HTML report (now includes merge info)
@@ -67,6 +76,79 @@ class TestReportMerger:
         
         logger.debug(f"Reports generated successfully in: {output_dir}")
         return report_file
+
+    def _determine_package_name(self) -> Tuple[Optional[str], bool]:
+        """
+        Ensure all reports belong to the same application and return the shared package name.
+
+        Returns:
+            tuple: (package_name, fatal_error)
+                package_name: shared package name if determined, otherwise None
+                fatal_error: True if validation should stop the merge
+        """
+        if not self.result_dirs:
+            logger.error("No result directories provided for merge.")
+            return None, True
+
+        known_package: Optional[str] = None
+
+        for result_dir in self.result_dirs:
+            package_name, fatal_error = self._extract_package_name(result_dir)
+            if fatal_error:
+                return None, True
+            if package_name is None:
+                continue
+
+            if known_package is None:
+                known_package = package_name
+            elif package_name != known_package:
+                logger.error(
+                    f"Cannot merge reports generated for different applications: "
+                    f"{result_dir.name} uses package '{package_name}' while others use '{known_package}'."
+                )
+                return None, True
+
+        if known_package:
+            logger.debug(f"Validated application package for merge: {known_package}")
+        else:
+            logger.warning("No package information found in provided report directories. Proceeding without package validation.")
+        return known_package, False
+
+    def _extract_package_name(self, result_dir: Path) -> Tuple[Optional[str], bool]:
+        """
+        Extract the application package name from a report directory.
+        """
+        config_path = result_dir / "bug_report_config.json"
+        if not config_path.exists():
+            logger.warning(f"Skipping package validation for {result_dir}: bug_report_config.json not found.")
+            return None, False
+
+        try:
+            with open(config_path, "r", encoding="utf-8") as config_file:
+                config_data = json.load(config_file)
+        except Exception as exc:
+            logger.error(f"Failed to load bug_report_config.json from {result_dir}: {exc}")
+            return None, True
+        package_names = config_data.get("packageNames")
+        if isinstance(package_names, str):
+            package_name = package_names.strip()
+            if not package_name:
+                logger.error(f"Package name is empty in bug_report_config.json for {result_dir}")
+                return None, True
+            return package_name, False
+
+        if isinstance(package_names, list):
+            valid_names = [pkg.strip() for pkg in package_names if pkg and pkg.strip()]
+            if not valid_names:
+                logger.error(f"No valid packageNames found in bug_report_config.json for {result_dir}")
+                return None, True
+            if len(valid_names) > 1:
+                logger.error(f"Multiple packageNames found in {config_path}, only single package is supported.")
+                return None, True
+            return valid_names[0], False
+
+        logger.error(f"packageNames format is invalid in {config_path}")
+        return None, True
     
     def _merge_property_results(self, output_dir: Path = None) -> Tuple[Dict[str, Dict], Dict[str, List[Dict]]]:
         """
@@ -663,14 +745,17 @@ class TestReportMerger:
         if not self.result_dirs:
             return {}
         
-        return {
+        summary = {
             "merged_directories": len(self.result_dirs),
             "source_paths": [str(p) for p in self.result_dirs],
             "merge_timestamp": datetime.now().isoformat()
         }
+        if self._package_name:
+            summary["package_name"] = self._package_name
+        return summary
 
     @catchException("Error generating HTML report")
-    def _generate_html_report(self, data: Dict, output_dir: Path) -> str:
+    def _generate_html_report(self, data: Dict, output_dir: Path) -> Path:
         """
         Generate HTML report using the merged template
 
@@ -709,4 +794,4 @@ class TestReportMerger:
             f.write(html_content)
 
         logger.debug(f"HTML report generated: {report_file}")
-        return str(report_file)
+        return report_file

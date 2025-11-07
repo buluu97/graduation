@@ -95,13 +95,12 @@ def cmd_merge(args):
         # Merge test reports
         merged_report = merger.merge_reports(args.paths, args.output)
 
-        # Print results
-        print(f"✅ Test reports merged successfully!", flush=True)
-        print(f"📊 Merged report: {merged_report}", flush=True)
-
-        # Get merge summary
-        merge_summary = merger.get_merge_summary()
-        print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
+        if merged_report is not None:
+            print(f"✅ Test reports merged successfully!", flush=True)
+            print(f"📊 Merged report: {merged_report}", flush=True)
+            # Get merge summary
+            merge_summary = merger.get_merge_summary()
+            print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
 
     except Exception as e:
         logger.error(f"Error during merge operation: {e}")      
