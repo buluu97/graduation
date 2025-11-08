@@ -12,7 +12,6 @@ DEVICE_SERIAL = "emulator-5554"
 
 class Feat4_Example1(unittest.TestCase):    
     
-    tester = Kea2Tester()
     def setUp(self):
         print("\n" + "="*60)
         print("setUp: 连接设备并重新启动应用")
@@ -35,9 +34,9 @@ class Feat4_Example1(unittest.TestCase):
         else:
             self.d.press("back")
         
-        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'): # Windows：$env:KEA2_HYBRID_MODE = "kea2" Mac：export
+        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
 
-            # tester = Kea2Tester()
+            tester = Kea2Tester()
             result = self.tester.run_kea2_testing(
                 Options(
                     driverName="d",
@@ -50,10 +49,9 @@ class Feat4_Example1(unittest.TestCase):
                 )            
             )
             print(result)
-            # del tester
-            # restart your appium session
-            # ......
-            print("你可以在这里进行清理或重启操作")
+            del tester
+
+
             return  #后续代码不会执行
 
         self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_tag").click()
@@ -75,10 +73,10 @@ class Feat4_Example1(unittest.TestCase):
         self.d(resourceId="it.feio.android.omninotes.alpha:id/category_title").set_text("aaa")
         self.d(resourceId="it.feio.android.omninotes.alpha:id/save").click()        
 
-        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'): # Windows：$env:KEA2_HYBRID_MODE = "kea2" Mac：export
+        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
 
-            # tester = Kea2Tester()
-            result = self.tester.run_kea2_testing(
+            tester = Kea2Tester()
+            result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
                     Driver=U2Driver,
@@ -90,10 +88,8 @@ class Feat4_Example1(unittest.TestCase):
                 )            
             )
             print(result)
-            # del tester
-            # restart your appium session
-            # ......
-            print("你可以在这里进行清理或重启操作")
+            del tester
+
             return  #后续代码不会执行
         
         print("在KEA2_HYBRID_MODE等于kea2时，这里不会执行")
@@ -111,10 +107,9 @@ class Feat4_Example1(unittest.TestCase):
         self.d(description="More options").click()
         self.d(text="Trash").click()
 
-        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'): # Windows：$env:KEA2_HYBRID_MODE = "kea2" Mac/Linux：export KEA2_HYBRID_MODE=kea2
-
-            # tester = Kea2Tester()
-            result = self.tester.run_kea2_testing(
+        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'): 
+            tester = Kea2Tester()
+            result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
                     Driver=U2Driver,
@@ -126,13 +121,10 @@ class Feat4_Example1(unittest.TestCase):
                 )            
             )
             print(result)
-            # del tester
-            # restart your appium session
-            # ......
-            print("你可以在这里进行清理或重启操作")
+            del tester
+
             return  #后续代码不会执行
 
-        # 后续的search操作不会执行
         self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").click()
         self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").set_text("Hello112233")
         self.d.press("enter")

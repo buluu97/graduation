@@ -17,15 +17,13 @@ def setup_and_teardown():
     print("setup: 连接设备并重新启动应用")
     print("="*60)
     
-    # 初始化设备连接
     d = u2.connect(DEVICE_SERIAL)
     d.app_stop(PACKAGE_NAME)
     d.app_start(PACKAGE_NAME)
     sleep(2)
     
-    yield d  # 将设备对象传递给测试用例
+    yield d
     
-    # 测试结束后的清理工作
     print("\n" + "="*60)
     print("teardown: 清理工作")
     print("="*60)
@@ -43,7 +41,8 @@ def test_case1_add_tag_show_tags(setup_and_teardown):
         d(text="Disable checklist").click()
     else:
         d.press("back")
-    
+
+    # Check the KEA2_HYBRID_MODE environment variable
     if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
         tester = Kea2Tester()
         result = tester.run_kea2_testing(
@@ -59,7 +58,6 @@ def test_case1_add_tag_show_tags(setup_and_teardown):
         )
         print(result)
         del tester
-        print("你可以在这里进行清理或重启操作")
         return
 
     d(resourceId="it.feio.android.omninotes.alpha:id/menu_tag").click()
@@ -80,6 +78,7 @@ def test_case2_add_category(setup_and_teardown):
     d(resourceId="it.feio.android.omninotes.alpha:id/category_title").set_text("aaa")
     d(resourceId="it.feio.android.omninotes.alpha:id/save").click()        
 
+    # Check the KEA2_HYBRID_MODE environment variable
     if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
 
         tester = Kea2Tester()
@@ -96,7 +95,6 @@ def test_case2_add_category(setup_and_teardown):
         )
         print(result)
         del tester
-        print("你可以在这里进行清理或重启操作")
         return
     
     print("在KEA2_HYBRID_MODE等于kea2时，这里不会执行")
@@ -114,6 +112,7 @@ def test_case3_delete_note_search(setup_and_teardown):
     d(description="More options").click()
     d(text="Trash").click()
 
+    # Check the KEA2_HYBRID_MODE environment variable
     if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
 
         tester = Kea2Tester()
@@ -130,7 +129,6 @@ def test_case3_delete_note_search(setup_and_teardown):
         )
         print(result)
         del tester
-        print("你可以在这里进行清理或重启操作")
         return
 
     d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").click()
