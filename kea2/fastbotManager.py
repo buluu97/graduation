@@ -1,15 +1,17 @@
 import itertools
+import requests
+
+from time import sleep
+from dataclasses import asdict
+from pathlib import Path
+
 from retry import retry
 from retry.api import retry_call
-from dataclasses import asdict
-import requests
-from packaging.version import parse as parse_version
-from time import sleep
-
 from uiautomator2.core import HTTPResponse, _http_request
-from kea2.adbUtils import ADBDevice, ADBStreamShell_V2
-from pathlib import Path
-from kea2.utils import getLogger, getProjectRoot
+from packaging.version import parse as parse_version
+
+from .utils import getLogger, getProjectRoot
+from .adbUtils import ADBDevice, ADBStreamShell_V2
 
 
 from typing import IO, TYPE_CHECKING, Dict
@@ -39,61 +41,11 @@ class FastbotManager:
         :params: port: the listening port for script driver
         :return: the fastbot daemon thread
         """
-        cur_dir = Path(__file__).parent
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/monkeyq.jar"),
-            "/sdcard/monkeyq.jar"
-        )
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/fastbot-thirdpart.jar"),
-            "/sdcard/fastbot-thirdpart.jar",
-        )
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/kea2-thirdpart.jar"),
-            "/sdcard/kea2-thirdpart.jar",
-        )
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/framework.jar"),
-            "/sdcard/framework.jar",
-        )
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/fastbot_libs/arm64-v8a/libfastbot_native.so"),
-            "/data/local/tmp/arm64-v8a/libfastbot_native.so",
-        )
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/fastbot_libs/armeabi-v7a/libfastbot_native.so"),
-            "/data/local/tmp/armeabi-v7a/libfastbot_native.so",
-        )
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/fastbot_libs/x86/libfastbot_native.so"),
-            "/data/local/tmp/x86/libfastbot_native.so",
-        )
-        self.dev.sync.push(
-            Path.joinpath(cur_dir, "assets/fastbot_libs/x86_64/libfastbot_native.so"),
-            "/data/local/tmp/x86_64/libfastbot_native.so",
-        )
 
-        cwd = getProjectRoot()
-        whitelist = self.options.act_whitelist_file
-        blacklist = self.options.act_blacklist_file
-        if bool(whitelist) ^ bool(blacklist):
-            if whitelist:
-                file_to_push = cwd / 'configs' / 'awl.strings'
-                remote_path = whitelist
-            else:
-                file_to_push = cwd / 'configs' / 'abl.strings'
-                remote_path = blacklist
-
-            self.dev.sync.push(
-                file_to_push,
-                remote_path
-            )
-
+        self._push_libs()
         t = self._startFastbotService()
         logger.info("Running Fastbot...")
-
         return t
-
 
     def check_alive(self):
         """
@@ -117,6 +69,7 @@ class FastbotManager:
         post_data = {
             "takeScreenshots": options.take_screenshots,
             "preFailureScreenshots": options.pre_failure_screenshots,
+            "postFailureScreenshots": options.post_failure_screenshots,
             "logStamp": stamp,
             "deviceOutputRoot": options.device_output_root,
         }
@@ -180,6 +133,58 @@ class FastbotManager:
     @property
     def device_output_dir(self):
         return self._device_output_dir
+    
+    def _push_libs(self):
+        logger.info("Pushing Fastbot libraries to device...")
+        cur_dir = Path(__file__).parent
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/monkeyq.jar"),
+            "/sdcard/monkeyq.jar"
+        )
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/fastbot-thirdpart.jar"),
+            "/sdcard/fastbot-thirdpart.jar",
+        )
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/kea2-thirdpart.jar"),
+            "/sdcard/kea2-thirdpart.jar",
+        )
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/framework.jar"),
+            "/sdcard/framework.jar",
+        )
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/fastbot_libs/arm64-v8a/libfastbot_native.so"),
+            "/data/local/tmp/arm64-v8a/libfastbot_native.so",
+        )
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/fastbot_libs/armeabi-v7a/libfastbot_native.so"),
+            "/data/local/tmp/armeabi-v7a/libfastbot_native.so",
+        )
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/fastbot_libs/x86/libfastbot_native.so"),
+            "/data/local/tmp/x86/libfastbot_native.so",
+        )
+        self.dev.sync.push(
+            Path.joinpath(cur_dir, "assets/fastbot_libs/x86_64/libfastbot_native.so"),
+            "/data/local/tmp/x86_64/libfastbot_native.so",
+        )
+
+        cwd = getProjectRoot()
+        whitelist = self.options.act_whitelist_file
+        blacklist = self.options.act_blacklist_file
+        if bool(whitelist) ^ bool(blacklist):
+            if whitelist:
+                file_to_push = cwd / 'configs' / 'awl.strings'
+                remote_path = whitelist
+            else:
+                file_to_push = cwd / 'configs' / 'abl.strings'
+                remote_path = blacklist
+
+            self.dev.sync.push(
+                file_to_push,
+                remote_path
+            )
 
     def _startFastbotService(self) -> ADBStreamShell_V2:
         shell_command = [

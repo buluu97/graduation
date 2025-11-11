@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 from collections import defaultdict
 
-from kea2.utils import getLogger
+from ..utils import getLogger, catchException
 
 logger = getLogger(__name__)
 
@@ -20,8 +20,10 @@ class TestReportMerger:
     def __init__(self):
         self.merged_data = {}
         self.result_dirs = []
-        
-    def merge_reports(self, result_paths: List[Union[str, Path]], output_dir: Optional[Union[str, Path]] = None) -> Path:
+        self._package_name: Optional[str] = None
+    
+    @catchException("Error merging reports")
+    def merge_reports(self, result_paths: List[Union[str, Path]], output_dir: Optional[Union[str, Path]] = None) -> Optional[Path]:
         """
         Merge multiple test result directories
         
@@ -30,47 +32,123 @@ class TestReportMerger:
             output_dir: Output directory for merged data (optional)
             
         Returns:
-            Path to the merged data directory
+            Path to the merged data directory, or None if validation fails
         """
+        # Convert paths and validate
+        self.result_dirs = [Path(p).resolve() for p in result_paths]
+        self._package_name = None
+
+        package_name, fatal_error = self._determine_package_name()
+        if fatal_error:
+            logger.error("Aborting merge because package validation failed.")
+            return None
+        self._package_name = package_name
+        
+        # Setup output directory
+        timestamp = datetime.now().strftime("%Y%m%d%H_%M%S")
+        if output_dir is None:
+            output_dir = Path.cwd() / f"merged_report_{timestamp}"
+        else:
+            output_dir = Path(output_dir).resolve() / f"merged_report_{timestamp}"
+        
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        logger.debug(f"Merging {len(self.result_dirs)} test result directories...")
+
+        # Merge different types of data
+        merged_property_stats, property_source_mapping = self._merge_property_results(output_dir)
+        merged_coverage_data = self._merge_coverage_data()
+        merged_crash_anr_data = self._merge_crash_dump_data(output_dir)
+
+        # Calculate final statistics
+        final_data = self._calculate_final_statistics(merged_property_stats, merged_coverage_data, merged_crash_anr_data, property_source_mapping)
+        
+        # Add merge information to final data
+        final_data['merge_info'] = {
+            'merge_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'source_count': len(self.result_dirs),
+            'source_directories': [str(Path(d).name) for d in self.result_dirs],
+            'package_name': self._package_name or ""
+        }
+
+        # Generate HTML report (now includes merge info)
+        report_file = self._generate_html_report(final_data, output_dir)
+        
+        logger.debug(f"Reports generated successfully in: {output_dir}")
+        return report_file
+
+    def _determine_package_name(self) -> Tuple[Optional[str], bool]:
+        """
+        Ensure all reports belong to the same application and return the shared package name.
+
+        Returns:
+            tuple: (package_name, fatal_error)
+                package_name: shared package name if determined, otherwise None
+                fatal_error: True if validation should stop the merge
+        """
+        if not self.result_dirs:
+            logger.error("No result directories provided for merge.")
+            return None, True
+
+        known_package: Optional[str] = None
+
+        for result_dir in self.result_dirs:
+            package_name, fatal_error = self._extract_package_name(result_dir)
+            if fatal_error:
+                return None, True
+            if package_name is None:
+                continue
+
+            if known_package is None:
+                known_package = package_name
+            elif package_name != known_package:
+                logger.error(
+                    f"Cannot merge reports generated for different applications: "
+                    f"{result_dir.name} uses package '{package_name}' while others use '{known_package}'."
+                )
+                return None, True
+
+        if known_package:
+            logger.debug(f"Validated application package for merge: {known_package}")
+        else:
+            logger.warning("No package information found in provided report directories. Proceeding without package validation.")
+        return known_package, False
+
+    def _extract_package_name(self, result_dir: Path) -> Tuple[Optional[str], bool]:
+        """
+        Extract the application package name from a report directory.
+        """
+        config_path = result_dir / "bug_report_config.json"
+        if not config_path.exists():
+            logger.warning(f"Skipping package validation for {result_dir}: bug_report_config.json not found.")
+            return None, False
+
         try:
-            # Convert paths and validate
-            self.result_dirs = [Path(p).resolve() for p in result_paths]
-            
-            # Setup output directory
-            timestamp = datetime.now().strftime("%Y%m%d%H_%M%S")
-            if output_dir is None:
-                output_dir = Path.cwd() / f"merged_report_{timestamp}"
-            else:
-                output_dir = Path(output_dir).resolve() / f"merged_report_{timestamp}"
-            
-            output_dir.mkdir(parents=True, exist_ok=True)
+            with open(config_path, "r", encoding="utf-8") as config_file:
+                config_data = json.load(config_file)
+        except Exception as exc:
+            logger.error(f"Failed to load bug_report_config.json from {result_dir}: {exc}")
+            return None, True
+        package_names = config_data.get("packageNames")
+        if isinstance(package_names, str):
+            package_name = package_names.strip()
+            if not package_name:
+                logger.error(f"Package name is empty in bug_report_config.json for {result_dir}")
+                return None, True
+            return package_name, False
 
-            logger.debug(f"Merging {len(self.result_dirs)} test result directories...")
+        if isinstance(package_names, list):
+            valid_names = [pkg.strip() for pkg in package_names if pkg and pkg.strip()]
+            if not valid_names:
+                logger.error(f"No valid packageNames found in bug_report_config.json for {result_dir}")
+                return None, True
+            if len(valid_names) > 1:
+                logger.error(f"Multiple packageNames found in {config_path}, only single package is supported.")
+                return None, True
+            return valid_names[0], False
 
-            # Merge different types of data
-            merged_property_stats, property_source_mapping = self._merge_property_results(output_dir)
-            merged_coverage_data = self._merge_coverage_data()
-            merged_crash_anr_data = self._merge_crash_dump_data(output_dir)
-
-            # Calculate final statistics
-            final_data = self._calculate_final_statistics(merged_property_stats, merged_coverage_data, merged_crash_anr_data, property_source_mapping)
-            
-            # Add merge information to final data
-            final_data['merge_info'] = {
-                'merge_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'source_count': len(self.result_dirs),
-                'source_directories': [str(Path(d).name) for d in self.result_dirs]
-            }
-
-            # Generate HTML report (now includes merge info)
-            report_file = self._generate_html_report(final_data, output_dir)
-            
-            logger.debug(f"Reports generated successfully in: {output_dir}")
-            return output_dir
-            
-        except Exception as e:
-            logger.error(f"Error merging test reports: {e}")
-            raise
+        logger.error(f"packageNames format is invalid in {config_path}")
+        return None, True
     
     def _merge_property_results(self, output_dir: Path = None) -> Tuple[Dict[str, Dict], Dict[str, List[Dict]]]:
         """
@@ -164,32 +242,27 @@ class TestReportMerger:
             if not coverage_file.exists():
                 logger.warning(f"No coverage.log found in {output_dirs[0]}")
                 continue
+
+            # Read the last line of coverage.log to get final state
+            last_coverage = None
+            with open(coverage_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():
+                        last_coverage = json.loads(line)
             
-            try:
-                # Read the last line of coverage.log to get final state
-                last_coverage = None
-                with open(coverage_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        if line.strip():
-                            last_coverage = json.loads(line)
+            if last_coverage:
+                # Collect all activities
+                all_activities.update(last_coverage.get("totalActivities", []))
+                tested_activities.update(last_coverage.get("testedActivities", []))
                 
-                if last_coverage:
-                    # Collect all activities
-                    all_activities.update(last_coverage.get("totalActivities", []))
-                    tested_activities.update(last_coverage.get("testedActivities", []))
-                    
-                    # Update activity counts (take maximum)
-                    for activity, count in last_coverage.get("activityCountHistory", {}).items():
-                        activity_counts[activity] += count
-                    
-                    # Add steps count
-                    total_steps += last_coverage.get("stepsCount", 0)
+                # Update activity counts (take maximum)
+                for activity, count in last_coverage.get("activityCountHistory", {}).items():
+                    activity_counts[activity] += count
                 
-                logger.debug(f"Merged coverage data from: {coverage_file}")
-                
-            except Exception as e:
-                logger.error(f"Error reading coverage file {coverage_file}: {e}")
-                continue
+                # Add steps count
+                total_steps += last_coverage.get("stepsCount", 0)
+            
+            logger.debug(f"Merged coverage data from: {coverage_file}")
         
         # Calculate final coverage percentage (rounded to 2 decimal places)
         coverage_percent = round((len(tested_activities) / len(all_activities) * 100), 2) if all_activities else 0.00
@@ -272,6 +345,7 @@ class TestReportMerger:
             "total_anr_count": len(unique_anr_events)
         }
     
+    @catchException("Error parsing crash-dump.log")
     def _parse_crash_dump_file(self, crash_dump_file: Path) -> Tuple[List[Dict], List[Dict]]:
         """
         Parse crash and ANR events from crash-dump.log file
@@ -285,19 +359,14 @@ class TestReportMerger:
         crash_events = []
         anr_events = []
 
-        try:
-            with open(crash_dump_file, "r", encoding="utf-8") as f:
-                content = f.read()
+        with open(crash_dump_file, "r", encoding="utf-8") as f:
+            content = f.read()
 
-            # Parse crash events
-            crash_events = self._parse_crash_events(content)
-
-            # Parse ANR events
-            anr_events = self._parse_anr_events(content)
-
-        except Exception as e:
-            logger.error(f"Error parsing crash dump file {crash_dump_file}: {e}")
-
+        # Parse crash events
+        crash_events = self._parse_crash_events(content)
+        # Parse ANR events
+        anr_events = self._parse_anr_events(content)
+        
         return crash_events, anr_events
 
     def _parse_crash_events(self, content: str) -> List[Dict]:
@@ -676,13 +745,17 @@ class TestReportMerger:
         if not self.result_dirs:
             return {}
         
-        return {
+        summary = {
             "merged_directories": len(self.result_dirs),
             "source_paths": [str(p) for p in self.result_dirs],
             "merge_timestamp": datetime.now().isoformat()
         }
+        if self._package_name:
+            summary["package_name"] = self._package_name
+        return summary
 
-    def _generate_html_report(self, data: Dict, output_dir: Path) -> str:
+    @catchException("Error generating HTML report")
+    def _generate_html_report(self, data: Dict, output_dir: Path) -> Path:
         """
         Generate HTML report using the merged template
 
@@ -693,37 +766,32 @@ class TestReportMerger:
         Returns:
             Path to the generated HTML report
         """
+        from jinja2 import Environment, FileSystemLoader, PackageLoader, select_autoescape
+
+        # Set up Jinja2 environment
         try:
-            from jinja2 import Environment, FileSystemLoader, PackageLoader, select_autoescape
+            jinja_env = Environment(
+                loader=PackageLoader("kea2.report", "templates"),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
+        except (ImportError, ValueError):
+            # Fallback to file system loader
+            current_dir = Path(__file__).parent
+            templates_dir = current_dir / "templates"
 
-            # Set up Jinja2 environment
-            try:
-                jinja_env = Environment(
-                    loader=PackageLoader("kea2", "templates"),
-                    autoescape=select_autoescape(['html', 'xml'])
-                )
-            except (ImportError, ValueError):
-                # Fallback to file system loader
-                current_dir = Path(__file__).parent
-                templates_dir = current_dir / "templates"
+            jinja_env = Environment(
+                loader=FileSystemLoader(templates_dir),
+                autoescape=select_autoescape(['html', 'xml'])
+            )
 
-                jinja_env = Environment(
-                    loader=FileSystemLoader(templates_dir),
-                    autoescape=select_autoescape(['html', 'xml'])
-                )
+        # Render template
+        template = jinja_env.get_template("merged_bug_report_template.html")
+        html_content = template.render(**data)
 
-            # Render template
-            template = jinja_env.get_template("merged_bug_report_template.html")
-            html_content = template.render(**data)
+        # Save HTML report
+        report_file = output_dir / "merged_report.html"
+        with open(report_file, 'w', encoding='utf-8') as f:
+            f.write(html_content)
 
-            # Save HTML report
-            report_file = output_dir / "merged_report.html"
-            with open(report_file, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-
-            logger.debug(f"HTML report generated: {report_file}")
-            return str(report_file)
-
-        except Exception as e:
-            logger.error(f"Error generating HTML report: {e}")
-            raise
+        logger.debug(f"HTML report generated: {report_file}")
+        return report_file

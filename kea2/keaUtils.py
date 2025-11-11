@@ -1,27 +1,32 @@
-from collections import deque
-from copy import deepcopy
+import random
+import warnings
+import types
+import traceback
 import json
 import os
+
+from collections import deque
+from copy import deepcopy
 from pathlib import Path
-import traceback
+from time import perf_counter
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
 from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
 from unittest import main as unittest_main
-import random
-import warnings
 from dataclasses import dataclass, asdict
-from kea2.absDriver import AbstractDriver
-from kea2.bug_report_generator import BugReportGenerator
-from kea2.resultSyncer import ResultSyncer
-from kea2.logWatcher import LogWatcher
-from kea2.utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
-from kea2.u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
-from kea2.fastbotManager import FastbotManager
-from kea2.adbUtils import ADBDevice
-from kea2.mixin import BetterConsoleLogExtensionMixin
+from datetime import datetime
+
 import uiautomator2 as u2
-import types
+
+from .absDriver import AbstractDriver
+from .report.bug_report_generator import BugReportGenerator
+from .resultSyncer import ResultSyncer
+from .logWatcher import LogWatcher
+from .utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
+from .u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
+from .fastbotManager import FastbotManager
+from .adbUtils import ADBDevice
+from .mixin import BetterConsoleLogExtensionMixin
 
 
 hybrid_mode = ContextVar("hybrid_mode", default=False)
@@ -138,6 +143,8 @@ class Options:
     take_screenshots: bool = False
     # Screenshots before failure (Dump n screenshots before failure. 0 means take screenshots for every step)
     pre_failure_screenshots: int = 0
+    # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
+    post_failure_screenshots: int = 0
     # The root of output dir on device
     device_output_root: str = "/sdcard"
     # the debug mode
@@ -146,11 +153,11 @@ class Options:
     act_whitelist_file: str = None
     # Activity BlackList File
     act_blacklist_file: str = None
-    # Feat4. propertytest args(eg. discover -s xxx -p xxx)
-    propertytest_args: List[str] = None
-    # Feat4. unittest args(eg. -v -s xxx -p xxx)
+    # propertytest sub-commands args (eg. discover -s xxx -p xxx)
+    propertytest_args: str = None
+    # unittest sub-commands args (Feat 4)
     unittest_args: List[str] = None
-    # Extra args
+    # Extra args (directly passed to fastbot)
     extra_args: List[str] = None
 
     def __setattr__(self, name, value):
@@ -197,7 +204,10 @@ class Options:
     
     def _sanitize_args(self):
         if not self.take_screenshots and self.pre_failure_screenshots > 0:
-            raise ValueError("--screenshots-before-error should be 0 when --take-screenshots is not set.")
+            raise ValueError("--pre-failure-screenshots should be 0 when --take-screenshots is not set.")
+        
+        if self.pre_failure_screenshots < self.post_failure_screenshots:
+            raise ValueError("--post-failure-screenshots should be smaller than --pre-failure-screenshots.") 
 
         self.profile_period = int(self.profile_period)
         if self.profile_period < 1:
@@ -244,7 +254,7 @@ def _check_package_installation(packageNames):
     for package in packageNames:
         if package not in installed_packages:
             logger.error(f"package {package} not installed. Abort.")
-            raise ValueError("package not installed")
+            raise ValueError(f"{package} not installed")
 
 
 def _save_bug_report_configs(options: Options):
@@ -255,7 +265,10 @@ def _save_bug_report_configs(options: Options):
         "packageNames": options.packageNames,
         "take_screenshots": options.take_screenshots,
         "pre_failure_screenshots": options.pre_failure_screenshots,
+        "post_failure_screenshots": options.post_failure_screenshots,
         "device_output_root": options.device_output_root,
+        "log_stamp": options.log_stamp if options.log_stamp else STAMP,
+        "test_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
         json.dump(configs, fp, indent=4)
@@ -451,11 +464,13 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
                 resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
                 resultSyncer.run()
-
-                end_by_remote = False
+                start_time = perf_counter()
+                fb_is_running = True
                 self.stepsCount = 0
                 while self.stepsCount < self.options.maxStep:
-
+                    if self.shouldStop(start_time):
+                        logger.info("Exploration time up (--running-minutes).")
+                        break
                     try:
                         if fb.executed_prop:
                             fb.executed_prop = False
@@ -473,7 +488,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         logger.info("Connection refused by remote.")
                         if fb.get_return_code() == 0:
                             logger.info("Exploration times up (--running-minutes).")
-                            end_by_remote = True
+                            fb_is_running = False
                             break
                         raise RuntimeError("Fastbot Aborted.")
 
@@ -516,7 +531,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     fb.executed_prop = True
                     result.flushResult()
 
-                if not end_by_remote:
+                if fb_is_running:
                     fb.stopMonkey()
                 result.flushResult()
                 resultSyncer.close()
@@ -532,6 +547,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
         self.tearDown()
         return result
+    
+    def shouldStop(self, start_time):
+        if self.options.running_mins is None:
+            return False
+        return (perf_counter() - start_time) >= self.options.running_mins * 60
 
     @property
     def _monkeyStepInfo(self):
@@ -583,6 +603,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     print(f"{getFullPropName(test)} has reached its max_tries. Skip.", flush=True)
                     continue
                 validProps[propName] = test
+
+        staticCheckerDriver.clear_cache()
 
         print(f"{len(validProps)} precond satisfied.", flush=True)
         if len(validProps) > 0:
@@ -749,8 +771,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
     @catchException("Error when generating bug report")
     def _generate_bug_report(self):
         logger.info("Generating bug report")
-        report_generator = BugReportGenerator(self.options.output_dir)
-        report_generator.generate_report()
+        BugReportGenerator(self.options.output_dir).generate_report()
 
     def tearDown(self):
         """tearDown method. Cleanup the env.
@@ -875,7 +896,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         Merge all hybrid test reports into a single merged report
         """
         try:
-            from kea2.report_merger import TestReportMerger
+            from kea2.report.report_merger import TestReportMerger
 
             if len(self.hybrid_report_dirs) < 2:
                 logger.info("Only one hybrid test report generated, skipping merge.")

@@ -5,7 +5,8 @@
 
 ## Kea2's tutorials 
 
-1. A small tutorial of applying Kea2's Feature 2 and 3 on [WeChat](Scenario_Examples_zh.md).
+1. [A guide of making use of Kea2's Feature 2 and 3 to test your app. (Take WeChat for example)](Scenario_Examples_zh.md).
+2. [A guide of writing Kea2's scripts to stress test a particular feature of your app. (Take lark for example)](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc).
 
 ## Kea2's scripts
 
@@ -32,15 +33,20 @@ Note that if a test method is not decorated with `@precondition`.
 This test method will never be activated during automated UI testing, and will be treated as a normal `unittset` test method.
 Thus, you need to explicitly specify `@precondition(lambda self: True)` when the test method should be always executed. When a test method is not decorated with `@prob`, the default probability is 1 (always execute when precondition satisfied). 
 
+Here's an recommended way to write your Kea2's scripts. (You can use it as a template.)
+
 ```python
 import unittest
+from uiautomator2 import Device  # Import u2 for typing
 from kea2 import precondition
 
 class MyFirstTest(unittest.TestCase):
+    d: Device  # Type hint for uiautomator2's Device
 
     @prob(0.7)
     @precondition(lambda self: ...)
     def test_func1(self):
+        self.d(...)  # Use self.d to interact with the device
         ...
 ```
 
@@ -120,7 +126,11 @@ You can launch Kea2 by shell commands `kea2 run`.
 | --log-stamp | the stamp for log file and result file. (e.g., if `--log-stamp 123` is specified, the log files will be named as `fastbot_123.log` and `result_123.json`.) | current time stamp |
 | --profile-period | The period (in the numbers of monkey events) to profile coverage and collect UI screenshots. Specifically, the UI screenshots are stored on the SDcard of the mobile device, and thus you need to set an appropriate value according to the available device storage. | `25` |
 | --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
+| --pre-failure-screenshots | Dump n screenshots before failure. 0 means take screenshots for every step. This option is only valid when `--take-screenshots` is set. | `0` |
+| --post-failure-screenshots | Dump n screenshots after failure. Should be smaller than `--pre-failure-screenshots`. This option is only valid when `--take-screenshots` is set. | `0` |
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
+| --act-whitelist-file | Activity WhiteList File. Only the activities listed in the file can be explored during testing. | |
+| --act-blacklist-file | Activity BlackList File. The activities listed in the file will be avoided during testing. | |
 
 ### 1.2 Sub-commands and their arguments
 Kea2 supports 3 sub-commands: `propertytest`, `unittest`, and `--` (extra arguments).
@@ -193,41 +203,57 @@ if __name__ == "__main__":
 ```
 
 We can directly run the script `mytest.py` to launch Kea2, e.g.,
-```python
+```bash
 python3 mytest.py
 ```
 
 Here's all the available options in `Options`.
 
 ```python
-# the driver_name in script (if self.d, then d.) 
-driverName: str
-# the driver (only U2Driver available now)
-Driver: U2Driver
-# list of package names. Specify the apps under test
-packageNames: List[str]
-# target device
-serial: str = None
-# test agent. "u2" is the default agent
-agent: "u2" | "native" = "u2"
-# max step in exploration (availble in stage 2~3)
-maxStep: int # default "inf"
-# time(mins) for exploration
-running_mins: int = 10
-# time(ms) to wait when exploring the app
-throttle: int = 200
-# the output_dir for saving logs and results
-output_dir: str = "output"
-# the stamp for log file and result file, default: current time stamp
-log_stamp: str = None
-# the profiling period to get the coverage result.
-profile_period: int = 25
-# take screenshots for every step
-take_screenshots: bool = False
-# The root of output dir on device
-device_output_root: str = "/sdcard"
-# the debug mode
-debug: bool = False
+    # the driver_name in script (if self.d, then d.) 
+    driverName: str = None
+    # the driver (only U2Driver available now)
+    Driver: AbstractDriver = None
+    # list of package names. Specify the apps under test
+    packageNames: List[str] = None
+    # target device
+    serial: str = None
+    # target device with transport_id
+    transport_id: str = None
+    # test agent. "native" for stage 1 and "u2" for stage 1~3
+    agent: Literal["u2", "native"] = "u2"
+    # max step in exploration (availble in stage 2~3)
+    maxStep: Union[str, float] = float("inf")
+    # time(mins) for exploration
+    running_mins: int = 10
+    # time(ms) to wait when exploring the app
+    throttle: int = 200
+    # the output_dir for saving logs and results
+    output_dir: str = "output"
+    # the stamp for log file and result file, default: current time stamp
+    log_stamp: str = None
+    # the profiling period to get the coverage result.
+    profile_period: int = 25
+    # take screenshots for every step
+    take_screenshots: bool = False
+    # Screenshots before failure (Dump n screenshots before failure. 0 means take screenshots for every step)
+    pre_failure_screenshots: int = 0
+    # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
+    post_failure_screenshots: int = 0
+    # The root of output dir on device
+    device_output_root: str = "/sdcard"
+    # the debug mode
+    debug: bool = False
+    # Activity WhiteList File
+    act_whitelist_file: str = None
+    # Activity BlackList File
+    act_blacklist_file: str = None
+    # propertytest sub-commands args (eg. discover -s xxx -p xxx)
+    propertytest_args: str = None
+    # unittest sub-commands args (Feat 4)
+    unittest_args: List[str] = None
+    # Extra args (directly passed to fastbot)
+    extra_args: List[str] = None
 ```
 
 
@@ -247,11 +273,8 @@ The `kea2 report` command generates an HTML test report from existing test resul
 # Generate report from a test result directory
 kea2 report -p res_20240101_120000
 
-# Generate report with debug mode enabled
-kea2 -d report -p res_20240101_120000
-
-# Generate report using relative path
-kea2 report -p ./output/res_20240101_120000
+# Generate multiple reports
+kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001
 ```
 
 **What the report includes:**
@@ -274,6 +297,7 @@ The report command generates:
 The command expects a test result directory with the following structure:
 ```
 res_<timestamp>/
+├── bug_report_config.json           # Report configuration (Includes test infos)
 ├── result_<timestamp>.json          # Property test results
 ├── output_<timestamp>/
 │   ├── steps.log                    # Test execution steps
@@ -383,4 +407,30 @@ Kea2 will block the third-party packages (e.g., ad packages) during exploration 
 For example:
 ```bash
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
+```
+
+## Tips to Enhance Kea2 performance
+
+Currently, we have an algorithm in `@precondition` decorator and `widgets.block.py` to enhence the performance of the tool. The algorithm only support basic selector (No parent-child relationship) in uiautomator2. If you have many properties with complex preconditions and observed performance issue, you're recommanded to specify it in xpath.
+
+| | **Recommand** | **Not recommand** |
+| -- | -- | -- |
+| **Selector** | `d(text="1").exist` | `d(text="1").child(text="2").exist` |
+
+If you need to specify `parent-child` relation ship in `@precondition`, specify it in xpath.
+
+for example: 
+
+```python
+# Do not use: 
+# @precondition(lambda self: 
+#      self.d(className="android.widget.ListView").child(text="Bluetooth")
+# ):
+# ...
+
+# Use
+@precondition(lambda self: 
+    self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
+):
+...
 ```

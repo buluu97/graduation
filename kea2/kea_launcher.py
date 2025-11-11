@@ -2,8 +2,6 @@ import sys
 import argparse
 import unittest
 from typing import List
-import os
-
 
 
 def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"):
@@ -35,7 +33,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         nargs="+",
         type=str,
         required=True,
-        help="The target package names com.example.app",
+        help="Specify the target app package name(s) to test (e.g., com.example.app). *Supports multiple packages: `-p pkg1 pkg2 pkg3`*",
     )
 
     parser.add_argument(
@@ -45,7 +43,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         type=str,
         required=False,
         default="output",
-        help="The output dir for saving logs and results."
+        help="The ouput directory for logs and results"
     )
 
     parser.add_argument(
@@ -54,7 +52,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         type=str,
         default="u2",
         choices=["native", "u2"],
-        help="Running native fastbot or u2-fastbot. (Only u2-fastbot support PBT)",
+        help="By default, `u2` is used and supports all the three important features of Kea2. If you hope to run the orignal Fastbot, please use `native`.",
     )
 
     parser.add_argument(
@@ -63,7 +61,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         type=int,
         required=False,
         default=10,
-        help="Time to run fastbot",
+        help="The time (in minutes) to run Kea2",
     )
 
     parser.add_argument(
@@ -71,7 +69,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="max_step",
         type=int,
         required=False,
-        help="maxium monkey events count to send",
+        help="The maxium number of monkey events to send (only available in `--agent u2`)",
     )
 
     parser.add_argument(
@@ -79,7 +77,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="throttle_ms",
         type=int,
         required=False,
-        help="The pause between two monkey event.",
+        help="The delay time (in milliseconds) between two monkey events",
     )
     
     parser.add_argument(
@@ -87,7 +85,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="driver_name",
         type=str,
         required=False,
-        help="The name of driver in script.",
+        help="The name of driver used in the kea2's scripts. If `--driver-name d` is specified, you should use `d` to interact with a device, e..g, `self.d(..).click()`. ",
     )
 
     parser.add_argument(
@@ -95,7 +93,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="log_stamp",
         type=str,
         required=False,
-        help="the stamp for log file and result file, default: current time stamp",
+        help="the stamp for log file and result file. (e.g., if `--log-stamp 123` is specified, the log files will be named as `fastbot_123.log` and `result_123.json`.)",
     )
     
     parser.add_argument(
@@ -104,17 +102,9 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         type=int,
         required=False,
         default=25,
-        help="Steps to profile the testing statistics.",
+        help="The period (in the numbers of monkey events) to profile coverage and collect UI screenshots. Specifically, the UI screenshots are stored on the SDcard of the mobile device, and thus you need to set an appropriate value according to the available device storage.",
     )
 
-    parser.add_argument(
-        "--device-output-root",
-        dest="device_output_root",
-        type=str,
-        required=False,
-        default="/sdcard",
-        help="The root of device output dir. (Saving tmp log files and screenshots)",
-    )
     
     parser.add_argument(
         "--take-screenshots",
@@ -122,7 +112,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         required=False,
         action="store_true",
         default=False,
-        help="Take screenshots for every step.",
+        help="Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically",
     )
 
     parser.add_argument(
@@ -135,11 +125,29 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
     parser.add_argument(
+        "--post-failure-screenshots",
+        dest="post_failure_screenshots",
+        type=int,
+        required=False,
+        default=0,
+        help="Dump n screenshots after failure. Should be smaller than --pre-failure-screenshots.",
+    )
+
+    parser.add_argument(
+        "--device-output-root",
+        dest="device_output_root",
+        type=str,
+        required=False,
+        default="/sdcard",
+        help="The root of device output dir. Kea2 will temporarily save the screenshots and result log into `<device-output-root>/output_*********/`. Make sure the root dir can be access.",
+    )
+
+    parser.add_argument(
         "--act-whitelist-file",
         dest="act_whitelist_file",
         required=False,
         type=str,
-        help="Add Activity Whitelist File.",
+        help="Activity WhiteList File. Only the activities listed in the file can be explored during testing.",
     )
 
     parser.add_argument(
@@ -147,7 +155,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="act_blacklist_file",
         required=False,
         type=str,
-        help="Add Activity Blacklist File.",
+        help="Activity BlackList File. The activities listed in the file will be avoided during testing.",
     )
 
     parser.add_argument(
@@ -188,6 +196,8 @@ def driver_info_logger(args):
         print("  take_screenshots:", args.take_screenshots, flush=True)
         if args.pre_failure_screenshots:
             print("  pre_failure_screenshots:", args.pre_failure_screenshots, flush=True)
+        if args.post_failure_screenshots:
+            print("  post_failure_screenshots:", args.post_failure_screenshots, flush=True)
     if args.max_step:
         print("  max_step:", args.max_step, flush=True)
 
@@ -256,6 +266,7 @@ def run(args=None):
         profile_period=args.profile_period,
         take_screenshots=args.take_screenshots,
         pre_failure_screenshots=args.pre_failure_screenshots,
+        post_failure_screenshots=args.post_failure_screenshots,
         device_output_root=args.device_output_root,
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,

@@ -1,12 +1,13 @@
-import json
 import os
+import json
+import shutil
+
 from pathlib import Path
 from packaging.version import Version
-from .utils import getLogger, getProjectRoot
 from typing import List, Set, TypedDict
-import shutil
 from importlib.metadata import version
 
+from .utils import getLogger, getProjectRoot
 
 logger = getLogger(__name__)
 

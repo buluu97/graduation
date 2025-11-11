@@ -55,42 +55,23 @@ def cmd_load_configs(args):
 
 
 def cmd_report(args):
-    from .bug_report_generator import BugReportGenerator
-    try:
-        report_dir = args.path
-        if not report_dir:
-            logger.error("Report directory path is required. Use -p to specify the path.")
-            return
+    from .report.bug_report_generator import BugReportGenerator
+    report_dirs = args.path
+    
+    for report_dir in report_dirs:
+        report_dir = Path(report_dir).resolve()
 
-        if Path(report_dir).is_absolute():
-            report_path = Path(report_dir)
-        else:
-            report_path = Path.cwd() / report_dir
-
-        report_path = report_path.resolve()
-
-        if not report_path.exists():
-            logger.error(f"Report directory does not exist: {report_path}")
-            return
+        if not report_dir.exists():
+            logger.error(f"Report directory does not exist: {str(report_dir)}, Skipped.")
+            continue
         
         logger.debug(f"Generating test report from directory: {report_dir}")
-
-        generator = BugReportGenerator()
-        report_file = generator.generate_report(report_path)
-        
-        if report_file:
-            logger.debug(f"Test report generated successfully: {report_file}")
-            print(f"Report saved to: {report_file}", flush=True)
-        else:
-            logger.error("Failed to generate test report")
-
-    except Exception as e:
-        logger.error(f"Error generating test report: {e}")
+        BugReportGenerator(report_dir).generate_report()
 
 
 def cmd_merge(args):
     """Merge multiple test report directories and generate a combined report"""
-    from .report_merger import TestReportMerger
+    from .report.report_merger import TestReportMerger
 
     try:
         # Validate input paths
@@ -112,16 +93,14 @@ def cmd_merge(args):
         merger = TestReportMerger()
 
         # Merge test reports
-        merged_dir = merger.merge_reports(args.paths, args.output)
+        merged_report = merger.merge_reports(args.paths, args.output)
 
-        # Print results
-        print(f"✅ Test reports merged successfully!", flush=True)
-        print(f"📁 Merged report directory: {merged_dir}", flush=True)
-        print(f"📊 Merged report: {merged_dir}/merged_report.html", flush=True)
-
-        # Get merge summary
-        merge_summary = merger.get_merge_summary()
-        print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
+        if merged_report is not None:
+            print(f"✅ Test reports merged successfully!", flush=True)
+            print(f"📊 Merged report: {merged_report}", flush=True)
+            # Get merge summary
+            merge_summary = merger.get_merge_summary()
+            print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
 
     except Exception as e:
         logger.error(f"Error during merge operation: {e}")      
@@ -154,8 +133,9 @@ _commands = [
                 name=["report_dir"],
                 args=["-p", "--path"],
                 type=str,
+                nargs="+",
                 required=True,
-                help="Path to the directory containing test results"
+                help="Root directory path of the test results to generate report from"
             )
         ]
     ),

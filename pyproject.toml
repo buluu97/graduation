@@ -1,6 +1,6 @@
 [project]
 name = "Kea2-python"
-version = "1.0.1"
+version = "1.0.3"
 description = "A python library for supporting and customizing automated UI testing for mobile apps"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -19,8 +19,11 @@ authors = [
 kea2 = "kea2.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["kea2"]
+include = ["kea2*"]
 
 [tool.setuptools.package-data]
-kea2 = ["assets/**/*", "templates/**/*"]
+kea2 = [
+    "assets/**/*", 
+    "report/templates/**/*"
+]
 
