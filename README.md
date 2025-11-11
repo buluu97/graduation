@@ -240,32 +240,6 @@ For the preceding always-holding property, we can write the following script to 
 
 You can run this example by using the similar command line in Feature 2.
 
-## Feature 4 (Experimental feature, 实验中，脚本与遍历的混合测试)
-
-> This feature is still under development. We are looking forward to your feedback! Contact us if you're interested in this feature.
-
-Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
-
-For example, you may already have some existing Ui test scripts "login and add a friend", This feature allows you to use the existing script, set some breakpoints (i.e., interruptable points) in the script, and launch Fastbot to explore the app after every breakpoint. By using this feature, you can do the login first and then launch Fastbot to explore the app after login. Which helps Fastbot to explore deep app states. (fastbot can't do login by itself easily).
-
-### Example
-
-See [guide_scripts.py](guide_scripts.py) for a full example.
-
-By the decorator `@interruptable`, you can mark the testcase as "interruptable" so that Kea2 can recognize this script and launch fuzzing test after it returns. 
-
-Since the state of app is probably unpredicted after fuzzing tests, Kea2 provides a `common_teardown` function to clean up the environment between previous script and next script. The function can be manually specified in `configs/teardown.py`.
-
-You can find the full example in `guide_scripts.py`, `property_omninotes.py`  and `configs/teardown.py` .  You can run one of the following commands:
-
-```bash
-# Guide with guide_scripts.py and launch fuzzing test after every script.
-kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py 
-
-# Guide with guide_scripts.py and launch fuzzing test after every script(check properties during fuzzing).
-kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p quickstart2.py
-```
-
 ## Feature 4(api版)
 
 Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
@@ -274,24 +248,24 @@ For example, you may already have some existing Ui test scripts "login and add a
 
 ### Example
 
-Here are four example scripts, from [feat4_example1.py](feat4_example1.py) to [feat4_example2.py](feat4_example4.py), each corresponding to different forms of user scripts, showing you how to launch kea2 in the existing code.
+Here are four example scripts in hybridetest_examples, each corresponding to different forms of user scripts, showing you how to launch kea2 in the existing code.
 
 Specifically:  
 
-* feat4_example1.py is a u2 script organized with unittest.
-* feat4_example2.py is a u2 script organized with pytest.
-* feat4_example3.py is an appium script organized with unittest.
-* feat4_example4.py is an appium script organized with pytest.
+* [u2_unittest_example.py](hybridtest_examples\u2_unittest_example.py) is a u2 script organized with unittest.
+* [u2_pytest_example.py](hybridtest_examples\u2_pytest_example.py) is a u2 script organized with pytest.
+* [appium_unittest_example.py](hybridtest_examples\appium_unittest_example.py) is an appium script organized with unittest.
+* [appium_pytest_example.py](hybridtest_examples\appium_pytest_example.py) is an appium script organized with pytest.
 
 Some notes:
 
-1. You need to set the environment variable KEA2_HYBRID_MODE=kea2 to control whether to execute the kea2-related code you have written. This allows you to easily enable or disable kea2 operations in the same script.
+1. You need to set the environment variable KEA2_HYBRID_MODE=true to control whether to execute the kea2-related code you have written. This allows you to easily enable or disable kea2 operations in the same script.
 2. Since kea2 is driven by u2, if an appium-written script wants to launch kea2, it is necessary to first close the appium session. Remember to configure the parameter `"noReset": True` in `desired_caps` to avoid resetting the application when closing the session.
 3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `options` parameter and pass it to the `run_kea2_testing` function.
 
 ```python
-if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
-    # close your appium session etc. here
+if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':    
+    # close your driver session etc. here
     # ...
     
     tester = Kea2Tester()
@@ -309,7 +283,7 @@ if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
     print(result)
     del tester
     
-    # restart your appium session or clean instance here
+    # restart your driver session or clean instance here
     # ...
     
     return  # this make your following steps of this testcase not work

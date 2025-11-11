@@ -43,7 +43,7 @@ def test_case1_add_tag_show_tags(setup_and_teardown):
         d.press("back")
 
     # Check the KEA2_HYBRID_MODE environment variable
-    if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+    if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
         tester = Kea2Tester()
         result = tester.run_kea2_testing(
             Options(
@@ -79,7 +79,7 @@ def test_case2_add_category(setup_and_teardown):
     d(resourceId="it.feio.android.omninotes.alpha:id/save").click()        
 
     # Check the KEA2_HYBRID_MODE environment variable
-    if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+    if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
 
         tester = Kea2Tester()
         result = tester.run_kea2_testing(
@@ -113,7 +113,7 @@ def test_case3_delete_note_search(setup_and_teardown):
     d(text="Trash").click()
 
     # Check the KEA2_HYBRID_MODE environment variable
-    if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+    if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
 
         tester = Kea2Tester()
         result = tester.run_kea2_testing(

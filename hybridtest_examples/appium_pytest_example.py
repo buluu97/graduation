@@ -1,5 +1,5 @@
-import unittest
 import os
+import pytest
 from time import sleep
 from appium import webdriver
 from appium.webdriver.common.appiumby import AppiumBy
@@ -12,10 +12,11 @@ DEVICE_SERIAL = "emulator-5554"
 APPIUM_SERVER_URL = "http://localhost:4723"
 
 
-class Feat4_Example1(unittest.TestCase):    
-    def setUp(self):
+class TestFeat4Example1:
+    def setup_method(self):
+        """测试前置操作：连接设备并重新启动应用"""
         print("\n" + "="*60)
-        print("setUp: 连接设备并重新启动应用")
+        print("setup_method: 连接设备并重新启动应用")
         print("="*60)
         
         self.desired_caps = {
@@ -25,12 +26,12 @@ class Feat4_Example1(unittest.TestCase):
             "appPackage": PACKAGE_NAME,
             "appActivity": "it.feio.android.omninotes.MainActivity",
             "automationName": "UiAutomator2",
-            "noReset": True,  # 每次启动不要重置应用状态
+            "noReset": True,  # 每次启动不重置应用状态
             "fullReset": False,
             "unicodeKeyboard": True,
             "resetKeyboard": True
         }
-        self.option=UiAutomator2Options().load_capabilities(self.desired_caps)
+        self.option = UiAutomator2Options().load_capabilities(self.desired_caps)
         self.driver = webdriver.Remote(
             APPIUM_SERVER_URL, 
             options=self.option
@@ -40,7 +41,7 @@ class Feat4_Example1(unittest.TestCase):
         self.driver.activate_app(PACKAGE_NAME)
 
         sleep(2)
-    
+
     def test_case1_add_tag_show_tags(self):
         '''add note -> add tag -> show tags'''
         self.driver.find_element(
@@ -50,7 +51,7 @@ class Feat4_Example1(unittest.TestCase):
             by=AppiumBy.ID,
             value="it.feio.android.omninotes.alpha:id/fab_note"
         )
-        add_note_btn.click()  #
+        add_note_btn.click()
         sleep(1)
 
         self.driver.find_element(
@@ -69,9 +70,9 @@ class Feat4_Example1(unittest.TestCase):
             self.driver.back()
         
         # Check the KEA2_HYBRID_MODE environment variable
-        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2':
-            print("关闭 Appium 会话")
-            self.driver.quit()  # close current Appium session
+        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':    
+            print("close Appium session")
+            self.driver.quit()
             
             # launch Kea2 test
             tester = Kea2Tester()
@@ -96,18 +97,17 @@ class Feat4_Example1(unittest.TestCase):
     
     def test_case2_add_category(self):
         '''add note -> add category -> start kea2 testing'''
-
         self.driver.find_element(
             AppiumBy.ID, "it.feio.android.omninotes.alpha:id/fab_expand_menu_button"
         ).click()
         sleep(1)
         
-        self.driver.find_element(
+        add_note_btn = self.driver.find_element(
             by=AppiumBy.ID,
             value="it.feio.android.omninotes.alpha:id/fab_note"
-        ).click()
+        )
+        add_note_btn.click()
         sleep(1)
-
 
         self.driver.find_element(
             AppiumBy.ID, "it.feio.android.omninotes.alpha:id/detail_content"
@@ -134,11 +134,10 @@ class Feat4_Example1(unittest.TestCase):
         ).click()
         
         # Check the KEA2_HYBRID_MODE environment variable
-        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2':
-            print("关闭 Appium 会话")
+        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':    
+            print("close Appium session")
             self.driver.quit()
             
-            # launch Kea2 test
             tester = Kea2Tester()
             result = tester.run_kea2_testing(
                 Options(
@@ -168,7 +167,7 @@ class Feat4_Example1(unittest.TestCase):
             by=AppiumBy.ID,
             value="it.feio.android.omninotes.alpha:id/fab_note"
         )
-        add_note_btn.click()  #
+        add_note_btn.click()
         sleep(1)
         
 
@@ -195,11 +194,11 @@ class Feat4_Example1(unittest.TestCase):
         ).click()
         
         # Check the KEA2_HYBRID_MODE environment variable
-        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2':
+        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == "true":
             print("close Appium session")
             self.driver.quit()
             
-            # launch Kea2 test
+            # launch Kea2 testing
             tester = Kea2Tester()
             result = tester.run_kea2_testing(
                 Options(
@@ -224,16 +223,13 @@ class Feat4_Example1(unittest.TestCase):
         ).send_keys("Hello112233")
         self.driver.press_keycode(66)
     
-    def tearDown(self):
-        """测试后的清理工作"""
+    def teardown_method(self):
+        """测试后置操作：清理工作"""
         print("\n" + "="*60)
-        print("tearDown: 清理工作")
+        print("teardown_method: 清理工作")
         print("="*60)
         # self.driver.quit()
 
 
-def main():
-    unittest.main(verbosity=2)
-
 if __name__ == "__main__":
-    main()
+    pytest.main(["-v", __file__])

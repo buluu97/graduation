@@ -34,10 +34,10 @@ class Feat4_Example1(unittest.TestCase):
         else:
             self.d.press("back")
         
-        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
 
             tester = Kea2Tester()
-            result = self.tester.run_kea2_testing(
+            result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
                     Driver=U2Driver,
@@ -73,7 +73,7 @@ class Feat4_Example1(unittest.TestCase):
         self.d(resourceId="it.feio.android.omninotes.alpha:id/category_title").set_text("aaa")
         self.d(resourceId="it.feio.android.omninotes.alpha:id/save").click()        
 
-        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'):
+        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
 
             tester = Kea2Tester()
             result = tester.run_kea2_testing(
@@ -107,7 +107,7 @@ class Feat4_Example1(unittest.TestCase):
         self.d(description="More options").click()
         self.d(text="Trash").click()
 
-        if bool(os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'kea2'): 
+        if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
             tester = Kea2Tester()
             result = tester.run_kea2_testing(
                 Options(
