@@ -154,7 +154,7 @@ class Options:
     # Activity BlackList File
     act_blacklist_file: str = None
     # propertytest sub-commands args (eg. discover -s xxx -p xxx)
-    propertytest_args: str = None
+    propertytest_args: List[str] = None
     # unittest sub-commands args (Feat 4)
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
