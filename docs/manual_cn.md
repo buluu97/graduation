@@ -143,10 +143,10 @@ kea2 run <Kea2 cmds> propertytest <unittest discovery cmds>
 
 ```bash
 # 启动 Kea2 并加载单个脚本 quicktest.py
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
 
 # 启动 Kea2 并从目录 mytests/omni_notes 加载多个脚本
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -s mytests/omni_notes -p test*.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -s mytests/omni_notes -p test*.py
 ```
 
 #### **1.2.2（实验性功能）`unittest` 子命令（混合测试）**
@@ -160,7 +160,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 如果需要向底层 Fastbot 传递额外参数，请在常规参数后添加 `--`，然后列出额外参数。例如，设置触摸事件比例为 30%：
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
 ```
 
 ### 2. 通过 `unittest.main` 启动 Kea2
@@ -343,7 +343,7 @@ kea2 -d merge -p res_20240101_120000 res_20240102_130000
 
 > ```bash
 > # 加上 -d 启用调试模式
-> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
+> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
 > ```
 
 ## 查看脚本运行统计
@@ -402,7 +402,7 @@ Kea2 默认会阻止探索过程中与第三方包（如广告包）的交互。
 例如：
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
 ```
 
 ## 提升 Kea2 性能的建议
