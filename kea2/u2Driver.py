@@ -68,8 +68,15 @@ class U2ScriptDriver(AbstractScriptDriver):
 
     def tearDown(self):
         logger.debug("U2Driver tearDown: stop_uiautomator")
-        self.d._device_server_port = 9008
-        self.d.stop_uiautomator()
+        if self.d is None:
+            return
+        try:
+            self.d._device_server_port = 9008
+            self.d.stop_uiautomator()
+        except (OSError, AttributeError, RuntimeError) as e:
+            logger.debug(f"Error during uiautomator teardown (may be already closed): {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error during uiautomator teardown: {e}")
 
 """
 The definition of U2StaticChecker
@@ -527,7 +534,10 @@ class U2Driver(AbstractDriver):
     @classmethod
     def tearDown(self):
         if self.scriptDriver:
-            self.scriptDriver.tearDown()
+            try:
+                self.scriptDriver.tearDown()
+            except Exception as e:
+                logger.debug(f"Error during U2Driver teardown: {e}")
 
 
 """

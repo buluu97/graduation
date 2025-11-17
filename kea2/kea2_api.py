@@ -1,10 +1,11 @@
 from typing import Optional, List, Callable, Any, Union, Dict
+from pathlib import Path
 import unittest
 import os
 import inspect
 from .keaUtils import KeaTestRunner, Options
 from .u2Driver import U2Driver
-from .utils import getLogger, TimeStamp
+from .utils import getLogger, TimeStamp, setCustomProjectRoot
 from .adbUtils import ADBDevice
 
 logger = getLogger(__name__)
@@ -28,12 +29,13 @@ class Kea2Tester:
         self.properties: List[unittest.TestCase] = []
         self._caller_info: Optional[Dict[str, str]] = None
     
-    def run_kea2_testing(self, option: Options) -> Dict[str, Any]:
+    def run_kea2_testing(self, option: Options, configs_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
         """
         Launch kea2 property test
         
         Args:
             option: Kea2 and Fastbot configuration options
+            configs_path: Your configs directory (absolute or relative path)
         
         Returns:
             dict: Test result dictionary containing the following keys:
@@ -49,8 +51,8 @@ class Kea2Tester:
 
         self._caller_info = self._get_caller_info()
         
-        logger.info("KEA2_HYBRID_MODE=kea2, starting Kea2 property testing...")
-        logger.info(f"Kea2 测试启动位置：")
+        logger.info("Starting Kea2 property testing...")
+        logger.info(f"Kea2 test launch location:")
         if self._caller_info:
             logger.info(f"   File: {self._caller_info['file']}")
             logger.info(f"   Class: {self._caller_info['class']}")
@@ -59,6 +61,13 @@ class Kea2Tester:
         self.options = option
         if self.options is None:
             raise ValueError("Please set up the option config first.")
+
+        previous_root: Optional[Path] = None
+        try:
+            if configs_path is not None:
+                previous_root = setCustomProjectRoot(configs_path)
+        except FileNotFoundError as exc:
+            raise ValueError(f"Invalid configuration directory: {configs_path}") from exc
         
         KeaTestRunner.setOptions(self.options)
         argv = ["python3 -m unittest"] + self.options.propertytest_args
@@ -66,8 +75,10 @@ class Kea2Tester:
         logger.info("Starting Kea2 property test...")
         runner = KeaTestRunner()
         unittest.main(module=None, argv=argv, testRunner=runner, exit=False)
-        del runner
         logger.info("Kea2 property test completed.")
+
+        if configs_path is not None:
+            setCustomProjectRoot(previous_root)
         
         result = self._build_test_result()
         

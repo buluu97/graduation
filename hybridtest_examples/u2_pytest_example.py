@@ -1,8 +1,7 @@
 import pytest
 import uiautomator2 as u2
 from time import sleep
-from kea2 import Kea2Tester, Options
-from kea2.u2Driver import U2Driver
+from kea2 import Kea2Tester, Options, U2Driver
 import os
 
 
@@ -12,9 +11,8 @@ DEVICE_SERIAL = "emulator-5554"
 
 @pytest.fixture(scope="function")
 def setup_and_teardown():
-    """测试前后的 setup 和 teardown 操作，替代 unittest 的 setUp 和 tearDown"""
     print("\n" + "="*60)
-    print("setup: 连接设备并重新启动应用")
+    print("setup: Connect device and restart application")
     print("="*60)
     
     d = u2.connect(DEVICE_SERIAL)
@@ -25,7 +23,7 @@ def setup_and_teardown():
     yield d
     
     print("\n" + "="*60)
-    print("teardown: 清理工作")
+    print("teardown: Cleanup work")
     print("="*60)
 
 
@@ -56,8 +54,7 @@ def test_case1_add_tag_show_tags(setup_and_teardown):
                 maxStep=20
             )            
         )
-        print(result)
-        del tester
+
         return
 
     d(resourceId="it.feio.android.omninotes.alpha:id/menu_tag").click()
@@ -93,11 +90,10 @@ def test_case2_add_category(setup_and_teardown):
                 maxStep=20
             )            
         )
-        print(result)
-        del tester
+
         return
     
-    print("在KEA2_HYBRID_MODE等于kea2时，这里不会执行")
+    print("This part will not execute when KEA2_HYBRID_MODE is true")
 
 
 def test_case3_delete_note_search(setup_and_teardown):
@@ -127,8 +123,6 @@ def test_case3_delete_note_search(setup_and_teardown):
                 maxStep=20
             )            
         )
-        print(result)
-        del tester
         return
 
     d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").click()

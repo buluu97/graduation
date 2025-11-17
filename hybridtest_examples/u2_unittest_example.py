@@ -1,8 +1,7 @@
 import unittest
 import uiautomator2 as u2
 from time import sleep
-from kea2 import Kea2Tester, Options
-from kea2.u2Driver import U2Driver
+from kea2 import Kea2Tester, Options, U2Driver
 import os
 
 
@@ -14,7 +13,7 @@ class Feat4_Example1(unittest.TestCase):
     
     def setUp(self):
         print("\n" + "="*60)
-        print("setUp: 连接设备并重新启动应用")
+        print("setUp: Connect device and restart application")
         print("="*60)
         self.d = u2.connect(DEVICE_SERIAL)
         self.d.app_stop(PACKAGE_NAME)
@@ -49,10 +48,8 @@ class Feat4_Example1(unittest.TestCase):
                 )            
             )
             print(result)
-            del tester
 
-
-            return  #后续代码不会执行
+            return  #Subsequent code will not execute
 
         self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_tag").click()
 
@@ -85,14 +82,12 @@ class Feat4_Example1(unittest.TestCase):
                     serial=DEVICE_SERIAL,
                     running_mins=2,
                     maxStep=20
-                )            
+                )           
             )
             print(result)
-            del tester
-
-            return  #后续代码不会执行
+            return  #Subsequent code will not execute
         
-        print("在KEA2_HYBRID_MODE等于kea2时，这里不会执行")
+        print("This part will not execute when KEA2_HYBRID_MODE is true")
 
 
     def test_case3_delete_note_search(self):
@@ -121,9 +116,8 @@ class Feat4_Example1(unittest.TestCase):
                 )            
             )
             print(result)
-            del tester
 
-            return  #后续代码不会执行
+            return  #Subsequent code will not execute
 
         self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").click()
         self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").set_text("Hello112233")
@@ -131,9 +125,9 @@ class Feat4_Example1(unittest.TestCase):
 
 
     def tearDown(self):
-        """测试后的清理工作"""
+        """Cleanup work after testing"""
         print("\n" + "="*60)
-        print("\ntearDown: 清理工作")
+        print("\ntearDown: Cleanup work")
         print("="*60)
 
 
@@ -142,4 +136,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

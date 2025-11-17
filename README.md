@@ -247,7 +247,7 @@ For the preceding always-holding property, we can write the following script to 
 
 You can run this example by using the similar command line in Feature 2.
 
-## Feature 4(api版)
+## Feature 4(兼容已有脚本：通过前置脚本步骤到达特定层次)
 
 Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
 
@@ -266,12 +266,19 @@ Specifically:
 
 Some notes:
 
-1. You need to set the environment variable KEA2_HYBRID_MODE=true to control whether to execute the kea2-related code you have written. This allows you to easily enable or disable kea2 operations in the same script.
+1. You can control whether to execute the kea2-related code you have written by modifying the condition of 'if'. This allows you to easily enable or disable kea2 operations in the same script. Here we use environment variable as an example.
 2. Since kea2 is driven by u2, if an appium-written script wants to launch kea2, it is necessary to first close the appium session. Remember to configure the parameter `"noReset": True` in `desired_caps` to avoid resetting the application when closing the session.
-3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `options` parameter and pass it to the `run_kea2_testing` function.
+3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `option` parameter and `configs_path` parameter(where your directory `configs` located, btw, `configs`'s location dependon where you executed `kea2 init`), then pass it to the `run_kea2_testing` function.
 
 ```python
-if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':    
+from kea2 import Kea2Tester, Options, U2Driver
+
+if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
+    '''
+    Note: The if condition here can be modified as needed according to the actual 
+    situation of the project, the form of environment variables is just an example.    
+    '''
+
     # close your driver session etc. here
     # ...
     
@@ -285,10 +292,9 @@ if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
             serial=DEVICE_SERIAL,
             running_mins=2,
             maxStep=20
-        )            
+        ),
+        configs_path = None  # Default, if your configs folder is located in the root directory, miss this.           
     )
-    print(result)
-    del tester
     
     # restart your driver session or clean instance here
     # ...

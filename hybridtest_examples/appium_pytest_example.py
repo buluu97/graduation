@@ -3,8 +3,7 @@ import pytest
 from time import sleep
 from appium import webdriver
 from appium.webdriver.common.appiumby import AppiumBy
-from kea2 import Kea2Tester, Options
-from kea2.u2Driver import U2Driver
+from kea2 import Kea2Tester, Options, U2Driver
 from appium.options.android import UiAutomator2Options
 
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"
@@ -14,9 +13,9 @@ APPIUM_SERVER_URL = "http://localhost:4723"
 
 class TestFeat4Example1:
     def setup_method(self):
-        """测试前置操作：连接设备并重新启动应用"""
+        """Test pre-operation: Connect device and restart application"""
         print("\n" + "="*60)
-        print("setup_method: 连接设备并重新启动应用")
+        print("setup_method: Connect device and restart application")
         print("="*60)
         
         self.desired_caps = {
@@ -26,7 +25,7 @@ class TestFeat4Example1:
             "appPackage": PACKAGE_NAME,
             "appActivity": "it.feio.android.omninotes.MainActivity",
             "automationName": "UiAutomator2",
-            "noReset": True,  # 每次启动不重置应用状态
+            "noReset": True,  # Do not reset app state on each launch
             "fullReset": False,
             "unicodeKeyboard": True,
             "resetKeyboard": True
@@ -154,7 +153,7 @@ class TestFeat4Example1:
             del tester
             return
         
-        print("在KEA2_HYBRID_MODE等于kea2时，这里不会执行")
+        print("This part will not execute when KEA2_HYBRID_MODE is kea2")
     
     def test_case3_delete_note_search(self):
         '''add note -> delete note -> search title'''
@@ -224,9 +223,9 @@ class TestFeat4Example1:
         self.driver.press_keycode(66)
     
     def teardown_method(self):
-        """测试后置操作：清理工作"""
+        """Test post-operation: Cleanup work"""
         print("\n" + "="*60)
-        print("teardown_method: 清理工作")
+        print("teardown_method: Cleanup work")
         print("="*60)
         # self.driver.quit()
 

@@ -782,7 +782,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
     def __del__(self):
         """tearDown method. Cleanup the env.
         """
-        self.tearDown()
+        try:
+            self.tearDown()
+        except Exception:
+            # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
+            pass
 
 
 class KeaTextTestResult(BetterConsoleLogExtensionMixin, TextTestResult):
@@ -956,8 +960,12 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
     def __del__(self):
         """tearDown method. Cleanup the env.
         """
-        if self.options.Driver:
-            self.options.Driver.tearDown()
+        try:
+            if hasattr(self, 'options') and self.options and self.options.Driver:
+                self.options.Driver.tearDown()
+        except Exception:
+            # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
+            pass
 
 
 def kea2_breakpoint():
