@@ -45,7 +45,7 @@ PropName = NewType("PropName", str)
 PropertyStore = NewType("PropertyStore", Dict[PropName, TestCase])
 
 
-STAMP = TimeStamp().getTimeStamp()
+STAMP: str
 LOGFILE: str
 RESFILE: str
 PROP_EXEC_RESFILE: str
@@ -118,7 +118,7 @@ class Options:
     # the driver_name in script (if self.d, then d.) 
     driverName: str = None
     # the driver (only U2Driver available now)
-    Driver: AbstractDriver = None
+    Driver: AbstractDriver = U2Driver
     # list of package names. Specify the apps under test
     packageNames: List[str] = None
     # target device
@@ -154,7 +154,7 @@ class Options:
     # Activity BlackList File
     act_blacklist_file: str = None
     # propertytest sub-commands args (eg. discover -s xxx -p xxx)
-    propertytest_args: str = None
+    propertytest_args: List[str] = None
     # unittest sub-commands args (Feat 4)
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
@@ -172,10 +172,11 @@ class Options:
         if self.Driver:
             self._set_driver()
 
-        if self.log_stamp:
-            self._sanitize_custom_stamp()
-
         global STAMP
+        if not self.log_stamp:
+            STAMP = TimeStamp().getCurrentTimeStamp()
+        self._sanitize_stamp()
+
         self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
         self.set_stamp()
 
@@ -193,15 +194,13 @@ class Options:
         RESFILE = f"result_{STAMP}.json"
         PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
 
-    def _sanitize_custom_stamp(self):
-        global STAMP
+    def _sanitize_stamp(self):
         illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
         for char in illegal_chars:
-            if char in self.log_stamp:
+            if char in STAMP:
                 raise ValueError(
-                    f"char: `{char}` is illegal in --log-stamp. current stamp: {self.log_stamp}"
+                    f"char: `{char}` is illegal in --log-stamp. current stamp: {STAMP}"
                 )
-        STAMP = self.log_stamp
     
     def _sanitize_args(self):
         if not self.take_screenshots and self.pre_failure_screenshots > 0:
@@ -542,6 +541,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             log_watcher.close()
         
         result.logSummary()
+
+        if self.options.agent == "u2":
+            self._generate_bug_report()
+
+        self.tearDown()
         return result
     
     def shouldStop(self, start_time):
@@ -554,7 +558,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         r = self._get_block_widgets()
         r["steps_count"] = self.stepsCount
         return r
-    
+
     def _get_block_widgets(self):
         block_dict = self._getBlockedWidgets()
         block_widgets: List[str] = block_dict['widgets']
@@ -769,14 +773,20 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         logger.info("Generating bug report")
         BugReportGenerator(self.options.output_dir).generate_report()
 
-    def __del__(self):
+    def tearDown(self):
         """tearDown method. Cleanup the env.
         """
         if self.options.Driver:
             self.options.Driver.tearDown()
-
-        if self.options.agent == "u2":
-            self._generate_bug_report()
+    
+    def __del__(self):
+        """tearDown method. Cleanup the env.
+        """
+        try:
+            self.tearDown()
+        except Exception:
+            # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
+            pass
 
 
 class KeaTextTestResult(BetterConsoleLogExtensionMixin, TextTestResult):
@@ -950,8 +960,12 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
     def __del__(self):
         """tearDown method. Cleanup the env.
         """
-        if self.options.Driver:
-            self.options.Driver.tearDown()
+        try:
+            if hasattr(self, 'options') and self.options and self.options.Driver:
+                self.options.Driver.tearDown()
+        except Exception:
+            # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
+            pass
 
 
 def kea2_breakpoint():

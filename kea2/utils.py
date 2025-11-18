@@ -5,7 +5,7 @@ import time
 
 from pathlib import Path
 from functools import wraps
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Union
 
 
 def singleton(cls):
@@ -70,13 +70,41 @@ class TimeStamp:
             import datetime
             cls.time_stamp = datetime.datetime.now().strftime('%Y%m%d%H_%M%S%f')
         return cls.time_stamp
+    
+    def getCurrentTimeStamp(cls):
+        import datetime
+        return datetime.datetime.now().strftime('%Y%m%d%H_%M%S%f')
 
 
 from uiautomator2 import Device
 d = Device
 
 
+_CUSTOM_PROJECT_ROOT: Optional[Path] = None
+
+
+def setCustomProjectRoot(configs_path: Optional[Union[str, Path]]):
+    """
+    Set a custom project root directory (containing the configs directory). Passing None can restore the default behavior.
+    """
+    global _CUSTOM_PROJECT_ROOT
+
+    if configs_path is None:
+        _CUSTOM_PROJECT_ROOT = None
+        return
+
+    candidate = Path(configs_path).expanduser()
+    if candidate.name == "configs":
+        candidate = candidate.parent
+
+    candidate = candidate.resolve()
+    _CUSTOM_PROJECT_ROOT = candidate
+
+
 def getProjectRoot():
+    if _CUSTOM_PROJECT_ROOT:
+        return _CUSTOM_PROJECT_ROOT
+
     root = Path(Path.cwd().anchor)
     cur_dir = Path.absolute(Path(os.curdir))
     while not os.path.isdir(cur_dir / "configs"):

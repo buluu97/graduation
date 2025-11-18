@@ -11,9 +11,8 @@ from typing import List, Literal, Union, Optional
 from lxml import etree
 from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
 from .adbUtils import list_forwards, remove_forward, create_forward
-from .utils import TimeStamp, getLogger
+from .utils import getLogger
 
-TIME_STAMP = TimeStamp().getTimeStamp()
 
 import logging
 logging.getLogger("urllib3").setLevel(logging.INFO)
@@ -55,8 +54,7 @@ class U2ScriptDriver(AbstractScriptDriver):
             print("[INFO] Connecting to uiautomator2. Please wait ...")
             self.d = u2.connect(adb)
             sleep(5)
-            self.d._device_server_port = 8090
-
+        self.d._device_server_port = 8090
         return self.d
 
     def _remove_remote_port(self, port:int):
@@ -69,11 +67,16 @@ class U2ScriptDriver(AbstractScriptDriver):
                 remove_forward(local_spec=forward_local, device=self.deviceSerial)
 
     def tearDown(self):
-        # logger.debug("U2Driver tearDown: stop_uiautomator")
-        # self.d.stop_uiautomator()
-        # logger.debug("U2Driver tearDown: remove forward")
-        # self._remove_remote_port(8090)
-        pass
+        logger.debug("U2Driver tearDown: stop_uiautomator")
+        if self.d is None:
+            return
+        try:
+            self.d._device_server_port = 9008
+            self.d.stop_uiautomator()
+        except (OSError, AttributeError, RuntimeError) as e:
+            logger.debug(f"Error during uiautomator teardown (may be already closed): {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error during uiautomator teardown: {e}")
 
 """
 The definition of U2StaticChecker
@@ -531,7 +534,10 @@ class U2Driver(AbstractDriver):
     @classmethod
     def tearDown(self):
         if self.scriptDriver:
-            self.scriptDriver.tearDown()
+            try:
+                self.scriptDriver.tearDown()
+            except Exception as e:
+                logger.debug(f"Error during U2Driver teardown: {e}")
 
 
 """

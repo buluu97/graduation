@@ -247,9 +247,7 @@ For the preceding always-holding property, we can write the following script to 
 
 You can run this example by using the similar command line in Feature 2.
 
-## Feature 4 (Experimental feature, 实验中，脚本与遍历的混合测试)
-
-> This feature is still under development. We are looking forward to your feedback! Contact us if you're interested in this feature.
+## Feature 4(兼容已有脚本：通过前置脚本步骤到达特定层次)
 
 Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
 
@@ -257,21 +255,53 @@ For example, you may already have some existing Ui test scripts "login and add a
 
 ### Example
 
-See [guide_scripts.py](guide_scripts.py) for a full example.
+Here are four example scripts in hybridetest_examples, each corresponding to different forms of user scripts, showing you how to launch kea2 in the existing code.
 
-By the decorator `@interruptable`, you can mark the testcase as "interruptable" so that Kea2 can recognize this script and launch fuzzing test after it returns. 
+Specifically:  
 
-Since the state of app is probably unpredicted after fuzzing tests, Kea2 provides a `common_teardown` function to clean up the environment between previous script and next script. The function can be manually specified in `configs/teardown.py`.
+* [u2_unittest_example.py](hybridtest_examples\u2_unittest_example.py) is a u2 script organized with unittest.
+* [u2_pytest_example.py](hybridtest_examples\u2_pytest_example.py) is a u2 script organized with pytest.
+* [appium_unittest_example.py](hybridtest_examples\appium_unittest_example.py) is an appium script organized with unittest.
+* [appium_pytest_example.py](hybridtest_examples\appium_pytest_example.py) is an appium script organized with pytest.
 
-You can find the full example in `guide_scripts.py`, `property_omninotes.py`  and `configs/teardown.py` .  You can run one of the following commands:
+Some notes:
 
-```bash
-# Guide with guide_scripts.py and launch fuzzing test after every script.
-kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py 
+1. You can control whether to execute the kea2-related code you have written by modifying the condition of 'if'. This allows you to easily enable or disable kea2 operations in the same script. Here we use environment variable as an example.
+2. Since kea2 is driven by u2, if an appium-written script wants to launch kea2, it is necessary to first close the appium session. Remember to configure the parameter `"noReset": True` in `desired_caps` to avoid resetting the application when closing the session.
+3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `option` parameter and `configs_path` parameter(where your directory `configs` located, btw, `configs`'s location dependon where you executed `kea2 init`), then pass it to the `run_kea2_testing` function.
 
-# Guide with guide_scripts.py and launch fuzzing test after every script(check properties during fuzzing).
-kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 500 --max-step 15 --driver-name d unittest discover -p guide_scripts.py propertytest discover -p quickstart2.py
+```python
+from kea2 import Kea2Tester, Options, U2Driver
+
+if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
+    '''
+    Note: The if condition here can be modified as needed according to the actual 
+    situation of the project, the form of environment variables is just an example.    
+    '''
+
+    # close your driver session etc. here
+    # ...
+    
+    tester = Kea2Tester()
+    result = self.tester.run_kea2_testing(
+        Options(
+            driverName="d",
+            packageNames=[PACKAGE_NAME],
+            propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
+            serial=DEVICE_SERIAL,
+            running_mins=2,
+            maxStep=20
+        ),
+        configs_path = None  # Default, if your configs folder is located in the root directory, miss this.           
+    )
+    
+    # restart your driver session or clean instance here
+    # ...
+    
+    return  # this make your following steps of this testcase not work
 ```
+
+
 
 ## Test Reports（测试报告）
 
