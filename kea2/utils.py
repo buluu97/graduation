@@ -83,7 +83,7 @@ d = Device
 _CUSTOM_PROJECT_ROOT: Optional[Path] = None
 
 
-def setCustomProjectRoot(configs_path: Optional[Union[str, Path]]) -> Optional[Path]:
+def setCustomProjectRoot(configs_path: Optional[Union[str, Path]]):
     """
     Set a custom project root directory (containing the configs directory). Passing None can restore the default behavior.
     """
@@ -98,9 +98,8 @@ def setCustomProjectRoot(configs_path: Optional[Union[str, Path]]) -> Optional[P
         candidate = candidate.parent
 
     candidate = candidate.resolve()
-
     _CUSTOM_PROJECT_ROOT = candidate
-    return
+
 
 def getProjectRoot():
     if _CUSTOM_PROJECT_ROOT:
