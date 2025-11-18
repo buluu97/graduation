@@ -88,25 +88,19 @@ def setCustomProjectRoot(configs_path: Optional[Union[str, Path]]) -> Optional[P
     Set a custom project root directory (containing the configs directory). Passing None can restore the default behavior.
     """
     global _CUSTOM_PROJECT_ROOT
-    previous = _CUSTOM_PROJECT_ROOT
 
     if configs_path is None:
         _CUSTOM_PROJECT_ROOT = None
-        return previous
+        return
 
     candidate = Path(configs_path).expanduser()
     if candidate.name == "configs":
         candidate = candidate.parent
 
     candidate = candidate.resolve()
-    configs_dir = candidate / "configs"
-
-    if not configs_dir.exists() or not configs_dir.is_dir():
-        raise FileNotFoundError(f"Configs directory not found in the specified path: {configs_dir}")
 
     _CUSTOM_PROJECT_ROOT = candidate
-    return previous
-
+    return
 
 def getProjectRoot():
     if _CUSTOM_PROJECT_ROOT:

@@ -286,7 +286,6 @@ if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
     result = self.tester.run_kea2_testing(
         Options(
             driverName="d",
-            Driver=U2Driver,
             packageNames=[PACKAGE_NAME],
             propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
             serial=DEVICE_SERIAL,

@@ -39,13 +39,12 @@ class Feat4_Example1(unittest.TestCase):
             result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
-                    Driver=U2Driver,
                     packageNames=[PACKAGE_NAME],
                     propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                     serial=DEVICE_SERIAL,
                     running_mins=2,
                     maxStep=20
-                )            
+                )        
             )
             print(result)
 
@@ -76,13 +75,12 @@ class Feat4_Example1(unittest.TestCase):
             result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
-                    Driver=U2Driver,
                     packageNames=[PACKAGE_NAME],
                     propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                     serial=DEVICE_SERIAL,
                     running_mins=2,
                     maxStep=20
-                )           
+                )
             )
             print(result)
             return  #Subsequent code will not execute
@@ -107,13 +105,12 @@ class Feat4_Example1(unittest.TestCase):
             result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
-                    Driver=U2Driver,
                     packageNames=[PACKAGE_NAME],
                     propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                     serial=DEVICE_SERIAL,
                     running_mins=2,
                     maxStep=20
-                )            
+                )
             )
             print(result)
 

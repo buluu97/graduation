@@ -46,7 +46,6 @@ def test_case1_add_tag_show_tags(setup_and_teardown):
         result = tester.run_kea2_testing(
             Options(
                 driverName="d",
-                Driver=U2Driver,
                 packageNames=[PACKAGE_NAME],
                 propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                 serial=DEVICE_SERIAL,
@@ -82,7 +81,6 @@ def test_case2_add_category(setup_and_teardown):
         result = tester.run_kea2_testing(
             Options(
                 driverName="d",
-                Driver=U2Driver,
                 packageNames=[PACKAGE_NAME],
                 propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                 serial=DEVICE_SERIAL,
@@ -115,7 +113,6 @@ def test_case3_delete_note_search(setup_and_teardown):
         result = tester.run_kea2_testing(
             Options(
                 driverName="d",
-                Driver=U2Driver,
                 packageNames=[PACKAGE_NAME],
                 propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                 serial=DEVICE_SERIAL,

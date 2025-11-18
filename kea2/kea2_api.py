@@ -62,12 +62,14 @@ class Kea2Tester:
         if self.options is None:
             raise ValueError("Please set up the option config first.")
 
-        previous_root: Optional[Path] = None
-        try:
-            if configs_path is not None:
-                previous_root = setCustomProjectRoot(configs_path)
-        except FileNotFoundError as exc:
-            raise ValueError(f"Invalid configuration directory: {configs_path}") from exc
+        from kea2.utils import getProjectRoot
+        previous_root = getProjectRoot()
+        if configs_path is not None:
+            configs_dir = Path(configs_path).expanduser() 
+            if not configs_dir.exists() or not configs_dir.is_dir():
+                raise FileNotFoundError(f"Configs directory not found in the specified path: {configs_dir}")
+            else:
+                setCustomProjectRoot(configs_path)
         
         KeaTestRunner.setOptions(self.options)
         argv = ["python3 -m unittest"] + self.options.propertytest_args

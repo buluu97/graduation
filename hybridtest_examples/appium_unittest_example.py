@@ -77,7 +77,6 @@ class Feat4_Example1(unittest.TestCase):
             result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
-                    Driver=U2Driver,
                     packageNames=[PACKAGE_NAME],
                     propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                     serial=DEVICE_SERIAL,
@@ -142,7 +141,6 @@ class Feat4_Example1(unittest.TestCase):
             result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
-                    Driver=U2Driver,
                     packageNames=[PACKAGE_NAME],
                     propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                     serial=DEVICE_SERIAL,
@@ -203,7 +201,6 @@ class Feat4_Example1(unittest.TestCase):
             result = tester.run_kea2_testing(
                 Options(
                     driverName="d",
-                    Driver=U2Driver,
                     packageNames=[PACKAGE_NAME],
                     propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
                     serial=DEVICE_SERIAL,

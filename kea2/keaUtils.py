@@ -118,7 +118,7 @@ class Options:
     # the driver_name in script (if self.d, then d.) 
     driverName: str = None
     # the driver (only U2Driver available now)
-    Driver: AbstractDriver = None
+    Driver: AbstractDriver = U2Driver
     # list of package names. Specify the apps under test
     packageNames: List[str] = None
     # target device
