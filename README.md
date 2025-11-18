@@ -193,7 +193,7 @@ You can find the full example in script `quicktest.py`, and run this script with
 
 ```bash
 # Launch Kea2 and load one single script quicktest.py.
-kea2 run -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
 ```
 
 ## Feature 3(运行增强版Fastbot：加入自动断言)
