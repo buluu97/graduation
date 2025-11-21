@@ -12,6 +12,7 @@ from lxml import etree
 from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
 from .adbUtils import list_forwards, remove_forward, create_forward
 from .utils import getLogger
+from packaging import version
 
 
 import logging
@@ -225,7 +226,8 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
         s = u2.xpath.XPathSelector(self.selector)
         s._next_xpath = u2.xpath.XPathSelector.create(value.selector)
         s._operator = u2.xpath.Operator.AND
-        s._parent = self.selector._parent
+        if is_old_u2_version():
+            s._parent = self.selector._parent
         self.selector = s
         return self
 
@@ -233,7 +235,8 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
         s = u2.xpath.XPathSelector(self.selector)
         s._next_xpath = u2.xpath.XPathSelector.create(value.selector)
         s._operator = u2.xpath.Operator.OR
-        s._parent = self.selector._parent
+        if is_old_u2_version():
+            s._parent = self.selector._parent
         self.selector = s
         return self
 
@@ -304,8 +307,13 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
             return None
         return self.get_last_match()
 
+
     def get_last_match(self) -> "u2.xpath.XMLElement":
-        return self.selector.all(self.selector._last_source)[0]
+        if is_old_u2_version():
+            return self.selector.all(self.selector._last_source)[0]
+        else:
+            source = self.session.get_page_source()
+            return self.selector.all(source)[0]
 
     def parent_exists(self, xpath: Optional[str] = None):
         el = self.get()
@@ -461,8 +469,17 @@ class _XPathEntry(u2.xpath.XPathEntry):
         # self.xpath = xpath
         # return super().__call__(xpath, source)
     def __call__(self, xpath, source=None):
-        ui = StaticXpathUiObject(session=self, selector=u2.xpath.XPathSelector(xpath, source=source))
-        return ui
+        try:
+            if is_old_u2_version():
+                ui = StaticXpathUiObject(session=self, selector=u2.xpath.XPathSelector(xpath, source=source))
+            else:
+                ui = StaticXpathUiObject(session=self, selector=u2.xpath.XPathSelector(xpath))
+            return ui
+
+        except AttributeError:
+            print("Failed to get u2 version from u2.version.__version__")
+            self.xpath = xpath
+            return super().__call__(xpath, source)
 
 
 
@@ -603,3 +620,36 @@ def set_covered_to_deepest_node(selector: u2.Selector):
         dict.update(deepest_node, {"covered": False})
 
 
+def get_u2_version_type():
+    """
+    Determine the u2 version type
+
+    Returns:
+        str: "old" for versions <= 3.4.0, "new" for versions >= 3.4.1
+    """
+    try:
+        # Get version string
+        u2_version_str = u2.version.__version__
+        u2_version = version.parse(u2_version_str)
+
+        # Version classification:
+        # - Old version: <= 3.4.0
+        # - New version: >= 3.4.1
+        if u2_version >= version.parse("3.4.1"):
+            return "new"
+        else:
+            return "old"
+
+    except AttributeError:
+        # If version information cannot be obtained, default to new version
+        return "new"
+
+
+def is_old_u2_version():
+    """
+    Check if current u2 version is old (<= 3.4.0)
+
+    Returns:
+        bool: True for old version (<= 3.4.0), False for new version (>= 3.4.1)
+    """
+    return get_u2_version_type() == "old"
