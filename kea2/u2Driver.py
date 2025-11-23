@@ -1,6 +1,4 @@
 import functools
-import random
-import socket
 from time import sleep
 from importlib.metadata import version
 
@@ -14,7 +12,7 @@ from typing import List, Literal, Union, Optional
 from lxml import etree
 from packaging.version import Version
 from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
-from .adbUtils import list_forwards, remove_forward, create_forward
+from .adbUtils import list_forwards, remove_forward
 from .utils import getLogger
 
 
@@ -461,7 +459,7 @@ class _HindenWidgetFilter:
 
 
 class U2StaticDevice(u2.Device):
-    
+
     def __init__(self, script_driver=None):
         self.xml: etree._Element = None
         self._script_driver:u2.Device = script_driver
@@ -591,45 +589,6 @@ class U2Driver(AbstractDriver):
 """
 Other Utils
 """
-def forward_port(self, remote: Union[int, str]) -> int:
-        """forward remote port to local random port"""
-        remote = 8090
-        if isinstance(remote, int):
-            remote = "tcp:" + str(remote)
-        for f in self.forward_list():
-            if (
-                f.serial == self._serial
-                and f.remote == remote
-                and f.local.startswith("tcp:")
-            ):  # yapf: disable
-                return int(f.local[len("tcp:"):])
-        local_port = get_free_port()
-        self.forward("tcp:" + str(local_port), remote)
-        logger.debug(f"forwading port: tcp:{local_port} -> {remote}")
-        return local_port
-
-def is_port_in_use(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-
-def get_free_port():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(('127.0.0.1', 0))
-        try:
-            return s.getsockname()[1]
-        finally:
-            s.close()
-    except OSError:
-        # bind 0 will fail on Manjaro, fallback to random port
-        # https://github.com/openatx/adbutils/issues/85
-        for _ in range(20):
-            port = random.randint(10000, 20000)
-            if not is_port_in_use(port):
-                return port
-        raise RuntimeError("No free port found")
-
 def set_covered_to_deepest_node(selector: u2.Selector):
 
     def find_deepest_nodes(node):
