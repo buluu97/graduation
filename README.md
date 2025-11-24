@@ -11,8 +11,11 @@
 
 Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat discussion group. Of course, we are also ready on GitHub to answer your questions/feedback.
 
-### Github repo link
-[https://github.com/ecnusse/Kea2](https://github.com/ecnusse/Kea2)
+####  Github repo [https://github.com/ecnusse/Kea2](https://github.com/ecnusse/Kea2)
+####  Gitee mirror [https://gitee.com/XixianLiang/Kea2](https://gitee.com/XixianLiang/Kea2)
+
+
+
 
 ### [点击此处：查看中文文档](README_cn.md) 
 
