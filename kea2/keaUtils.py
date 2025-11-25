@@ -23,7 +23,7 @@ from .report.bug_report_generator import BugReportGenerator
 from .resultSyncer import ResultSyncer
 from .logWatcher import LogWatcher
 from .utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
-from .u2Driver import StaticU2UiObject, StaticXpathUiObject, U2Driver
+from .u2Driver import StaticU2UiObject, StaticXpathObject, U2Driver
 from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
 from .mixin import BetterConsoleLogExtensionMixin
@@ -737,7 +737,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     _widgets = func(U2Driver.getStaticChecker())
                     _widgets = _widgets if isinstance(_widgets, list) else [_widgets]
                     for w in _widgets:
-                        if isinstance(w, (StaticU2UiObject, StaticXpathUiObject)):
+                        if isinstance(w, (StaticU2UiObject, StaticXpathObject)):
                             xpath = w.selector_to_xpath(w.selector)
                             if xpath != '//error':
                                 blocked_set.add(xpath)
