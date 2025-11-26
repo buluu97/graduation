@@ -6,8 +6,9 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ecnusse/Kea2)
 
 <div>
-    <img src="https://github.com/user-attachments/assets/84e47b87-2dd2-4d7e-91d1-e8c1d1db0cf4" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
 </div>
+
 
 Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat discussion group. Of course, we are also ready on GitHub to answer your questions/feedback.
 
