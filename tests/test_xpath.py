@@ -31,6 +31,37 @@ class TestXPath(unittest.TestCase):
             """(//*[@resource-id="it.feio.android.omninotes.alpha:id/category_marker"])[3]"""
         ).exists
 
+        assert self.d.xpath('@com.android.systemui:id/clock').exists          
+
+        assert self.d.xpath('//android.widget.TextView[@text="hehzhe"]')\
+                    .parent_exists('//androidx.recyclerview.widget.RecyclerView')   
+
+        assert (self.d.xpath('100') &
+                self.d.xpath('@com.android.systemui:id/battery_inside_percent')).exists
+
+        assert (self.d.xpath('100') | self.d.xpath('2:14')).exists            # |
+
+        assert self.d.xpath('//android.widget.TextView[@text="Notes"]')\
+                    .parent_exists('@it.feio.android.omninotes.alpha:id/toolbar')  # parent_exists
+
+        assert self.d.xpath('@it.feio.android.omninotes.alpha:id/fab')\
+                    .child('/android.widget.ImageButton').exists              # child
+
+        assert self.d.xpath('//androidx.drawerlayout.widget.DrawerLayout[@resource-id="it.feio.android.omninotes.alpha:id/drawer_layout"]' +
+                            '//android.view.ViewGroup[@resource-id="it.feio.android.omninotes.alpha:id/toolbar"]').exists
+
+        assert self.d.xpath('(//android.view.View[@resource-id="it.feio.android.omninotes.alpha:id/category_marker"])[3]')\
+                    .parent_exists('//androidx.recyclerview.widget.RecyclerView[@resource-id="it.feio.android.omninotes.alpha:id/list"]')
+        
+        assert self.d.xpath('//androidx.drawerlayout.widget.DrawerLayout[@resource-id="it.feio.android.omninotes.alpha:id/drawer_layout"]' +
+                            '//android.view.ViewGroup[@resource-id="it.feio.android.omninotes.alpha:id/toolbar"]').exists
+
+        # parent_exists
+        node = (self.d.xpath('@com.android.systemui:id/battery_inside_percent') |  
+                self.d.xpath('@com.android.systemui:id/clock'))                    
+        assert node & self.d.xpath('//android.widget.TextView')                     
+        assert node.parent_exists('@com.android.systemui:id/status_bar')            # parent_exists
+
 
 if __name__ == "__main__":
     unittest.main()
