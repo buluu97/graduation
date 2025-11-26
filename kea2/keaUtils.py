@@ -173,8 +173,8 @@ class Options:
             self._set_driver()
 
         global STAMP
-        if not self.log_stamp:
-            STAMP = TimeStamp().getCurrentTimeStamp()
+        STAMP = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
+
         self._sanitize_stamp()
 
         self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
@@ -195,6 +195,7 @@ class Options:
         PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
 
     def _sanitize_stamp(self):
+        global STAMP
         illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
         for char in illegal_chars:
             if char in STAMP:
