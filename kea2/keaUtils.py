@@ -155,6 +155,8 @@ class Options:
     act_blacklist_file: str = None
     # propertytest sub-commands args (eg. discover -s xxx -p xxx)
     propertytest_args: List[str] = None
+    # period (N steps) to restart the app under test
+    restart_app_period: int = None
     # unittest sub-commands args (Feat 4)
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
@@ -468,10 +470,19 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                 start_time = perf_counter()
                 fb_is_running = True
                 self.stepsCount = 0
+
                 while self.stepsCount < self.options.maxStep:
                     if self.shouldStop(start_time):
                         logger.info("Exploration time up (--running-minutes).")
                         break
+
+                    if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
+                        logger.info("kill all apps to restart the app under test.")
+                        self.scriptDriver.app_stop_all()
+                        self.stepsCount += 1
+                        fb.sendInfo("kill_apps")
+                        continue
+
                     try:
                         if fb.executed_prop:
                             fb.executed_prop = False
