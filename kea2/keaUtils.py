@@ -477,9 +477,12 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         break
 
                     if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
-                        logger.info("kill all apps to restart the app under test.")
-                        self.scriptDriver.app_stop_all()
                         self.stepsCount += 1
+                        logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
+                        logger.info("Kill all test apps to restart the app under test.")
+                        for app in self.options.packageNames:
+                            logger.info(f"Stopping app: {app}")
+                            self.scriptDriver.app_stop(app)
                         fb.sendInfo("kill_apps")
                         continue
 
@@ -489,11 +492,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                             xml_raw = fb.dumpHierarchy()
                         else:
                             self.stepsCount += 1
-                            logger.info("Sending monkeyEvent {}".format(
-                                f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf")
-                                else f"({self.stepsCount})"
-                                )
-                            )
+                            logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
                             xml_raw = fb.stepMonkey(self._monkeyStepInfo)
                         propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
                     except u2.HTTPError:
@@ -570,6 +569,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         r = self._get_block_widgets()
         r["steps_count"] = self.stepsCount
         return r
+    
+    @property
+    def _monkey_event_count(self):
+        return f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf") else f"({self.stepsCount})"                       
 
     def _get_block_widgets(self):
         block_dict = self._getBlockedWidgets()
