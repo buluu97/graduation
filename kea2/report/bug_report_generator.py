@@ -524,7 +524,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                             "start": current_test["start"],
                             "end": current_test["end"],
                             "screenshot_start": current_test["screenshot_start"],
-                            "screenshot_end": screenshot
+                            "screenshot_end": screenshot,
+                            "state": state
                         })
 
                     # Reset current test
@@ -550,7 +551,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                     data["property_violations"].append({
                         "index": index,
                         "property_name": property_name,
-                        "interaction_pages": [start_step, end_step]
+                        "interaction_pages": [start_step, end_step],
+                        "state": violation.get("state", "fail")
                     })
                     index += 1
 
