@@ -8,7 +8,7 @@ import os
 from collections import deque
 from copy import deepcopy
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
 from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
@@ -483,6 +483,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         for app in self.options.packageNames:
                             logger.info(f"Stopping app: {app}")
                             self.scriptDriver.app_stop(app)
+                        sleep(3)
                         fb.sendInfo("kill_apps")
                         continue
 
