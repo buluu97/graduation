@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape, PackageLoad
 from ..utils import getLogger, catchException
 from .mixin import CrashAnrMixin, PathParserMixin, ScreenshotsMixin
 from .utils import thread_pool
+from .widget_coverage import WidgetCoverage
 
 logger = getLogger(__name__)
 
@@ -209,22 +210,29 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         self.__set_up_jinja_env()
         
         self.screenshots = deque()
+        
+        test_data = None
         with thread_pool(max_workers=128) as executor:
             logger.debug("Starting bug report generation")
-
             # Collect test data
             test_data: ReportData = self._collect_test_data(executor)
 
-            # Generate HTML report
-            html_content = self._generate_html_report(test_data)
+        if not test_data:
+            raise RuntimeError("No test data collected, cannot generate report.")
+        
+        # Generate HTML report
+        html_content = self._generate_html_report(test_data)
 
-            # Save report
-            report_path = self.result_dir / "bug_report.html"
-            with open(report_path, "w", encoding="utf-8") as f:
-                f.write(html_content)
+        # Save report
+        report_path = self.result_dir / "bug_report.html"
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
 
-            logger.info(f"Bug report saved to: {report_path}")
-            return str(report_path)
+        WidgetCoverage(output_dir=self._data_path.output_dir).generate_coverage_report()
+        
+        logger.info(f"Bug report saved to: {report_path}")
+        return str(report_path)
+
 
     @catchException("Error when collecting test data")
     def _collect_test_data(self, executor: "ThreadPoolExecutor"=None) -> ReportData:
