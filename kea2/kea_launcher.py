@@ -260,7 +260,7 @@ def run(args=None):
     driver_info_logger(args)
     extra_args_info_logger(args)
 
-    from kea2 import KeaTestRunner, HybridTestRunner, KeaTestLoader, Options
+    from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader
     from kea2.u2Driver import U2Driver
     options = Options(
         agent=args.agent,
@@ -296,4 +296,4 @@ def run(args=None):
         KeaTestRunner.setOptions(options)
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args
-    unittest.main(module=None, argv=argv, testRunner=testRunner, testLoader=KeaTestLoader())
+    unittest.main(module=None, argv=argv, testRunner=testRunner, testLoader=keaTestLoader)

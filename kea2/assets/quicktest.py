@@ -2,7 +2,7 @@ import unittest
 import uiautomator2 as u2
 
 from time import sleep
-from kea2 import precondition, prob, KeaTestRunner, Options
+from kea2 import precondition, prob, KeaTestRunner, Options, kea, keaTestLoader
 from kea2.u2Driver import U2Driver
 
 
@@ -123,4 +123,4 @@ if __name__ == "__main__":
             agent="u2"  # 'native' for running the vanilla Fastbot, 'u2' for running Kea2
         )
     )
-    unittest.main(testRunner=KeaTestRunner)
+    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)

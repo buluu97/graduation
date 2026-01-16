@@ -1,4 +1,4 @@
-from .keaUtils import KeaTestRunner, KeaTestLoader, HybridTestRunner
+from .keaUtils import KeaTestRunner, HybridTestRunner, keaTestLoader
 from .keaUtils import Options
 from .keaUtils import precondition, prob, max_tries, interruptable
 from .keaUtils import kea2_breakpoint

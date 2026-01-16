@@ -107,4 +107,4 @@ if __name__ == "__main__":
             # agent='native'  # 'native' for running the vanilla Fastbot, 'u2' for running Kea2
         )
     )
-    unittest.main(testRunner=KeaTestRunner, testLoader=KeaTestLoader)
+    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)

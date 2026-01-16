@@ -463,6 +463,9 @@ class KeaTestLoader(TestLoader):
             logger.info(f"[INFO] Load invariant: {fullName}")
 
 
+keaTestLoader = KeaTestLoader()
+
+
 class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
     resultclass: JsonResult
@@ -955,9 +958,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
                         argv = ["python3 -m unittest"] + hybrid_test_options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
-                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, testLoader=KeaTestLoader, exit=False)
-                        from unittest import TestLoader
-
+                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, testLoader=keaTestLoader, exit=False)
                 finally:
                     test._common_tearDown()
                     result.printErrors()

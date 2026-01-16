@@ -179,7 +179,7 @@ Here is an example (named as `mytest.py`). You can see that the options are dire
 ```python
 import unittest
 
-from kea2 import KeaTestRunner, Options
+from kea2 import KeaTestRunner, Options, keaTestLoader
 from kea2.u2Driver import U2Driver
 
 class MyTest(unittest.TestCase):
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         )
     )
     # Declare the KeaTestRunner
-    unittest.main(testRunner=KeaTestRunner, testLoader=KeaTestLoader)
+    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)
 ```
 
 We can directly run the script `mytest.py` to launch Kea2, e.g.,

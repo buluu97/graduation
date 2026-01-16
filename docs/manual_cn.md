@@ -173,7 +173,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 ```python
 import unittest
 
-from kea2 import KeaTestRunner, Options, KeaTestLoader
+from kea2 import KeaTestRunner, Options, keaTestLoader
 from kea2.u2Driver import U2Driver
 
 class MyTest(unittest.TestCase):
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         )
     )
     # 声明 KeaTestRunner
-    unittest.main(testRunner=KeaTestRunner, testLoader=KeaTestLoader)
+    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)
 ```
 
 运行该脚本启动 Kea2，如：
