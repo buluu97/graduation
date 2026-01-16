@@ -4,6 +4,7 @@ import types
 import traceback
 import json
 import os
+import functools
 
 from collections import deque
 from copy import deepcopy
@@ -11,10 +12,12 @@ from pathlib import Path
 from time import perf_counter, sleep
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
-from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
+from unittest import TextTestRunner, TestLoader, TestSuite, TestCase
+from unittest import registerResult, TextTestResult, SkipTest
 from unittest import main as unittest_main
 from dataclasses import dataclass, asdict
 from datetime import datetime
+from fnmatch import fnmatchcase
 
 import uiautomator2 as u2
 
@@ -27,6 +30,7 @@ from .u2Driver import StaticU2UiObject, StaticXpathObject, U2Driver
 from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
 from .mixin import BetterConsoleLogExtensionMixin
+from .state import invariant, INVARIANT_MARKER
 
 
 hybrid_mode = ContextVar("hybrid_mode", default=False)
@@ -283,7 +287,7 @@ class PropStatistic:
     executed: int = 0
     fail: int = 0
     error: int = 0
-    
+
 
 PBTTestResult = NewType("PBTTestResult", Dict[PropName, PropStatistic])
 
@@ -306,8 +310,8 @@ def getFullPropName(testCase: TestCase):
 
 
 class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
-    
-    res: PBTTestResult
+
+    res: PBTTestResult = dict()
     lastExecutedInfo: PropertyExecutionInfo
     executionInfoStore: PropertyExecutionInfoStore = deque()
 
@@ -317,8 +321,12 @@ class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
 
     @classmethod
     def setProperties(cls, allProperties: Dict):
-        cls.res = dict()
         for testCase in allProperties.values():
+            cls.res[getFullPropName(testCase)] = PropStatistic()
+    
+    @classmethod
+    def setInvariants(cls, allInvariants: Dict):
+        for testCase in allInvariants.values():
             cls.res[getFullPropName(testCase)] = PropStatistic()
 
     def flushResult(self):
@@ -369,6 +377,9 @@ class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
         return self.res[getFullPropName(test)].executed
     
     def printError(self, test):
+        # only print error for properties, not invariants
+        if not getattr(test, INVARIANT_MARKER, False):
+            return
         if self.lastExecutedInfo.state in ["fail", "error"]:
             flavour = self.lastExecutedInfo.state.upper()
             self.stream.writeln("")
@@ -397,12 +408,66 @@ class KeaOptionSetter:
             logger.warning("[Warning] Can not use any Driver when runing native mode.")
             options.Driver = None
         cls.options = options
-    
+
+
+class KeaTestSuite(TestSuite):
+    def addTest(self, test):
+        if isinstance(test, TestCase):
+            # inject the preconds, prob, max_tries, interruptable info into the test case
+            func = getattr(test, test._testMethodName)
+            for attr in {PRECONDITIONS_MARKER, INVARIANT_MARKER, PROB_MARKER, MAX_TRIES_MARKER, INTERRUPTABLE_MARKER}:
+                if hasattr(func, attr):
+                    val = getattr(func, attr)
+                    setattr(test, attr, val)
+        return super().addTest(test)
+
+
+class KeaTestLoader(TestLoader):
+    suiteClass = KeaTestSuite
+
+    def loadTestsFromTestCase(self, testCaseClass):
+        # remove the setUp and tearDown functions in PBT
+        def setUp(self): ...
+        def tearDown(self): ...
+        testCaseClass.setUp = types.MethodType(setUp, testCaseClass)
+        testCaseClass.tearDown = types.MethodType(tearDown, testCaseClass)
+        return super().loadTestsFromTestCase(testCaseClass)
+        
+    def getTestCaseNames(self, testCaseClass):
+        """Return a sorted sequence of method names found within testCaseClass
+        """
+        def shouldIncludeMethod(attrname: str):
+            if not attrname.startswith(self.testMethodPrefix):
+                return False
+            testFunc = getattr(testCaseClass, attrname)
+            if not callable(testFunc):
+                return False
+            # exclude the test methods that are not properties
+            if not hasattr(testFunc, PRECONDITIONS_MARKER) ^ hasattr(testFunc, INVARIANT_MARKER):
+                return False
+            fullName = f'%s.%s.%s' % (
+                testCaseClass.__module__, testCaseClass.__qualname__, attrname
+            )
+            self.__log_loading_info(testFunc, fullName)
+            return self.testNamePatterns is None or \
+                any(fnmatchcase(fullName, pattern) for pattern in self.testNamePatterns)
+        testFnNames = list(filter(shouldIncludeMethod, dir(testCaseClass)))
+        if self.sortTestMethodsUsing:
+            testFnNames.sort(key=functools.cmp_to_key(self.sortTestMethodsUsing))
+        return testFnNames
+
+    def __log_loading_info(self, testFunc: Callable, fullName: str):
+        if hasattr(testFunc, PRECONDITIONS_MARKER):
+            logger.info(f"[INFO] Load property: {fullName}")
+        if hasattr(testFunc, INVARIANT_MARKER):
+            logger.info(f"[INFO] Load invariant: {fullName}")
+
 
 class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
     resultclass: JsonResult
     allProperties: PropertyStore
+    allInvariants: PropertyStore
     _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
 
     def _setOuputDir(self):
@@ -418,8 +483,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
     def run(self, test):
 
-        self.allProperties = dict()
-        self.collectAllProperties(test)
+        self.validateAndCollectProperties(test)
 
         if len(self.allProperties) == 0:
             logger.warning("[Warning] No property has been found.")
@@ -427,6 +491,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         self._setOuputDir()
 
         JsonResult.setProperties(self.allProperties)
+        JsonResult.setProperties(self.allInvariants)
         self.resultclass = JsonResult
 
         result: JsonResult = self._makeResult()
@@ -436,21 +501,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         result.tb_locals = self.tb_locals
 
         with warnings.catch_warnings():
-            if self.warnings:
-                # if self.warnings is set, use it to filter all the warnings
-                warnings.simplefilter(self.warnings)
-                # if the filter is 'default' or 'always', special-case the
-                # warnings from the deprecated unittest methods to show them
-                # no more than once per module, because they can be fairly
-                # noisy.  The -Wd and -Wa flags can be used to bypass this
-                # only when self.warnings is None.
-                if self.warnings in ["default", "always"]:
-                    warnings.filterwarnings(
-                        "module",
-                        category=DeprecationWarning,
-                        message=r"Please use assert\w+ instead.",
-                    )
-
             fb = FastbotManager(self.options, LOGFILE)
             fb.start()
 
@@ -486,8 +536,13 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         sleep(3)
                         fb.sendInfo("kill_apps")
                         continue
-
+                    
                     try:
+                        # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
+                        # stepMonkey will change the ui state and return the new ui hierarchy
+                        # dumpHierarchy will just return the current ui hierarchy
+                        # this is to avoid losing the ui state after executing a property
+                        xml_raw: str = ""
                         if fb.executed_prop:
                             fb.executed_prop = False
                             xml_raw = fb.dumpHierarchy()
@@ -495,18 +550,35 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                             self.stepsCount += 1
                             logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
                             xml_raw = fb.stepMonkey(self._monkeyStepInfo)
-                        propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
+                    # If the connection is refused, fastbot might have stpped running
                     except u2.HTTPError:
                         logger.info("Connection refused by remote.")
+                        # If fastbot has exited normally, end the testing process
                         if fb.get_return_code() == 0:
                             logger.info("Exploration times up (--running-minutes).")
                             fb_is_running = False
                             break
                         raise RuntimeError("Fastbot Aborted.")
 
+                    if not xml_raw:
+                        logger.warning("Empty ui hierarchy returned. Skip this step.")
+                        continue
+
+                    # check all invariants
+                    staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
+                    for invariantName, test in self.allInvariants.items():
+                        setattr(test, self.options.driverName, staticCheckerDriver)
+                        try:
+                            test(result)
+                        finally:
+                            pass
+
+                    # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
                     if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
                         resultSyncer.sync_event.set()
 
+                    # validate the preconditions, get the properties that satisfy the preconditions
+                    propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
                     # Go to the next round if no precond satisfied
                     if len(propsSatisfiedPrecond) == 0:
                         continue
@@ -524,20 +596,19 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         print("Not executed any property due to probability.", flush=True)
                         continue
 
+                    self.scriptDriver = U2Driver.getScriptDriver(mode="proxy") 
+
+                    # randomly select a property to execute
                     execPropName = random.choice(propsNameFilteredByP)
                     test = propsSatisfiedPrecond[execPropName]
-                    # Dependency Injection. driver when doing scripts
-                    self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
-                    
-                    setattr(test, self.options.driverName, self.scriptDriver)
-
                     result.addExcuted(test, self.stepsCount)
                     fb.logScript(result.lastExecutedInfo)
+                    # Dependency Injection. driver when doing scripts
+                    setattr(test, self.options.driverName, self.scriptDriver)
                     try:
                         test(result)
                     finally:
                         result.printError(test)
-
                     result.updateExectedInfo()
                     fb.logScript(result.lastExecutedInfo)
                     fb.executed_prop = True
@@ -628,21 +699,14 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             print("\n".join([f'                - {getFullPropName(p)}' for p in validProps.values()]), flush=True)
         return validProps
 
-    def collectAllProperties(self, test: TestSuite):
-        """collect all the properties to prepare for PBT
+    def validateAndCollectProperties(self, test: TestSuite):
+        """ validate and collect all the properties to prepare for PBT
+        :Why validate here?:
+            Because some properties may not be importable due to ImportError (e.g., missing dependencies
+            or syntax errors). We need to validate them before PBT to avoid runtime errors.
         """
-
-        def remove_setUp(testCase: TestCase):
-            """remove the setup function in PBT
-            """
-            def setUp(self): ...
-            testCase.setUp = types.MethodType(setUp, testCase)
-
-        def remove_tearDown(testCase: TestCase):
-            """remove the tearDown function in PBT
-            """
-            def tearDown(self): ...
-            testCase.tearDown = types.MethodType(tearDown, testCase)
+        self.allProperties = dict()
+        self.allInvariants = dict()
 
         def iter_tests(suite):
             for test in suite:
@@ -650,7 +714,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     yield from iter_tests(test)
                 else:
                     yield test
-
         # Traverse the TestCase to get all properties
         _result = TextTestResult(self.stream, self.descriptions, self.verbosity)
         for t in iter_tests(test):
@@ -658,16 +721,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             if type(t).__name__ == "_FailedTest":
                 t(_result)
                 continue
-            testMethodName = t._testMethodName
-            # get the test method name and check if it's a property
-            testMethod = getattr(t, testMethodName)
-            if hasattr(testMethod, PRECONDITIONS_MARKER):
-                # remove the hook func in its TestCase
-                remove_setUp(t)
-                remove_tearDown(t)
-                # save it into allProperties for PBT
-                self.allProperties[testMethodName] = t
-                print(f"[INFO] Load property: {getFullPropName(t)}", flush=True)
+            if hasattr(test, PRECONDITIONS_MARKER):
+                self.allProperties[t._testMethodName] = t
+            if hasattr(test, INVARIANT_MARKER):
+                self.allInvariants[t._testMethodName] = t
         # Print errors caused by ImportError
         _result.printErrors()
 
@@ -722,7 +779,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     self._block_funcs["trees"].append(func)
 
         return self._block_funcs
-
 
     def _getBlockedWidgets(self):
         """
@@ -899,7 +955,8 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
                         argv = ["python3 -m unittest"] + hybrid_test_options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
-                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
+                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, testLoader=KeaTestLoader, exit=False)
+                        from unittest import TestLoader
 
                 finally:
                     test._common_tearDown()

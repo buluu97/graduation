@@ -2,6 +2,8 @@
 #
 # Supports defining complex state that can be shared across multiple test cases 
 # to control test flow and dependencies
+INVARIANT_MARKER = "_is_invariant"
+
 
 class State(dict):
     _instance = None
@@ -13,3 +15,8 @@ class State(dict):
 
 
 state = State()
+
+
+def invariant(f):
+    setattr(f, INVARIANT_MARKER, True)
+    return f

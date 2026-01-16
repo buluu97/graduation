@@ -200,7 +200,7 @@ if __name__ == "__main__":
         )
     )
     # Declare the KeaTestRunner
-    unittest.main(testRunner=KeaTestRunner)
+    unittest.main(testRunner=KeaTestRunner, testLoader=KeaTestLoader)
 ```
 
 We can directly run the script `mytest.py` to launch Kea2, e.g.,
