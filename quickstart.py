@@ -7,10 +7,14 @@ from kea2.u2Driver import U2Driver
 
 
 class Omni_Notes_Sample(unittest.TestCase):
+    d: u2.Device
 
-    def setUp(self):
-        self.d = u2.connect() 
-    
+    @classmethod
+    def setUpClass(cls):
+        print("Setting driver settings")
+        cls.d.settings["wait_timeout"] = 5.0
+        cls.d.settings["operation_delay"] = (0, 1.0)
+
     @prob(0.5)
     @precondition(
         lambda self: self.d(description="Navigate up").exists

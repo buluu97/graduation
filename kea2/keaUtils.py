@@ -484,7 +484,20 @@ class KeaTestLoader(TestLoader):
 keaTestLoader = KeaTestLoader()
 
 
-class KeaTestRunner(TextTestRunner, KeaOptionSetter):
+class SetUpClassExtension:
+    # setting up setUpClass
+    _setup = set()
+
+    def setUpClass(self: "KeaTestRunner", test: TestCase):
+        testClass = test.__class__
+        if not repr(testClass) in self._setup:
+            self._setup.add(repr(testClass))
+            script_driver = U2Driver.getScriptDriver(mode="proxy")
+            setattr(testClass, self.options.driverName, script_driver)
+            testClass.setUpClass()
+
+
+class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
     resultclass: JsonResult
     allProperties: PropertyStore
@@ -532,8 +545,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                 result.flushResult()
                 # setUp for the u2 driver
                 self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
-                fb.check_alive()
+
+                for test in {**self.allProperties, **self.allInvariants}.values():
+                    self.setUpClass(test)
                 
+                fb.check_alive()
                 fb.init(options=self.options, stamp=STAMP)
 
                 resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
