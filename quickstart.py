@@ -2,7 +2,7 @@ import unittest
 import uiautomator2 as u2
 
 from time import sleep
-from kea2 import precondition, prob, KeaTestRunner, Options, KeaTestLoader, invariant
+from kea2 import precondition, prob, KeaTestRunner, Options, keaTestLoader, invariant
 from kea2.u2Driver import U2Driver
 
 
@@ -68,8 +68,13 @@ class Omni_Notes_Sample(unittest.TestCase):
         sleep(2)
         self.d.set_orientation("n")
         sleep(2)
-        assert self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists()
+        assert self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
 
+    @invariant
+    def test_invariant_search_button_should_not_exisits_when_searching(self):
+        if self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists:
+            print("into the invariant func")
+            assert not self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").exists
 
 URL = "https://raw.githubusercontent.com/ecnusse/Kea2/refs/heads/dev_test_hidden_algorithm/omninotes.apk"
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"

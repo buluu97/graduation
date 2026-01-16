@@ -314,6 +314,7 @@ class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
     res: PBTTestResult = dict()
     lastExecutedInfo: PropertyExecutionInfo
     executionInfoStore: PropertyExecutionInfoStore = deque()
+    invariant_tb: str
 
     def __init__(self, stream, descriptions, verbosity):
         super().__init__(stream, descriptions, verbosity)
@@ -358,14 +359,20 @@ class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
     def addFailure(self, test, err):
         super().addFailure(test, err)
         self.res[getFullPropName(test)].fail += 1
-        self.lastExecutedInfo.state = "fail"
-        self.lastExecutedInfo.tb = self._exc_info_to_string(err, test)
+        if self.is_property(test):
+            self.lastExecutedInfo.state = "fail"
+            self.lastExecutedInfo.tb = self._exc_info_to_string(err, test)
+        else:
+            self.invariant_tb = self._exc_info_to_string(err, test)
 
     def addError(self, test, err):
         super().addError(test, err)
         self.res[getFullPropName(test)].error += 1
-        self.lastExecutedInfo.state = "error"
-        self.lastExecutedInfo.tb = self._exc_info_to_string(err, test)
+        if self.is_property(test):
+            self.lastExecutedInfo.state = "error"
+            self.lastExecutedInfo.tb = self._exc_info_to_string(err, test)
+        else:
+            self.invariant_tb = self._exc_info_to_string(err, test)
 
     def updateExectedInfo(self):
         if self.lastExecutedInfo.state == "start":
@@ -377,10 +384,7 @@ class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
         return self.res[getFullPropName(test)].executed
     
     def printError(self, test):
-        # only print error for properties, not invariants
-        if not getattr(test, INVARIANT_MARKER, False):
-            return
-        if self.lastExecutedInfo.state in ["fail", "error"]:
+        if self.is_property(test) and self.lastExecutedInfo.state in ["fail", "error"]:
             flavour = self.lastExecutedInfo.state.upper()
             self.stream.writeln("")
             self.stream.writeln(self.separator1)
@@ -389,12 +393,26 @@ class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
             self.stream.writeln("%s" % self.lastExecutedInfo.tb)
             self.stream.writeln(self.separator1)
             self.stream.flush()
+        if self.invariant_tb:
+            self.stream.writeln("")
+            self.stream.writeln(self.separator1)
+            self.stream.writeln("%s" % self.invariant_tb)
+            self.stream.writeln(self.separator1)
+            self.stream.flush()
+            self.invariant_tb = None
 
     def logSummary(self):
         fails = sum(_.fail for _ in self.res.values())
         errors = sum(_.error for _ in self.res.values())
 
         logger.info(f"[Property Exectution Summary] Errors:{errors}, Fails:{fails}")
+    
+    def startTest(self, test):
+        self.invariant_tb = None
+        return super().startTest(test)
+    
+    def is_property(self, test):
+        return hasattr(test, PRECONDITIONS_MARKER) and not hasattr(test, INVARIANT_MARKER)
 
 
 class KeaOptionSetter:
@@ -574,7 +592,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                         try:
                             test(result)
                         finally:
-                            pass
+                            result.printError(test)
 
                     # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
                     if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
@@ -724,9 +742,9 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             if type(t).__name__ == "_FailedTest":
                 t(_result)
                 continue
-            if hasattr(test, PRECONDITIONS_MARKER):
+            if hasattr(t, PRECONDITIONS_MARKER):
                 self.allProperties[t._testMethodName] = t
-            if hasattr(test, INVARIANT_MARKER):
+            if hasattr(t, INVARIANT_MARKER):
                 self.allInvariants[t._testMethodName] = t
         # Print errors caused by ImportError
         _result.printErrors()
