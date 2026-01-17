@@ -441,6 +441,7 @@ class KeaTestSuite(TestSuite):
 
 
 class KeaTestLoader(TestLoader):
+    testMethodPrefix = ""
     suiteClass = KeaTestSuite
 
     def loadTestsFromTestCase(self, testCaseClass):

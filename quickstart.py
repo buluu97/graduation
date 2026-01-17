@@ -11,6 +11,8 @@ class Omni_Notes_Sample(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Here you can setup the default setting for uiautomator2
+        """ 
         print("Setting driver settings")
         cls.d.settings["wait_timeout"] = 5.0
         cls.d.settings["operation_delay"] = (0, 1.0)
@@ -19,7 +21,7 @@ class Omni_Notes_Sample(unittest.TestCase):
     @precondition(
         lambda self: self.d(description="Navigate up").exists
     )
-    def test_goBack(self):
+    def navigate_up(self):
         print("Navigate back")
         self.d(description="Navigate up").click()
         sleep(0.5)
@@ -28,7 +30,7 @@ class Omni_Notes_Sample(unittest.TestCase):
     @precondition(
         lambda self: self.d(description="drawer closed").exists
     )
-    def test_openDrawer(self):
+    def open_drawer(self):
         print("Open drawer")
         self.d(description="drawer closed").click()
         sleep(0.5)
@@ -38,7 +40,7 @@ class Omni_Notes_Sample(unittest.TestCase):
         lambda self: self.d(text="Omni Notes Alpha").exists
         and self.d(text="Settings").exists
     )
-    def test_goToPrivacy(self):
+    def go_to_privacy_settings(self):
         """
         The ability to jump out of the UI tarpits
 
@@ -56,7 +58,7 @@ class Omni_Notes_Sample(unittest.TestCase):
     @precondition(
         lambda self: self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
     )
-    def test_rotation(self):
+    def rotation_should_not_close_the_search_input(self):
         """
         The ability to make assertion to find functional bug
 
@@ -75,10 +77,13 @@ class Omni_Notes_Sample(unittest.TestCase):
         assert self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
 
     @invariant
-    def test_invariant_search_button_should_not_exisits_when_searching(self):
-        if self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists:
-            print("into the invariant func")
-            assert not self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").exists
+    def search_button_and_search_input_box_should_not_exists_at_the_same_time(self):
+        """Search input box and search button should not exists at the same time
+        """
+        search_input_box_exists = self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
+        serach_button_exists = self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").exists
+        if search_input_box_exists or serach_button_exists:
+            assert search_input_box_exists ^ serach_button_exists
 
 URL = "https://raw.githubusercontent.com/ecnusse/Kea2/refs/heads/dev_test_hidden_algorithm/omninotes.apk"
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"
