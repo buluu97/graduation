@@ -25,7 +25,7 @@ from .absDriver import AbstractDriver
 from .report.bug_report_generator import BugReportGenerator
 from .resultSyncer import ResultSyncer
 from .logWatcher import LogWatcher
-from .utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
+from .utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer, getClassName
 from .u2Driver import StaticU2UiObject, StaticXpathObject, U2Driver
 from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
@@ -302,11 +302,7 @@ class PropertyExecutionInfo:
 
 
 def getFullPropName(testCase: TestCase):
-    return ".".join([
-        testCase.__module__,
-        testCase.__class__.__name__,
-        testCase._testMethodName
-    ])
+    return f"%s.%s" % (getClassName(testCase.__class__), testCase._testMethodName)
 
 
 class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
@@ -464,9 +460,7 @@ class KeaTestLoader(TestLoader):
             # exclude the test methods that are not properties
             if not hasattr(testFunc, PRECONDITIONS_MARKER) ^ hasattr(testFunc, INVARIANT_MARKER):
                 return False
-            fullName = f'%s.%s.%s' % (
-                testCaseClass.__module__, testCaseClass.__qualname__, attrname
-            )
+            fullName = f'%s.%s' % (getClassName(testCaseClass), attrname)
             self.__log_loading_info(testFunc, fullName)
             return self.testNamePatterns is None or \
                 any(fnmatchcase(fullName, pattern) for pattern in self.testNamePatterns)
@@ -477,9 +471,9 @@ class KeaTestLoader(TestLoader):
 
     def __log_loading_info(self, testFunc: Callable, fullName: str):
         if hasattr(testFunc, PRECONDITIONS_MARKER):
-            logger.info(f"[INFO] Load property: {fullName}")
+            print(f"[INFO] Load property: {fullName}", flush=True)
         if hasattr(testFunc, INVARIANT_MARKER):
-            logger.info(f"[INFO] Load invariant: {fullName}")
+            print(f"[INFO] Load invariant: {fullName}", flush=True)
 
 
 keaTestLoader = KeaTestLoader()
@@ -495,7 +489,12 @@ class SetUpClassExtension:
             self._setup.add(repr(testClass))
             script_driver = U2Driver.getScriptDriver(mode="proxy")
             setattr(testClass, self.options.driverName, script_driver)
-            testClass.setUpClass()
+            try:
+                testClass.setUpClass()
+            except:
+                logger.error(f"Error when executing {getClassName(testClass)}.setUpClass")
+                import traceback
+                traceback.print_exc()
 
 
 class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
@@ -615,30 +614,17 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                     if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
                         resultSyncer.sync_event.set()
 
-                    # validate the preconditions, get the properties that satisfy the preconditions
-                    propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
-                    # Go to the next round if no precond satisfied
-                    if len(propsSatisfiedPrecond) == 0:
-                        continue
+                    # get the checkable properties
+                    checkableProperties = self.getValidProperties(xml_raw, result)
 
-                    # get the random probability p
-                    p = random.random()
-                    propsNameFilteredByP = []
-                    # filter the properties according to the given p
-                    for propName, test in propsSatisfiedPrecond.items():
-                        result.addPrecondSatisfied(test)
-                        if getattr(test, PROB_MARKER, 1) >= p:
-                            propsNameFilteredByP.append(propName)
-
-                    if len(propsNameFilteredByP) == 0:
-                        print("Not executed any property due to probability.", flush=True)
+                    if not checkableProperties:
                         continue
 
                     self.scriptDriver = U2Driver.getScriptDriver(mode="proxy") 
 
                     # randomly select a property to execute
-                    execPropName = random.choice(propsNameFilteredByP)
-                    test = propsSatisfiedPrecond[execPropName]
+                    propertyName = random.choice(checkableProperties)
+                    test = self.allProperties[propertyName]
                     result.addExcuted(test, self.stepsCount)
                     fb.logScript(result.lastExecutedInfo)
                     # Dependency Injection. driver when doing scripts
@@ -695,18 +681,15 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             "block_trees": block_trees
         }
 
-    def getValidProperties(self, xml_raw: str, result: JsonResult) -> PropertyStore:
-
+    def getValidProperties(self, xml_raw: str, result: JsonResult) -> List:
         staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
 
-        validProps: PropertyStore = dict()
+        precondSatisfiedProperties = list()
         for propName, test in self.allProperties.items():
             valid = True
-            prop = getattr(test, propName)
-            p = getattr(prop, PROB_MARKER, 1)
-            setattr(test, PROB_MARKER, p)
+            property = getattr(test, test._testMethodName)
             # check if all preconds passed
-            for precond in prop.preconds:
+            for precond in property.preconds:
                 # Dependency injection. Static driver checker for precond
                 setattr(test, self.options.driverName, staticCheckerDriver)
                 # excecute the precond
@@ -718,24 +701,37 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                     valid = False
                     break
                 except Exception as e:
-                    logger.error(f"Error when checking precond: {getFullPropName(test)}")
+                    logger.error(f"Error when checking precond: {propName}")
                     traceback.print_exc()
                     valid = False
                     break
             # if all the precond passed. make it the candidate prop.
             if valid:
-                if result.getExcuted(test) >= getattr(prop, MAX_TRIES_MARKER, float("inf")):
-                    print(f"{getFullPropName(test)} has reached its max_tries. Skip.", flush=True)
+                max_tries = getattr(property, MAX_TRIES_MARKER, float("inf"))
+                if result.getExcuted(test) >= max_tries:
+                    print(f"{propName} has reached its max_tries {max_tries}. Skip.", flush=True)
                     continue
-                validProps[propName] = test
+                precondSatisfiedProperties.append(propName)
+
+        # sample the execution probability threshold u ~ U(0, 1)
+        u = random.random()
+        checkableProperties = []
+        # filter the properties according to the given u
+        for propName in precondSatisfiedProperties:
+            result.addPrecondSatisfied(test)
+            p = getattr(test, PROB_MARKER, 1)
+            if p < u:
+                print(f"{propName} will not execute due to probability (@prob). Skip.", flush=True)
+                continue
+            checkableProperties.append(propName)
+
+        print(f"{len(precondSatisfiedProperties)} precondition(s) satisfied.", flush=True)
+        if len(checkableProperties) > 0:
+            print("[INFO] Checkable properties:", flush=True)
+            print("\n".join([f'                - {_}' for _ in checkableProperties]), flush=True)
 
         staticCheckerDriver.clear_cache()
-
-        print(f"{len(validProps)} precond satisfied.", flush=True)
-        if len(validProps) > 0:
-            print("[INFO] Valid properties:",flush=True)
-            print("\n".join([f'                - {getFullPropName(p)}' for p in validProps.values()]), flush=True)
-        return validProps
+        return checkableProperties
 
     def validateAndCollectProperties(self, test: TestSuite):
         """ validate and collect all the properties to prepare for PBT
@@ -760,9 +756,9 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                 t(_result)
                 continue
             if hasattr(t, PRECONDITIONS_MARKER):
-                self.allProperties[t._testMethodName] = t
+                self.allProperties[getFullPropName(t)] = t
             if hasattr(t, INVARIANT_MARKER):
-                self.allInvariants[t._testMethodName] = t
+                self.allInvariants[getFullPropName(t)] = t
         # Print errors caused by ImportError
         _result.printErrors()
 

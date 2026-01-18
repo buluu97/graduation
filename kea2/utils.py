@@ -182,3 +182,7 @@ def loadFuncsFromFile(file_path: str) -> Dict[str, Callable]:
         funcs[func_name] = func
 
     return funcs
+
+
+def getClassName(clazz):
+    return f'%s.%s' % (clazz.__module__, clazz.__qualname__)

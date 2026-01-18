@@ -11,7 +11,7 @@ class Omni_Notes_Sample(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Here you can setup the default setting for uiautomator2
+        """Here you can setup the initialize setting for uiautomator2
         """ 
         print("Setting driver settings")
         cls.d.settings["wait_timeout"] = 5.0
@@ -25,7 +25,7 @@ class Omni_Notes_Sample(unittest.TestCase):
         print("Navigate back")
         self.d(description="Navigate up").click()
         sleep(0.5)
-    
+
     @prob(0.5)
     @precondition(
         lambda self: self.d(description="drawer closed").exists
