@@ -520,7 +520,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         self.validateAndCollectProperties(test)
 
         if len(self.allProperties) == 0:
-            logger.warning("[Warning] No property has been found.")
+            logger.warning("No property has been found.")
 
         self._setOuputDir()
 
@@ -559,6 +559,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                 self.stepsCount = 0
 
                 while self.stepsCount < self.options.maxStep:
+                    logger.info(f"[Property based testing] [New Iteration] Elapsed: {perf_counter()-start_time:.1f}s")
                     if self.shouldStop(start_time):
                         logger.info("Exploration time up (--running-minutes).")
                         break
@@ -615,7 +616,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                         resultSyncer.sync_event.set()
 
                     # get the checkable properties
-                    checkableProperties = self.getValidProperties(xml_raw, result)
+                    checkableProperties = self.getCheckableProperties(xml_raw, result)
 
                     if not checkableProperties:
                         continue
@@ -681,56 +682,62 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             "block_trees": block_trees
         }
 
-    def getValidProperties(self, xml_raw: str, result: JsonResult) -> List:
-        staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
-
-        precondSatisfiedProperties = list()
-        for propName, test in self.allProperties.items():
-            valid = True
-            property = getattr(test, test._testMethodName)
-            # check if all preconds passed
-            for precond in property.preconds:
-                # Dependency injection. Static driver checker for precond
-                setattr(test, self.options.driverName, staticCheckerDriver)
-                # excecute the precond
-                try:
-                    if not precond(test):
+    def getCheckableProperties(self, xml_raw: str, result: JsonResult) -> List:
+        # Get the precondition satisfied properties
+        try:
+            staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
+            precondSatisfiedProperties = list()
+            for propName, test in self.allProperties.items():
+                valid = True
+                property = getattr(test, test._testMethodName)
+                # check if all preconds passed
+                for precond in property.preconds:
+                    # Dependency injection. Static driver checker for precond
+                    setattr(test, self.options.driverName, staticCheckerDriver)
+                    # excecute the precondition
+                    try:
+                        if not precond(test):
+                            valid = False
+                            break
+                    except u2.UiObjectNotFoundError as e:
                         valid = False
                         break
-                except u2.UiObjectNotFoundError as e:
-                    valid = False
-                    break
-                except Exception as e:
-                    logger.error(f"Error when checking precond: {propName}")
-                    traceback.print_exc()
-                    valid = False
-                    break
-            # if all the precond passed. make it the candidate prop.
-            if valid:
-                max_tries = getattr(property, MAX_TRIES_MARKER, float("inf"))
-                if result.getExcuted(test) >= max_tries:
-                    print(f"{propName} has reached its max_tries {max_tries}. Skip.", flush=True)
-                    continue
-                precondSatisfiedProperties.append(propName)
-
-        # sample the execution probability threshold u ~ U(0, 1)
-        u = random.random()
+                    except Exception as e:
+                        logger.error(f"Error when checking precond: {propName}")
+                        traceback.print_exc()
+                        valid = False
+                        break
+                # if all the precond passed. make it the candidate prop.
+                if valid:
+                    result.addPrecondSatisfied(test)
+                    precondSatisfiedProperties.append(propName)
+        finally:
+            staticCheckerDriver.clear_cache()
+        
+        # get the checkable properties
         checkableProperties = []
-        # filter the properties according to the given u
+        u = random.random()    # sample the execution probability threshold u ~ U(0, 1)
         for propName in precondSatisfiedProperties:
-            result.addPrecondSatisfied(test)
+            test = self.allProperties[propName]
             p = getattr(test, PROB_MARKER, 1)
+            max_tries = getattr(test, MAX_TRIES_MARKER, float("inf"))
+            # filter the properties according to the given u
             if p < u:
                 print(f"{propName} will not execute due to probability (@prob). Skip.", flush=True)
                 continue
+            # filter the property reached max_tries
+            if result.getExcuted(test) >= max_tries:
+                print(f"{propName} has reached its max_tries {max_tries} (@max_tries). Skip.", flush=True)
+                continue
             checkableProperties.append(propName)
 
-        print(f"{len(precondSatisfiedProperties)} precondition(s) satisfied.", flush=True)
+        # log the checkable properties information
         if len(checkableProperties) > 0:
-            print("[INFO] Checkable properties:", flush=True)
+            print(f"[INFO] {len(checkableProperties)} Checkable properties:", flush=True)
             print("\n".join([f'                - {_}' for _ in checkableProperties]), flush=True)
+        else:
+            print(f"[INFO] {len(checkableProperties)} Checkable property.", flush=True)
 
-        staticCheckerDriver.clear_cache()
         return checkableProperties
 
     def validateAndCollectProperties(self, test: TestSuite):
