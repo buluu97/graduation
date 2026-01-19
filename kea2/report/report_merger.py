@@ -58,6 +58,7 @@ class TestReportMerger:
         # Merge different types of data
         merged_property_stats, property_source_mapping = self._merge_property_results(output_dir)
         property_kinds = self._collect_property_kinds()
+        source_summaries = self._collect_source_summaries()
         merged_coverage_data = self._merge_coverage_data()
         merged_crash_anr_data = self._merge_crash_dump_data(output_dir)
 
@@ -75,6 +76,7 @@ class TestReportMerger:
             'merge_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'source_count': len(self.result_dirs),
             'source_directories': [str(Path(d).name) for d in self.result_dirs],
+            'source_summaries': source_summaries,
             'package_name': self._package_name or ""
         }
 
@@ -83,6 +85,202 @@ class TestReportMerger:
         
         logger.debug(f"Reports generated successfully in: {output_dir}")
         return report_file
+
+    def _collect_source_summaries(self) -> List[Dict]:
+        """
+        Collect summary statistics for each source result directory.
+        """
+        summaries = []
+
+        for result_dir in self.result_dirs:
+            summaries.append(self._build_source_summary(result_dir))
+
+        return summaries
+
+    def _build_source_summary(self, result_dir: Path) -> Dict:
+        """
+        Build summary statistics for a single result directory.
+        """
+        summary = {
+            "dir_name": result_dir.name,
+            "property_violations": 0,
+            "invariant_violations": 0,
+            "total_testing_time": "00:00:00",
+            "executed_events": 0,
+            "coverage_percent": "0.00%",
+            "executed_properties": "0/0",
+            "crash_count": 0,
+            "anr_count": 0,
+        }
+
+        result_files = list(result_dir.glob("result_*.json"))
+        if not result_files:
+            return summary
+
+        output_dirs = list(result_dir.glob("output_*"))
+        output_dir = output_dirs[0] if output_dirs else None
+
+        property_kinds = self._collect_property_kinds_for_dir(result_dir)
+
+        try:
+            with open(result_files[0], "r", encoding="utf-8") as f:
+                property_stats = json.load(f)
+        except Exception as exc:
+            logger.warning(f"Failed to read {result_files[0]}: {exc}")
+            return summary
+
+        all_properties_count = 0
+        executed_properties_count = 0
+
+        for prop_name, stats in property_stats.items():
+            fail_count = stats.get("fail", 0)
+            error_count = stats.get("error", 0)
+            total_executions = stats.get("executed", 0)
+            kind = property_kinds.get(prop_name, "unknown")
+            if kind not in {"property", "invariant"}:
+                kind = "unknown"
+
+            if kind != "invariant":
+                all_properties_count += 1
+                if total_executions > 0:
+                    executed_properties_count += 1
+                if fail_count > 0 or error_count > 0:
+                    summary["property_violations"] += 1
+            elif fail_count > 0 or error_count > 0:
+                summary["invariant_violations"] += 1
+
+        summary["executed_properties"] = f"{executed_properties_count}/{all_properties_count}"
+
+        if output_dir:
+            steps_log = output_dir / "steps.log"
+            if steps_log.exists():
+                executed_events, total_time = self._extract_steps_log_summary(steps_log)
+                summary["executed_events"] = executed_events
+                summary["total_testing_time"] = total_time
+
+            coverage_file = output_dir / "coverage.log"
+            if coverage_file.exists():
+                coverage_percent = self._extract_coverage_percent(coverage_file)
+                summary["coverage_percent"] = f"{coverage_percent:.2f}%"
+
+            crash_dump_file = output_dir / "crash-dump.log"
+            if crash_dump_file.exists():
+                parsed_events = self._parse_crash_dump_file(crash_dump_file)
+                if parsed_events:
+                    crash_events, anr_events = parsed_events
+                    summary["crash_count"] = len(crash_events)
+                    summary["anr_count"] = len(anr_events)
+
+        return summary
+
+    def _collect_property_kinds_for_dir(self, result_dir: Path) -> Dict[str, str]:
+        """
+        Collect property kind metadata from a single result directory.
+        """
+        property_kinds: Dict[str, str] = {}
+
+        output_dirs = list(result_dir.glob("output_*"))
+        if not output_dirs:
+            return property_kinds
+
+        steps_log = output_dirs[0] / "steps.log"
+        if not steps_log.exists():
+            return property_kinds
+
+        try:
+            with open(steps_log, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        step_data = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    if step_data.get("Type") != "ScriptInfo":
+                        continue
+
+                    info = step_data.get("Info")
+                    if isinstance(info, str):
+                        stripped = info.strip()
+                        if stripped and stripped[0] in "{[":
+                            try:
+                                info = json.loads(stripped)
+                            except json.JSONDecodeError:
+                                continue
+
+                    if not isinstance(info, dict):
+                        continue
+
+                    prop_name = info.get("propName", "")
+                    kind = info.get("kind", "")
+                    if not prop_name or not isinstance(kind, str) or not kind:
+                        continue
+
+                    normalized_kind = kind.strip().lower()
+                    if not normalized_kind:
+                        continue
+
+                    property_kinds.setdefault(prop_name, normalized_kind)
+        except Exception as exc:
+            logger.warning(f"Failed to parse {steps_log}: {exc}")
+
+        return property_kinds
+
+    def _extract_steps_log_summary(self, steps_log: Path) -> Tuple[int, str]:
+        """
+        Extract executed events count and total testing time from steps.log.
+        """
+        executed_events = 0
+        first_step_time = None
+        last_step_time = None
+
+        with open(steps_log, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    step_data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                step_type = step_data.get("Type", "")
+                if step_type in {"Monkey", "Fuzz"}:
+                    executed_events += 1
+
+                step_time = step_data.get("Time")
+                if step_time:
+                    if first_step_time is None:
+                        first_step_time = step_time
+                    last_step_time = step_time
+
+        total_testing_time = "00:00:00"
+        if first_step_time and last_step_time:
+            def _get_datetime(raw_datetime: str) -> datetime:
+                return datetime.strptime(raw_datetime, r"%Y-%m-%d %H:%M:%S.%f")
+
+            time_delta = _get_datetime(last_step_time) - _get_datetime(first_step_time)
+            total_seconds = int(time_delta.total_seconds())
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            total_testing_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+        return executed_events, total_testing_time
+
+    def _extract_coverage_percent(self, coverage_file: Path) -> float:
+        """
+        Extract final coverage percent from coverage.log.
+        """
+        last_coverage = None
+        with open(coverage_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    last_coverage = json.loads(line)
+        if last_coverage and "coverage" in last_coverage:
+            return round(float(last_coverage.get("coverage", 0)), 2)
+        return 0.0
 
     def _collect_property_kinds(self) -> Dict[str, str]:
         """

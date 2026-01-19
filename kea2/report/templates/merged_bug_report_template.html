@@ -951,6 +951,40 @@
             transition: all 0.2s ease;
         }
 
+        .directory-summary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-left: 12px;
+        }
+
+        .directory-summary-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 6px;
+            min-width: 64px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            line-height: 1.1;
+        }
+
+        .directory-summary-item .summary-value {
+            font-weight: 600;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+
+        .directory-summary-item .summary-label {
+            font-size: 10px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
         .directory-list-item:hover {
             background: #e3f2fd;
             border-color: #17a2b8;
@@ -1320,12 +1354,55 @@
                                     </div>
                                     <div class="merged-directories-container">
                                         <div class="merged-directories-list">
-                                            {% for dir_name in merge_info.source_directories %}
-                                            <div class="directory-list-item">
-                                                <span class="directory-index">{{ loop.index }}.</span>
-                                                <span class="directory-name">{{ dir_name }}</span>
-                                            </div>
-                                            {% endfor %}
+                                            {% if merge_info.source_summaries %}
+                                                {% for summary in merge_info.source_summaries %}
+                                                <div class="directory-list-item">
+                                                    <span class="directory-index">{{ loop.index }}.</span>
+                                                    <span class="directory-name">{{ summary.dir_name }}</span>
+                                                    <div class="directory-summary">
+                                                        <div class="directory-summary-item" title="Property Violations">
+                                                            <span class="summary-value text-danger">{{ summary.property_violations }}</span>
+                                                            <span class="summary-label">PV</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Invariant Violations">
+                                                            <span class="summary-value text-warning">{{ summary.invariant_violations }}</span>
+                                                            <span class="summary-label">IV</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Total Testing Time">
+                                                            <span class="summary-value text-primary">{{ summary.total_testing_time }}</span>
+                                                            <span class="summary-label">Time</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Executed Events">
+                                                            <span class="summary-value text-success">{{ summary.executed_events }}</span>
+                                                            <span class="summary-label">Events</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Activity Coverage">
+                                                            <span class="summary-value text-info">{{ summary.coverage_percent }}</span>
+                                                            <span class="summary-label">Cover</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Executed Properties">
+                                                            <span class="summary-value text-primary">{{ summary.executed_properties }}</span>
+                                                            <span class="summary-label">Props</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Crashes">
+                                                            <span class="summary-value text-danger">{{ summary.crash_count }}</span>
+                                                            <span class="summary-label">Crash</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="ANRs">
+                                                            <span class="summary-value text-warning">{{ summary.anr_count }}</span>
+                                                            <span class="summary-label">ANR</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for dir_name in merge_info.source_directories %}
+                                                <div class="directory-list-item">
+                                                    <span class="directory-index">{{ loop.index }}.</span>
+                                                    <span class="directory-name">{{ dir_name }}</span>
+                                                </div>
+                                                {% endfor %}
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>

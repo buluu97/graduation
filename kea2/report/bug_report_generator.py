@@ -367,10 +367,6 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         # Enrich property statistics with derived metrics and calculate bug count
         enriched_property_stats = {}
         for property_name, test_result in self.test_result.items():
-            # Check if failed or error
-            if test_result.get("fail", 0) > 0 or test_result.get("error", 0) > 0:
-                data["bugs_found"] += 1
-
             executed_count = test_result.get("executed", 0)
             fail_count = test_result.get("fail", 0)
             error_count = test_result.get("error", 0)
@@ -381,6 +377,14 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 "pass_count": pass_count,
                 "kind": property_kinds.get(property_name, "unknown"),
             }
+
+        # Count property violations (exclude invariants)
+        data["bugs_found"] = sum(
+            1
+            for stats in enriched_property_stats.values()
+            if stats.get("kind") != "invariant"
+            and (stats.get("fail", 0) > 0 or stats.get("error", 0) > 0)
+        )
 
         # Store the enriched result data for direct use in HTML template
         data["property_stats"] = enriched_property_stats
