@@ -418,7 +418,13 @@ class ScreenshotsMixin:
         img.save(screenshot_path)
         return True
     
-    def _add_screenshot_info(self:"BugReportGenerator", step_data: "StepData", step_index: int, data: Dict):
+    def _add_screenshot_info(
+        self: "BugReportGenerator",
+        step_data: "StepData",
+        step_index: int,
+        data: Dict,
+        force_append: bool = False,
+    ):
         """
         Add screenshot information to data structure
 
@@ -469,11 +475,14 @@ class ScreenshotsMixin:
         abs_screenshots_path = self.data_path.output_dir / "screenshots" / screenshot_name
         relative_screenshot_path = str(abs_screenshots_path.relative_to(self.result_dir))
 
-        data["screenshot_info"][screenshot_name] = {
-            "type": step_data["Type"],
-            "caption": caption,
-            "step_index": step_index
-        }
+        if screenshot_name not in data["screenshot_info"]:
+            data["screenshot_info"][screenshot_name] = {
+                "type": step_data["Type"],
+                "caption": caption,
+                "step_index": step_index
+            }
+        elif not force_append:
+            return
 
         self.screenshots.append({
             'id': step_index,

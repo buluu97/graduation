@@ -57,11 +57,18 @@ class TestReportMerger:
 
         # Merge different types of data
         merged_property_stats, property_source_mapping = self._merge_property_results(output_dir)
+        property_kinds = self._collect_property_kinds()
         merged_coverage_data = self._merge_coverage_data()
         merged_crash_anr_data = self._merge_crash_dump_data(output_dir)
 
         # Calculate final statistics
-        final_data = self._calculate_final_statistics(merged_property_stats, merged_coverage_data, merged_crash_anr_data, property_source_mapping)
+        final_data = self._calculate_final_statistics(
+            merged_property_stats,
+            merged_coverage_data,
+            merged_crash_anr_data,
+            property_source_mapping,
+            property_kinds,
+        )
         
         # Add merge information to final data
         final_data['merge_info'] = {
@@ -76,6 +83,76 @@ class TestReportMerger:
         
         logger.debug(f"Reports generated successfully in: {output_dir}")
         return report_file
+
+    def _collect_property_kinds(self) -> Dict[str, str]:
+        """
+        Collect property kind metadata from steps.log files across result directories.
+
+        Returns:
+            Dict[str, str]: Mapping of property name to kind (property/invariant)
+        """
+        property_kinds: Dict[str, str] = {}
+
+        for result_dir in self.result_dirs:
+            output_dirs = list(result_dir.glob("output_*"))
+            if not output_dirs:
+                continue
+
+            steps_log = output_dirs[0] / "steps.log"
+            if not steps_log.exists():
+                continue
+
+            try:
+                with open(steps_log, "r", encoding="utf-8") as f:
+                    for line_number, line in enumerate(f, 1):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            step_data = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+
+                        if step_data.get("Type") != "ScriptInfo":
+                            continue
+
+                        info = step_data.get("Info")
+                        if isinstance(info, str):
+                            stripped = info.strip()
+                            if stripped and stripped[0] in "{[":
+                                try:
+                                    info = json.loads(stripped)
+                                except json.JSONDecodeError:
+                                    continue
+
+                        if not isinstance(info, dict):
+                            continue
+
+                        prop_name = info.get("propName", "")
+                        kind = info.get("kind", "")
+                        if not prop_name or not isinstance(kind, str) or not kind:
+                            continue
+
+                        normalized_kind = kind.strip().lower()
+                        if not normalized_kind:
+                            continue
+
+                        existing = property_kinds.get(prop_name)
+                        if existing and existing != normalized_kind:
+                            logger.debug(
+                                "Property kind conflict for %s: %s vs %s",
+                                prop_name,
+                                existing,
+                                normalized_kind,
+                            )
+                            continue
+
+                        property_kinds.setdefault(prop_name, normalized_kind)
+            except Exception as exc:
+                logger.warning(f"Failed to parse {steps_log}: {exc}")
+                continue
+
+        return property_kinds
 
     def _determine_package_name(self) -> Tuple[Optional[str], bool]:
         """
@@ -640,7 +717,14 @@ class TestReportMerger:
 
         return unique_anrs
 
-    def _calculate_final_statistics(self, property_stats: Dict, coverage_data: Dict, crash_anr_data: Dict = None, property_source_mapping: Dict = None) -> Dict:
+    def _calculate_final_statistics(
+        self,
+        property_stats: Dict,
+        coverage_data: Dict,
+        crash_anr_data: Dict = None,
+        property_source_mapping: Dict = None,
+        property_kinds: Dict[str, str] = None,
+    ) -> Dict:
         """
         Calculate final statistics for template rendering
 
@@ -656,14 +740,13 @@ class TestReportMerger:
         Returns:
             Complete data for template rendering
         """
-        # Calculate bug count from property failures
-        property_bugs_found = sum(1 for result in property_stats.values()
-                                if result.get('fail', 0) > 0 or result.get('error', 0) > 0)
+        # Calculate bug count from property failures (exclude invariants)
+        property_bugs_found = 0
+        invariant_violations_count = 0
 
-        # Calculate property counts
-        all_properties_count = len(property_stats)
-        executed_properties_count = sum(1 for result in property_stats.values()
-                                      if result.get('executed', 0) > 0)
+        # Calculate property counts (exclude invariants from summary counts)
+        all_properties_count = 0
+        executed_properties_count = 0
 
         # Initialize crash/ANR data
         crash_events = []
@@ -677,9 +760,6 @@ class TestReportMerger:
             total_crash_count = crash_anr_data.get('total_crash_count', 0)
             total_anr_count = crash_anr_data.get('total_anr_count', 0)
 
-        # Calculate total bugs found (only property bugs, not including crashes/ANRs)
-        total_bugs_found = property_bugs_found
-
         # Prepare enhanced property statistics with derived metrics
         processed_property_stats = {}
         property_stats_summary = {
@@ -692,6 +772,13 @@ class TestReportMerger:
             "total_not_executed": 0,
         }
 
+        property_kind_summary = {
+            "all": 0,
+            "property": 0,
+            "invariant": 0,
+            "unknown": 0,
+        }
+
         for prop_name, stats in property_stats.items():
             precond_satisfied = stats.get("precond_satisfied", 0)
             total_executions = stats.get("executed", 0)
@@ -700,13 +787,26 @@ class TestReportMerger:
 
             pass_count = max(total_executions - fail_count - error_count, 0)
             not_executed_count = max(precond_satisfied - total_executions, 0)
+            kind = (property_kinds or {}).get(prop_name, "unknown")
+            if kind not in {"property", "invariant"}:
+                kind = "unknown"
 
             processed_property_stats[prop_name] = {
                 **stats,
                 "executed_total": total_executions,
                 "pass_count": pass_count,
                 "not_executed": not_executed_count,
+                "kind": kind,
             }
+
+            if kind != "invariant":
+                all_properties_count += 1
+                if total_executions > 0:
+                    executed_properties_count += 1
+                if fail_count > 0 or error_count > 0:
+                    property_bugs_found += 1
+            elif fail_count > 0 or error_count > 0:
+                invariant_violations_count += 1
 
             property_stats_summary["total_properties"] += 1
             property_stats_summary["total_precond_satisfied"] += precond_satisfied
@@ -716,15 +816,23 @@ class TestReportMerger:
             property_stats_summary["total_errors"] += error_count
             property_stats_summary["total_not_executed"] += not_executed_count
 
+            property_kind_summary["all"] += 1
+            property_kind_summary[kind] += 1
+
+        # Calculate total bugs found (only property bugs, not including crashes/ANRs)
+        total_bugs_found = property_bugs_found
+
         # Prepare final data
         final_data = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'bugs_found': total_bugs_found,
+            'invariant_violations_count': invariant_violations_count,
             'property_bugs_found': property_bugs_found,
             'all_properties_count': all_properties_count,
             'executed_properties_count': executed_properties_count,
             'property_stats': processed_property_stats,
             'property_stats_summary': property_stats_summary,
+            'property_kind_summary': property_kind_summary,
             'property_source_mapping': property_source_mapping or {},
             'crash_events': crash_events,
             'anr_events': anr_events,
