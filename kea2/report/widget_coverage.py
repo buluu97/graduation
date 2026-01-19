@@ -1,9 +1,13 @@
 from pathlib import Path
 import json
+from typing import Set
 
 from ..utils import getLogger
 
 logger = getLogger(__name__)
+
+
+RECORD_PERIOD = 25
 
 
 class WidgetCoverage:
@@ -17,8 +21,14 @@ class WidgetCoverage:
             raise FileNotFoundError(f"Steps log file not found: {self.steps_log}")
         
         triggered_widgets = self._analyze_steps()
+        self.__dump_triggered_widgets(triggered_widgets)
 
-        with open(Path(self.output_dir) / "widget_coverage_report.txt", "w", encoding="utf-8") as f:
+
+    
+    def __dump_triggered_widgets(self, triggered_widgets: Set, stepsCount: int = None):
+        file_name = f"widget_coverage_report_on_step{stepsCount}.txt" if stepsCount else "widget_coverage_report.txt"
+        output_file = Path(self.output_dir) / file_name
+        with open(output_file, "w", encoding="utf-8") as f:
             for widget in triggered_widgets:
                 f.write(f"{widget}\n")
         
@@ -30,9 +40,15 @@ class WidgetCoverage:
                 data = json.loads(line)
                 if not data.get("Type", "") == "Monkey":
                     continue
+                
+                stepsCount = int(data['MonkeyStepsCount'])
+                if stepsCount % RECORD_PERIOD == 0:
+                    self.__dump_triggered_widgets(triggered_widgets, stepsCount) 
+                
                 activity = data.get("Activity", "")
                 if not activity:
-                    logger.debug(f"Steps {data['MonkeyStepsCount']} has no activity, skip")
+                    logger.debug(f"Steps {stepsCount} has no activity, skip")
+                    continue
                 act_info = json.loads(data["Info"])
                 if act_info.get("act") == "BACK":
                     resource_id = "KEY_BACK"
@@ -42,7 +58,7 @@ class WidgetCoverage:
                     resource_id = act_widget.get("resource-id", "")
                     description = act_widget.get("content-desc", "")
                 if not all((resource_id, description)):
-                    logger.debug(f"""Steps {data["MonkeyStepsCount"]} has no resourceId or content-desc, skip""")
+                    logger.debug(f"""Steps {stepsCount} has no resourceId or content-desc, skip""")
                     continue
                     
                 widget_repr = f"activity:{activity}|resourceId:{resource_id}|content-desc:{description}"
@@ -50,5 +66,5 @@ class WidgetCoverage:
         return triggered_widgets
 
 if __name__ == "__main__":
-    w = WidgetCoverage("/Users/atria/Desktop/coding/Kea2/output/res_2026010916_2221776159/output_2026010916_2221776159")
+    w = WidgetCoverage("/Users/atria/Desktop/coding/Kea2/output/res_2026011916_0842195130/output_2026011916_0842195130")
     w.generate_coverage_report()
