@@ -84,6 +84,8 @@ class Omni_Notes_Sample(unittest.TestCase):
         serach_button_exists = self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").exists
         if search_input_box_exists or serach_button_exists:
             assert search_input_box_exists ^ serach_button_exists
+        import random
+        assert random.random() > 0.1  # introduce some random failure for demo
 
 URL = "https://raw.githubusercontent.com/ecnusse/Kea2/refs/heads/dev_test_hidden_algorithm/omninotes.apk"
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"

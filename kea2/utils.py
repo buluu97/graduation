@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from functools import wraps
 from typing import Callable, Dict, Optional, Union
+from unittest import TestCase
 
 
 def singleton(cls):
@@ -186,3 +187,6 @@ def loadFuncsFromFile(file_path: str) -> Dict[str, Callable]:
 
 def getClassName(clazz):
     return f'%s.%s' % (clazz.__module__, clazz.__qualname__)
+
+def getFullPropName(testCase: TestCase):
+    return f"%s.%s" % (getClassName(testCase.__class__), testCase._testMethodName)

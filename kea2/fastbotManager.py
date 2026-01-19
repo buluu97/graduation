@@ -16,7 +16,8 @@ from .adbUtils import ADBDevice, ADBStreamShell_V2
 
 from typing import IO, TYPE_CHECKING, Dict
 if TYPE_CHECKING:
-    from .keaUtils import Options, PropertyExecutionInfo
+    from .keaUtils import Options
+    from .typedefs import PropertyExecutionInfo
 
 
 logger = getLogger(__name__)
@@ -114,6 +115,7 @@ class FastbotManager:
             data={
                 "propName": execution_info.propName,
                 "startStepsCount": execution_info.startStepsCount,
+                "kind": execution_info.kind,
                 "state": execution_info.state,
             }
         )

@@ -539,6 +539,7 @@ class U2StaticChecker(AbstractStaticChecker):
         _HindenWidgetFilter(self.d.xml)
 
     def getInstance(self, hierarchy: str=None):
+        self.d.clear_cache()
         self.setHierarchy(hierarchy)
         return self.d
 
@@ -575,6 +576,7 @@ class U2Driver(AbstractDriver):
     def getStaticChecker(self, hierarchy=None):
         if self.staticChecker is None:
             self.staticChecker = U2StaticChecker()
+        
         return self.staticChecker.getInstance(hierarchy)
 
     @classmethod
