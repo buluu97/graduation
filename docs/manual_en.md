@@ -99,6 +99,26 @@ def test_func1(self):
 
 The decorator `@max_tries` takes an integer as an argument. The number represents the maximum number of times function `test_func1` will be executed when the precondition is satisfied. The default value is `inf` (infinite).
 
+### `@invariant`
+
+Invariant checks define properties that should always hold. A normal property contains a precondition P, an interaction scenario I, and an assertion Q. An invariant is a special property where P is always true, I is empty, and Q is checked in every state.
+
+Kea2 checks all invariants every time the app enters a new state (i.e., after each property execution or monkey event).
+
+```python
+from kea2 import invariant
+
+@invariant
+def invariant_non_negative_word_count(self):
+    if self.d(resourceId="word_count").exists:
+        # Get the unlearned word count
+        word_count_text = self.d(resourceId="word_count").get_text()
+        word_count = int(word_count_text)
+        assert word_count >= 0, f"Word count is negative: {word_count}"
+```
+
+`@invariant` marks an invariant check. All invariants are executed after every property execution or monkey event (on each iteration). Invariants are suitable for always-true conditions, such as layout issues on a single page or state consistency derived from [Stateful testing](#stateful-testing). Keep invariants fast and side-effect free.
+
 
 ## Launch Kea2
 
@@ -396,6 +416,41 @@ When runtime error detected, Kea2 will check whether the local configuration fil
 2. delete all the configuration files under "/configs" in the project's root directory.
 3. run `kea2 init` to generate the latest configuration files.
 4. Merge your old configurations into the new configuration files according to your needs.
+
+## Stateful Testing
+
+Stateful testing is an advanced approach in property-based testing. The idea is to model the app's internal data state and share it across multiple properties to guide exploration and uncover more complex defects.
+
+Kea2 provides a shared `state` object for stateful testing. It is a singleton `dict` that stores internal data and modeled states across properties. You can update `state` in properties, then read it in later properties to control exploration.
+
+Example: in CRUD-related features, you can record the current data items and use them in later properties. A typical scenario that needs stateful testing is "searching items" (you must know which items exist before searching).
+
+```python
+from kea2 import state
+
+state["item_names"] = []  # store data items
+
+class MyStatefulTest(unittest.TestCase):
+    @precondition(...)
+    def test_add_item(self):
+        # add a data item
+        new_item_name = __get_random_item_name()
+        self.d(resourceId="add_button").click()
+        self.d(resourceId="item_name_input").set_text(new_item_name)
+        self.d(resourceId="save_button").click()
+        # update items in state
+        state["item_names"].append(new_item_name)
+
+    # search with items stored in state
+    @precondition(lambda self: len(state["item_names"]) > 0 and ...)
+    def search_item(self):
+        search_name = random.choice(state["item_names"])
+        self.d(resourceId="search_box").set_text(search_name)
+        self.d.press("enter")
+        assert self.d(text=search_name).exists
+```
+
+> If you want to learn more about stateful testing, see the [Hypothesis Stateful Testing documentation](https://hypothesis.readthedocs.io/en/latest/stateful.html)
 
 ## App's Crash Bugs
 Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the output directory specified by `-o`. You can search the keyword `FATAL EXCEPTION` in `fastbot_*.log` to find the concrete information of crash bugs.

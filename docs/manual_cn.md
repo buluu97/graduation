@@ -93,6 +93,28 @@ def test_func1(self):
 
 `@max_tries` 装饰器接受一个整数参数，表示当前置条件满足时函数 `test_func1` 最多执行的次数。默认值为 `inf`（无限次）。
 
+### `@invariant` (不变式检查)
+
+不变式检查用于定义在任何时候都应保持为真的性质。普通性质由 前置条件 P，交互场景(执行功能) I，和断言 Q 三部分组成，不变式为一个特殊的性质，即 P 为恒真，I 为空，任何情况下都验证 Q 的性质。
+
+Kea2 会在应用每次进入一个新状态后 (即每次执行完某个性质或发送 monkey 事件后) 检查 **所有** 不变式。
+
+以下是一个不变式检查的示例：在一个背单词应用中，未背单词的数量不可能为负数。
+
+```python
+from kea2 import invariant
+
+@invariant
+def invariant_non_negative_word_count(self):
+    if self.d(resourceId="word_count").exists:
+        # 获取未背单词数量
+        word_count_text = self.d(resourceId="word_count").get_text()
+        word_count = int(word_count_text)
+        assert word_count >= 0, f"Word count is negative: {word_count}"
+```
+
+`@invariant` 用于标记不变式检查。每次执行性质或发送 monkey 事件后，所有不变式都会被完整执行（每一轮都会执行一遍）。不变式适合用于检查始终应成立的条件，比如单一页面的布局问题，或基于 [带状态的测试 (Stateful testing)](#带状态的测试stateful-testing) 推导出的状态一致性问题。
+
 ## 启动 Kea2
 
 我们提供两种方式启动 Kea2。
@@ -389,6 +411,41 @@ error | UI 测试中，测试方法因发生意外错误（如找不到某些 UI
 2. 删除项目根目录下 `/configs` 中的所有配置文件。
 3. 运行 `kea2 init` 生成最新配置文件。
 4. 根据需要将旧配置合并到新配置文件中。
+
+## 带状态的测试（Stateful Testing）
+
+带状态的测试是基于性质测试中的一种进阶方法。其思想是对应用内部数据状态进行建模，并在多个性质间共享该状态以控制测试进程，以及发现更复杂的缺陷。
+
+Kea2 提供共享的 `state` 对象用于有状态测试。它是一个单例 `dict`，可以存储应用内部数据并建模状态，供多个性质复用。你可以在性质中更新 `state`，再在后续性质中读取它来控制探索进程。
+
+示例：在 增删改查 相关功能中，可以记录当前操作的数据条目，并在后续性质中使用该信息。一个典型的需要用到带状态测试的场景是：“搜索条目”，(我们必须先知道有哪些条目才能搜索它们)。
+
+```python
+from kea2 import state
+
+state["item_names"] = []  # 存储数据条目
+
+class MyStatefulTest(unittest.TestCase):
+    @precondition(...)
+    def test_add_item(self):
+        # 添加数据条目
+        new_item_name = __get_random_item_name()
+        self.d(resourceId="add_button").click()
+        self.d(resourceId="item_name_input").set_text(new_item_name)
+        self.d(resourceId="save_button").click()
+        # 更新 state 中的条目数
+        state['item_names'].append(new_item_name)
+
+    # 使用 state 中的条目进行搜索
+    @precondition(lambda self: len(state['item_names']) > 0 and ...)
+    def search_item(self):
+        search_name = random.choice(state['item_names'])
+        self.d(resourceId="search_box").set_text(search_name)
+        self.d.press("enter")
+        assert self.d(text=search_name).exists
+```
+
+> 如果想了解更多关于带状态的测试技术，请参考 [Hypothesis Stateful Testing 文档](https://hypothesis.readthedocs.io/en/latest/stateful.html)
 
 ## 应用崩溃缺陷
 
