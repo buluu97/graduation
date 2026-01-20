@@ -293,6 +293,7 @@ class PathParserMixin:
 class ScreenshotsMixin:
 
     _take_screenshots: bool = None
+    _all_screenshot_names = set()
     
     @property
     def take_screenshots(self: "BugReportGenerator") -> bool:
@@ -433,6 +434,11 @@ class ScreenshotsMixin:
             step_index: Current step index
             data: Data dictionary to update
         """
+        screenshot_name = step_data["Screenshot"]
+        if screenshot_name in self._all_screenshot_names:
+            return
+        self._all_screenshot_names.add(screenshot_name)
+
         caption = ""
         info = step_data.get("Info")
 
@@ -463,7 +469,6 @@ class ScreenshotsMixin:
             monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
             caption = f"Monkey Step {monkey_steps_count}: Fuzz"
 
-        screenshot_name = step_data["Screenshot"]
 
         # Check if the screenshot file actually exists
         screenshot_file_path = self.data_path.screenshots_dir / screenshot_name

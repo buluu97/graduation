@@ -282,7 +282,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         with open(self.data_path.steps_log, "r", encoding="utf-8") as f:
             # Track current test state
 
-            for step_index, line in enumerate(f, start=1):
+            step_index = 0
+            _last_screenshot_file = ""
+            for line in f:
                 step_data = self._parse_step_data(line)
 
                 if not step_data:
@@ -290,6 +292,10 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
                 step_type = step_data.get("Type", "")
                 screenshot = step_data.get("Screenshot", "")
+                if screenshot and screenshot != _last_screenshot_file:
+                    step_index += 1
+                    _last_screenshot_file = screenshot
+
                 info = step_data.get("Info", {})
 
                 # Count Monkey events separately
