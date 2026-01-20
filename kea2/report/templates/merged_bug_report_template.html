@@ -1816,6 +1816,19 @@
                 <small class="text-muted search-results-count" id="property-source-search-results"></small>
             </div>
 
+            <div class="mb-3">
+                <div class="btn-group" role="group" aria-label="Property source kind filter">
+                    <input type="radio" class="btn-check" name="property-source-kind-filter" id="property-source-kind-all" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="property-source-kind-all">All ({{ property_source_kind_summary.all|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-source-kind-filter" id="property-source-kind-property" autocomplete="off">
+                    <label class="btn btn-outline-info" for="property-source-kind-property">Property ({{ property_source_kind_summary.property|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-source-kind-filter" id="property-source-kind-invariant" autocomplete="off">
+                    <label class="btn btn-outline-warning" for="property-source-kind-invariant">Invariant ({{ property_source_kind_summary.invariant|default(0) }})</label>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-custom">
                     <thead>
@@ -1827,9 +1840,11 @@
                     </thead>
                     <tbody id="property-source-container">
                         {% for property_name, source_dirs in property_source_mapping.items() %}
+                        {% set kind_label = property_stats[property_name].kind if property_stats is defined and property_name in property_stats else 'unknown' %}
                         <tr class="property-source-row" data-page="1"
                             data-index="{{ loop.index }}"
-                            data-property-name="{{ property_name }}">
+                            data-property-name="{{ property_name }}"
+                            data-kind="{{ kind_label }}">
                             <td>{{ loop.index }}</td>
                             <td>
                                 <span class="badge bg-light text-dark badge-custom">{{ property_name }}</span>
@@ -1976,6 +1991,7 @@
 
             // Initialize property source mapping searching and pagination
             initPropertySourceSearching();
+            initPropertySourceKindFilter();
             initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
 
             // Initialize source directories expand/collapse functionality
@@ -2774,67 +2790,103 @@
                 searchInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        performPropertySourceSearch(this);
+                        applyPropertySourceFilters();
                     } else if (e.key === 'Escape') {
-                        clearPropertySourceSearch(this);
+                        searchInput.value = '';
+                        applyPropertySourceFilters();
                     }
                 });
 
                 // Search button functionality
                 if (searchButton) {
                     searchButton.addEventListener('click', function() {
-                        performPropertySourceSearch(searchInput);
+                        applyPropertySourceFilters();
                     });
                 }
 
                 // Clear button functionality
                 if (clearButton) {
                     clearButton.addEventListener('click', function() {
-                        clearPropertySourceSearch(searchInput);
+                        searchInput.value = '';
+                        applyPropertySourceFilters();
                     });
                 }
+            }
 
-                function performPropertySourceSearch(searchInput) {
-                    const searchTerm = searchInput.value.toLowerCase().trim();
-                    const container = document.getElementById('property-source-container');
-                    const items = Array.from(container.getElementsByClassName('property-source-row'));
+            function getCurrentPropertySourceKindFilter() {
+                const selected = document.querySelector('input[name="property-source-kind-filter"]:checked');
+                if (!selected) {
+                    return 'all';
+                }
+                if (selected.id === 'property-source-kind-property') {
+                    return 'property';
+                }
+                if (selected.id === 'property-source-kind-invariant') {
+                    return 'invariant';
+                }
+                return 'all';
+            }
 
-                    let visibleCount = 0;
-                    let totalCount = items.length;
+            function updatePropertySourceSearchResults(visibleCount, totalCount, searchTerm) {
+                const resultsElement = document.getElementById('property-source-search-results');
+                if (resultsElement) {
+                    if (searchTerm === '') {
+                        resultsElement.textContent = '';
+                    } else {
+                        resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
+                    }
+                }
+            }
 
-                    // Filter items based on search term
-                    items.forEach(function(item) {
-                        const propertyNameElement = item.querySelector('.badge-custom');
-                        if (propertyNameElement) {
-                            const propertyName = propertyNameElement.textContent.toLowerCase();
+            function applyPropertySourceFilters() {
+                const searchInput = document.getElementById('property-source-search');
+                const rawSearchTerm = searchInput ? searchInput.value.trim() : '';
+                const searchTerm = rawSearchTerm.toLowerCase();
+                const container = document.getElementById('property-source-container');
+                if (!container) {
+                    return;
+                }
 
-                            if (searchTerm === '' || propertyName.includes(searchTerm)) {
-                                item.setAttribute('data-search-visible', 'true');
-                                visibleCount++;
-                            } else {
-                                item.setAttribute('data-search-visible', 'false');
-                            }
-                        }
-                    });
+                const items = Array.from(container.getElementsByClassName('property-source-row'));
+                const kindFilter = getCurrentPropertySourceKindFilter();
+                let visibleCount = 0;
+                let totalCount = 0;
 
-                    // Update search results count
-                    const resultsElement = document.getElementById('property-source-search-results');
-                    if (resultsElement) {
-                        if (searchTerm === '') {
-                            resultsElement.textContent = '';
-                        } else {
-                            resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
-                        }
+                items.forEach(function(item) {
+                    const rowKind = (item.dataset.kind || 'unknown').toLowerCase();
+                    const kindMatches = kindFilter === 'all' || rowKind === kindFilter;
+                    item.setAttribute('data-kind-visible', kindMatches ? 'true' : 'false');
+                    if (kindMatches) {
+                        totalCount += 1;
                     }
 
-                    // Re-initialize pagination with filtered results
-                    initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
-                }
+                    const propertyNameElement = item.querySelector('.badge-custom');
+                    const propertyName = propertyNameElement ? propertyNameElement.textContent.toLowerCase() : '';
+                    const searchMatches = searchTerm === '' || propertyName.includes(searchTerm);
+                    item.setAttribute('data-search-visible', searchMatches ? 'true' : 'false');
+                    if (kindMatches && searchMatches) {
+                        visibleCount += 1;
+                    }
+                });
 
-                function clearPropertySourceSearch(searchInput) {
-                    searchInput.value = '';
-                    performPropertySourceSearch(searchInput);
+                updatePropertySourceSearchResults(visibleCount, totalCount, rawSearchTerm);
+                initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
+                const currentPageSize = document.getElementById('source-page-size') ?
+                    parseInt(document.getElementById('source-page-size').value) : 10;
+                goToPage(1, 'property-source-container', 'property-source-row', currentPageSize, 'source-pagination');
+            }
+
+            function initPropertySourceKindFilter() {
+                const filterButtons = document.querySelectorAll('input[name="property-source-kind-filter"]');
+                if (!filterButtons.length) {
+                    return;
                 }
+                filterButtons.forEach(function(button) {
+                    button.addEventListener('change', function() {
+                        applyPropertySourceFilters();
+                    });
+                });
+                applyPropertySourceFilters();
             }
 
             // Activities table searching function

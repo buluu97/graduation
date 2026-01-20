@@ -179,52 +179,26 @@ class TestReportMerger:
         """
         property_kinds: Dict[str, str] = {}
 
-        output_dirs = list(result_dir.glob("output_*"))
-        if not output_dirs:
-            return property_kinds
-
-        steps_log = output_dirs[0] / "steps.log"
-        if not steps_log.exists():
+        result_files = list(result_dir.glob("result_*.json"))
+        if not result_files:
             return property_kinds
 
         try:
-            with open(steps_log, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        step_data = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
+            with open(result_files[0], "r", encoding="utf-8") as f:
+                result_data = json.load(f)
 
-                    if step_data.get("Type") != "ScriptInfo":
-                        continue
+            for prop_name, stats in result_data.items():
+                kind = stats.get("kind", "")
+                if not prop_name or not isinstance(kind, str) or not kind:
+                    continue
 
-                    info = step_data.get("Info")
-                    if isinstance(info, str):
-                        stripped = info.strip()
-                        if stripped and stripped[0] in "{[":
-                            try:
-                                info = json.loads(stripped)
-                            except json.JSONDecodeError:
-                                continue
+                normalized_kind = kind.strip().lower()
+                if not normalized_kind:
+                    continue
 
-                    if not isinstance(info, dict):
-                        continue
-
-                    prop_name = info.get("propName", "")
-                    kind = info.get("kind", "")
-                    if not prop_name or not isinstance(kind, str) or not kind:
-                        continue
-
-                    normalized_kind = kind.strip().lower()
-                    if not normalized_kind:
-                        continue
-
-                    property_kinds.setdefault(prop_name, normalized_kind)
+                property_kinds.setdefault(prop_name, normalized_kind)
         except Exception as exc:
-            logger.warning(f"Failed to parse {steps_log}: {exc}")
+            logger.warning(f"Failed to parse {result_files[0]}: {exc}")
 
         return property_kinds
 
@@ -284,7 +258,7 @@ class TestReportMerger:
 
     def _collect_property_kinds(self) -> Dict[str, str]:
         """
-        Collect property kind metadata from steps.log files across result directories.
+        Collect property kind metadata from result_*.json files across result directories.
 
         Returns:
             Dict[str, str]: Mapping of property name to kind (property/invariant)
@@ -292,62 +266,36 @@ class TestReportMerger:
         property_kinds: Dict[str, str] = {}
 
         for result_dir in self.result_dirs:
-            output_dirs = list(result_dir.glob("output_*"))
-            if not output_dirs:
-                continue
-
-            steps_log = output_dirs[0] / "steps.log"
-            if not steps_log.exists():
+            result_files = list(result_dir.glob("result_*.json"))
+            if not result_files:
                 continue
 
             try:
-                with open(steps_log, "r", encoding="utf-8") as f:
-                    for line_number, line in enumerate(f, 1):
-                        line = line.strip()
-                        if not line:
-                            continue
-                        try:
-                            step_data = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
+                with open(result_files[0], "r", encoding="utf-8") as f:
+                    result_data = json.load(f)
 
-                        if step_data.get("Type") != "ScriptInfo":
-                            continue
+                for prop_name, stats in result_data.items():
+                    kind = stats.get("kind", "")
+                    if not prop_name or not isinstance(kind, str) or not kind:
+                        continue
 
-                        info = step_data.get("Info")
-                        if isinstance(info, str):
-                            stripped = info.strip()
-                            if stripped and stripped[0] in "{[":
-                                try:
-                                    info = json.loads(stripped)
-                                except json.JSONDecodeError:
-                                    continue
+                    normalized_kind = kind.strip().lower()
+                    if not normalized_kind:
+                        continue
 
-                        if not isinstance(info, dict):
-                            continue
+                    existing = property_kinds.get(prop_name)
+                    if existing and existing != normalized_kind:
+                        logger.debug(
+                            "Property kind conflict for %s: %s vs %s",
+                            prop_name,
+                            existing,
+                            normalized_kind,
+                        )
+                        continue
 
-                        prop_name = info.get("propName", "")
-                        kind = info.get("kind", "")
-                        if not prop_name or not isinstance(kind, str) or not kind:
-                            continue
-
-                        normalized_kind = kind.strip().lower()
-                        if not normalized_kind:
-                            continue
-
-                        existing = property_kinds.get(prop_name)
-                        if existing and existing != normalized_kind:
-                            logger.debug(
-                                "Property kind conflict for %s: %s vs %s",
-                                prop_name,
-                                existing,
-                                normalized_kind,
-                            )
-                            continue
-
-                        property_kinds.setdefault(prop_name, normalized_kind)
+                    property_kinds.setdefault(prop_name, normalized_kind)
             except Exception as exc:
-                logger.warning(f"Failed to parse {steps_log}: {exc}")
+                logger.warning(f"Failed to parse {result_files[0]}: {exc}")
                 continue
 
         return property_kinds
@@ -976,6 +924,12 @@ class TestReportMerger:
             "invariant": 0,
             "unknown": 0,
         }
+        property_source_kind_summary = {
+            "all": 0,
+            "property": 0,
+            "invariant": 0,
+            "unknown": 0,
+        }
 
         for prop_name, stats in property_stats.items():
             precond_satisfied = stats.get("precond_satisfied", 0)
@@ -1017,6 +971,14 @@ class TestReportMerger:
             property_kind_summary["all"] += 1
             property_kind_summary[kind] += 1
 
+        if property_source_mapping:
+            for prop_name in property_source_mapping.keys():
+                kind = (property_kinds or {}).get(prop_name, "unknown")
+                if kind not in {"property", "invariant"}:
+                    kind = "unknown"
+                property_source_kind_summary["all"] += 1
+                property_source_kind_summary[kind] += 1
+
         # Calculate total bugs found (only property bugs, not including crashes/ANRs)
         total_bugs_found = property_bugs_found
 
@@ -1031,6 +993,7 @@ class TestReportMerger:
             'property_stats': processed_property_stats,
             'property_stats_summary': property_stats_summary,
             'property_kind_summary': property_kind_summary,
+            'property_source_kind_summary': property_source_kind_summary,
             'property_source_mapping': property_source_mapping or {},
             'crash_events': crash_events,
             'anr_events': anr_events,

@@ -262,7 +262,13 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         property_violations = {}  # Store multiple violation records for each property
         executed_properties_by_step = {}  # Track executed properties at each step: {step_count: set()}
         executed_properties = set()  # Track unique executed properties
-        property_kinds = {}  # Track property kind by name (property/invariant)
+        property_kinds = {}
+        for prop_name, result in self.test_result.items():
+            raw_kind = result.get("kind", "unknown")
+            if isinstance(raw_kind, str) and raw_kind.strip():
+                property_kinds[prop_name] = raw_kind.strip().lower()
+            else:
+                property_kinds[prop_name] = "unknown"
 
         if not self.data_path.steps_log.exists():
             logger.error(f"{self.data_path.steps_log} not exists")
@@ -326,9 +332,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                     if isinstance(kind, str) and kind:
                         normalized_kind = kind.strip().lower()
                     if not normalized_kind:
-                        normalized_kind = "unknown"
-                    if property_name and normalized_kind:
-                        property_kinds.setdefault(property_name, normalized_kind)
+                        normalized_kind = property_kinds.get(property_name, "unknown")
                     
                     # Track executed properties (properties that have been started)
                     if property_name and state == "start" and normalized_kind != "invariant":
