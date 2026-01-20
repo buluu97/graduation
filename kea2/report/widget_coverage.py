@@ -40,30 +40,37 @@ class WidgetCoverage:
                 data = json.loads(line)
                 if not data.get("Type", "") == "Monkey":
                     continue
-                
+
+                widget_repr = self.__get_widget_repr(data)
+                triggered_widgets.add(widget_repr)
+
                 stepsCount = int(data['MonkeyStepsCount'])
                 if stepsCount % RECORD_PERIOD == 0:
                     self.__dump_triggered_widgets(triggered_widgets, stepsCount) 
                 
-                activity = data.get("Activity", "")
-                if not activity:
-                    logger.debug(f"Steps {stepsCount} has no activity, skip")
-                    continue
-                act_info = json.loads(data["Info"])
-                if act_info.get("act") == "BACK":
-                    resource_id = "KEY_BACK"
-                    description = "KEY_BACK"
-                else:
-                    act_widget = json.loads(act_info["widget"])
-                    resource_id = act_widget.get("resource-id", "")
-                    description = act_widget.get("content-desc", "")
-                if not all((resource_id, description)):
-                    logger.debug(f"""Steps {stepsCount} has no resourceId or content-desc, skip""")
-                    continue
-                    
-                widget_repr = f"activity:{activity}|resourceId:{resource_id}|content-desc:{description}"
-                triggered_widgets.add(widget_repr)
+
         return triggered_widgets
+    
+    def __get_widget_repr(self, data):
+        activity = data.get("Activity", "")
+        if not activity:
+            return ""
+        act_info = json.loads(data["Info"])
+        if act_info.get("act") == "BACK":
+            resource_id = "KEY_BACK"
+            description = "KEY_BACK"
+            className = "KEY_BACK"
+        else:
+            act_widget = json.loads(act_info["widget"])
+            resource_id = act_widget.get("resource-id", "")
+            description = act_widget.get("content-desc", "")
+            className = act_widget.get("class", "")
+        if not any((resource_id, description, className)):
+            return ""
+            
+        widget_repr = f"activity:{activity}|class:{className}|resourceId:{resource_id}|content-desc:{description}|"
+        return widget_repr
+
 
 if __name__ == "__main__":
     w = WidgetCoverage("/Users/atria/Desktop/coding/Kea2/output/res_2026011916_0842195130/output_2026011916_0842195130")
