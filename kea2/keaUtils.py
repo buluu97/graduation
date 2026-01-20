@@ -458,7 +458,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                             logger.info("Exploration times up (--running-minutes).")
                             fb_is_running = False
                             break
-                        raise RuntimeError("Fastbot Aborted.")
+                        else:
+                            import traceback
+                            traceback.print_exc()
+                            raise RuntimeError("Fastbot Aborted.")
 
                     if not xml_raw:
                         logger.warning("Empty ui hierarchy returned. Skip this step.")
