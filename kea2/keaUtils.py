@@ -471,6 +471,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
                     # check all invariants
                     staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
+                    if self.allInvariants:
+                        print(f"[INFO] Checking {len(self.allInvariants)} invariants...", flush=True)
                     for _, test in self.allInvariants.items():
                         setattr(test, self.options.driverName, staticCheckerDriver)
                         try:

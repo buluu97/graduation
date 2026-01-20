@@ -10,6 +10,7 @@ INTERRUPTABLE_MARKER = "interruptable"
 
 @dataclass
 class PropStatistic:
+    kind: Literal["property", "invariant"] = "unknown"
     precond_satisfied: int = 0
     executed: int = 0
     fail: int = 0

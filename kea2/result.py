@@ -40,12 +40,12 @@ class KeaJsonResult(TextTestResult):
     @classmethod
     def setProperties(cls, allProperties: Dict):
         for testCase in allProperties.values():
-            cls.res[getFullPropName(testCase)] = PropStatistic()
+            cls.res[getFullPropName(testCase)] = PropStatistic(kind=CheckKind.PROPERTY.value)
     
     @classmethod
     def setInvariants(cls, allInvariants: Dict):
         for testCase in allInvariants.values():
-            cls.res[getFullPropName(testCase)] = PropStatistic()
+            cls.res[getFullPropName(testCase)] = PropStatistic(kind=CheckKind.INVARIANT.value)
     
     @classmethod
     def setOutputFile(cls, result_file, property_exec_result_file):
@@ -67,7 +67,13 @@ class KeaJsonResult(TextTestResult):
                 tb="",
                 startStepsCount=self.currentStepsCount
             )
-        return super().startTest(test)
+        super(TextTestResult, self).startTest(test)
+        if self.showAll:
+            self.stream.write(" - ")
+            self.stream.write(str(test))
+            self.stream.write(" ... ")
+            self.stream.flush()
+            self._newline = False
 
     def setCurrentStepsCount(self, stepsCount: int):
         self.currentStepsCount = stepsCount
@@ -126,10 +132,13 @@ class KeaJsonResult(TextTestResult):
         self._print_invariant_error(test)
 
     def logSummary(self):
-        fails = sum(_.fail for _ in self.res.values())
-        errors = sum(_.error for _ in self.res.values())
-
-        logger.info(f"[Property Exectution Summary] Errors:{errors}, Fails:{fails}")
+        property_fails = sum(_.fail for _ in self.res.values() if _.kind == "property")
+        property_errors = sum(_.error for _ in self.res.values() if _.kind == "property")
+        invariant_fails = sum(_.fail for _ in self.res.values() if _.kind == "invariant")
+        invariant_errors = sum(_.error for _ in self.res.values() if _.kind == "invariant")
+        logger.info(f"[Property Execution Summary] Errors:{property_errors}, Fails:{property_fails}")
+        if invariant_fails > 0 or invariant_errors > 0:
+            logger.info(f"[Invariant Execution Summary] Errors:{invariant_errors}, Fails:{invariant_fails}")
     
     def flushResult(self):
         json_res = dict()
