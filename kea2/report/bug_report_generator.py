@@ -211,6 +211,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         self.__set_up_jinja_env()
         
         self.screenshots = deque()
+        self._screenshot_id_by_filename = {}
 
         test_data = None
         with thread_pool(max_workers=128) as executor:
@@ -870,13 +871,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         if not screenshot_filename:
             return ""
 
-        for screenshot in self.screenshots:
-            # Extract filename from path
-            screenshot_path = screenshot.get('path', '')
-            if screenshot_path.endswith(screenshot_filename):
-                return str(screenshot.get('id', ''))
-
-        return ""
+        screenshot_name = Path(screenshot_filename).name
+        screenshot_map = getattr(self, "_screenshot_id_by_filename", {})
+        return str(screenshot_map.get(screenshot_name, ""))
 
     def _add_screenshot_ids_to_events(self, events: List[Dict]):
         """

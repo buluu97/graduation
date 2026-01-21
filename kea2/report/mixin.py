@@ -422,7 +422,7 @@ class ScreenshotsMixin:
     def _add_screenshot_info(
         self: "BugReportGenerator",
         step_data: "StepData",
-        step_index: int,
+        step_id: str,
         data: Dict,
         force_append: bool = False,
     ):
@@ -474,6 +474,9 @@ class ScreenshotsMixin:
             # Skip adding this screenshot if the file doesn't exist
             return
 
+        if hasattr(self, "_screenshot_id_by_filename"):
+            self._screenshot_id_by_filename[screenshot_name] = str(step_id)
+
         # Use relative path string instead of Path object
         abs_screenshots_path = self.data_path.output_dir / "screenshots" / screenshot_name
         relative_screenshot_path = str(abs_screenshots_path.relative_to(self.result_dir))
@@ -482,13 +485,13 @@ class ScreenshotsMixin:
             data["screenshot_info"][screenshot_name] = {
                 "type": step_data["Type"],
                 "caption": caption,
-                "step_index": step_index
+                "step_index": step_id
             }
         elif not force_append:
             return
 
         self.screenshots.append({
-            'id': step_index,
+            'id': step_id,
             'path': relative_screenshot_path,  # Now using string path
-            'caption': f"{step_index}. {caption}"
+            'caption': f"{step_id}. {caption}"
         })
