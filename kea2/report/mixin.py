@@ -444,7 +444,6 @@ class ScreenshotsMixin:
 
         if step_data["Type"] == "Monkey":
             # Extract 'act' attribute for Monkey type and add MonkeyStepsCount
-            monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
             if isinstance(info, dict):
                 action = info.get('act', 'N/A')
             else:
