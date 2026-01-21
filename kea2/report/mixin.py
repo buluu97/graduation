@@ -449,7 +449,7 @@ class ScreenshotsMixin:
                 action = info.get('act', 'N/A')
             else:
                 action = str(info) if info else 'N/A'
-            caption = f"Monkey Step {monkey_steps_count}: {action}"
+            caption = f"Monkey Step: {action}"
         elif step_data["Type"] == "Script":
             # Extract 'method' attribute for Script type
             if isinstance(info, dict):
@@ -466,8 +466,7 @@ class ScreenshotsMixin:
                 state = str(info) if info else 'N/A'
             caption = f"{prop_name}: {state}" if prop_name else f"{state}"
         elif step_data["Type"] == "Fuzz":
-            monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
-            caption = f"Monkey Step {monkey_steps_count}: Fuzz"
+            caption = f"Monkey Step: Fuzz"
 
 
         # Check if the screenshot file actually exists

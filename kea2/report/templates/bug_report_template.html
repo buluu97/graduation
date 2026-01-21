@@ -1610,7 +1610,7 @@
                                     </div>
                                 </div>
                                 <div class="screenshot-caption">
-                                    {{ ev.step_index }}. Monkey Step {{ ev.monkey_steps_count }}: restart app
+                                    {{ ev.step_index }}. Monkey Step: restart app
                                 </div>
                             </div>
                             {% endfor %}
@@ -2800,7 +2800,7 @@
                         const action = monkeyStepMatch[3];
                         
                         caption.innerHTML = `
-                            <div class="step-number">${stepIndex}. Monkey Step ${monkeyStep}</div>
+                            <div class="step-number">${stepIndex}. Monkey Step</div>
                             <div class="step-action">${action}</div>
                         `;
                         return;

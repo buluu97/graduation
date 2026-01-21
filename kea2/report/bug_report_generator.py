@@ -211,22 +211,28 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         self.__set_up_jinja_env()
         
         self.screenshots = deque()
+
+        test_data = None
         with thread_pool(max_workers=128) as executor:
             logger.debug("Starting bug report generation")
 
             # Collect test data
             test_data: ReportData = self._collect_test_data(executor)
 
-            # Generate HTML report
-            html_content = self._generate_html_report(test_data)
+        if not test_data:
+            raise RuntimeError("No test data collected, cannot generate report.")
 
-            # Save report
-            report_path = self.result_dir / "bug_report.html"
-            with open(report_path, "w", encoding="utf-8") as f:
-                f.write(html_content)
+        # Generate HTML report
+        html_content = self._generate_html_report(test_data)
+
+        # Save report
+        report_path = self.result_dir / "bug_report.html"
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
 
             logger.info(f"Bug report saved to: {report_path}")
             return str(report_path)
+
 
     @catchException("Error when collecting test data")
     def _collect_test_data(self, executor: "ThreadPoolExecutor"=None) -> ReportData:
@@ -278,12 +284,14 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         current_test = {}
         step_index = 0
         monkey_events_count = 0  # Track monkey events separately
+        last_monkey_step_count = 0
 
         with open(self.data_path.steps_log, "r", encoding="utf-8") as f:
             # Track current test state
 
-            step_index = 0
+            __monkey_step_index_repeat_count = 1
             _last_screenshot_file = ""
+            step_index = 0
             for line in f:
                 step_data = self._parse_step_data(line)
 
@@ -292,31 +300,37 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
                 step_type = step_data.get("Type", "")
                 screenshot = step_data.get("Screenshot", "")
+                monkey_steps_count = step_data.get("MonkeyStepsCount", "")
                 if screenshot and screenshot != _last_screenshot_file:
                     step_index += 1
                     _last_screenshot_file = screenshot
 
                 info = step_data.get("Info", {})
 
-                # Count Monkey events separately
-                if step_type == "Monkey" or step_type == "Fuzz":
-                    monkey_events_count += 1
+                monkey_steps_count = step_data.get("MonkeyStepsCount", "")
+                if monkey_steps_count and monkey_steps_count != last_monkey_step_count:
+                    last_monkey_step_count = monkey_steps_count
+                    __monkey_step_index_repeat_count = 1
+                elif monkey_steps_count:
+                    if step_type == "ScriptInfo" and info.get("kind") != "invariant":
+                        __monkey_step_index_repeat_count += 1
+                    # Adjust monkey_steps_count to ensure uniqueness
+                step_id = f"{monkey_steps_count}-{__monkey_step_index_repeat_count}"
 
                 # Record restart-app marker events (no screenshot expected)
                 if step_type == "Monkey" and info == "kill_apps":
-                    monkey_steps_count = step_data.get("MonkeyStepsCount", "N/A")
-                    caption = f"Monkey Step {monkey_steps_count}: restart app"
+                    caption = f"Monkey Step: restart app"
 
                     data["kill_apps_events"].append({
-                        "step_index": step_index,
+                        "step_index": step_id,
                         "monkey_steps_count": monkey_steps_count,
                     })
 
                     # Show this info event in the Test Screenshots timeline
                     self.screenshots.append({
-                        "id": step_index,
+                        "id": step_id,
                         "path": "",
-                        "caption": f"{step_index}. {caption}",
+                        "caption": f"{step_id}. {caption}",
                         "kind": "info",
                         "info": "kill_apps",
                     })
@@ -327,7 +341,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
                 # Collect detailed information for each screenshot
                 if screenshot and screenshot not in data["screenshot_info"]:
-                    self._add_screenshot_info(step_data, step_index, data)
+                    self._add_screenshot_info(step_data, step_id, data)
 
                 # Process ScriptInfo for property violations and execution tracking
                 if step_type == "ScriptInfo":
@@ -339,7 +353,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                         normalized_kind = kind.strip().lower()
                     if not normalized_kind:
                         normalized_kind = property_kinds.get(property_name, "unknown")
-                    
+
                     # Track executed properties (properties that have been started)
                     if property_name and state == "start" and normalized_kind != "invariant":
                         executed_properties.add(property_name)
@@ -347,10 +361,10 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                         executed_properties_by_step[monkey_events_count] = executed_properties.copy()
                     
                     if normalized_kind == "invariant" and screenshot and screenshot in data["screenshot_info"]:
-                        self._add_screenshot_info(step_data, step_index, data, force_append=True)
+                        self._add_screenshot_info(step_data, step_id, data, force_append=True)
 
                     current_property, current_test = self._process_script_info(
-                        property_name, state, normalized_kind, step_index, screenshot,
+                        property_name, state, normalized_kind, step_id, screenshot,
                         current_property, current_test, property_violations
                     )
 
@@ -359,8 +373,6 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                     first_step_time = step_data["Time"]
                 last_step_time = step_data["Time"]
 
-            # Set the monkey events count correctly
-            data["executed_events"] = monkey_events_count
 
             # Calculate test time
             if first_step_time and last_step_time:
@@ -373,6 +385,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 hours, remainder = divmod(total_seconds, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 data["total_testing_time"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+        # Set the monkey events count correctly
+        data["executed_events"] = last_monkey_step_count
 
         # Enrich property statistics with derived metrics and calculate bug count
         enriched_property_stats = {}
