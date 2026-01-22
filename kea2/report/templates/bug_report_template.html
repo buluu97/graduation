@@ -1785,6 +1785,28 @@
         {% if property_violations %}
         <div class="section-block">
             <h2 class="section-title">Property Violations</h2>
+            <!-- Search Controls for Property Violations -->
+            <div class="mb-4">
+                <div class="d-flex align-items-center">
+                    <div style="width: 33%;">
+                        <div class="property-search-container">
+                            <input type="text" class="form-control property-search-input property-stats-search-simple"
+                                   id="violations-search"
+                                   placeholder="Search violations by property name..."
+                                   data-target="property-violations-container"
+                                   data-item-class="property-violation-row"
+                                   data-pagination="violations-pagination"
+                                   data-page-size="violations-page-size">
+                            <button class="property-search-icon-btn" type="button" id="violations-search-btn">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <small class="text-muted search-results-count" id="violations-search-results"></small>
+                    </div>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-custom table-violations">
                     <thead>
@@ -2431,6 +2453,7 @@
             
             // Initialize pagination for Property tables
             initPagination('property-violations-container', 'property-violation-row', 'violations-pagination', 'violations-page-size');
+            initViolationSearching();
             initViolationFilter();
             initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
             
@@ -3445,32 +3468,97 @@
             }
         }
 
+        function updateViolationSearchResults(visibleCount, totalCount, searchTerm) {
+            const resultsElement = document.getElementById('violations-search-results');
+
+            if (resultsElement) {
+                if (searchTerm === '') {
+                    resultsElement.innerHTML = `<span class="text-muted">Showing all ${totalCount} violations - Type and click <i class="bi bi-search"></i> or press Enter to search</span>`;
+                } else if (visibleCount === 0) {
+                    resultsElement.innerHTML = `<span class="text-danger">No violations found for "${searchTerm}"</span>`;
+                } else if (visibleCount === totalCount) {
+                    resultsElement.innerHTML = `<span class="text-success">All ${totalCount} violations match "${searchTerm}"</span>`;
+                } else {
+                    resultsElement.innerHTML = `<span class="text-info">Found ${visibleCount} of ${totalCount} violations for "${searchTerm}"</span>`;
+                }
+            }
+        }
+
+        function applyViolationFilters() {
+            const statusSelect = document.getElementById('violations-status-filter');
+            const kindSelect = document.getElementById('violations-kind-filter');
+            const searchInput = document.getElementById('violations-search');
+            const container = document.getElementById('property-violations-container');
+
+            if (!container) return;
+
+            const statusValue = statusSelect ? statusSelect.value : 'all';
+            const kindValue = kindSelect ? kindSelect.value : 'all';
+            const rawSearchTerm = searchInput ? searchInput.value.trim() : '';
+            const searchTerm = rawSearchTerm.toLowerCase();
+            const rows = Array.from(container.getElementsByClassName('property-violation-row'));
+            let visibleCount = 0;
+            let totalCount = 0;
+
+            rows.forEach(function(row) {
+                const status = row.getAttribute('data-status') || 'fail';
+                const kind = (row.getAttribute('data-kind') || 'unknown').toLowerCase();
+                const statusMatch = statusValue === 'all' || status === statusValue;
+                const kindMatch = kindValue === 'all' || kind === kindValue;
+                const filterMatch = statusMatch && kindMatch;
+                row.setAttribute('data-kind-visible', filterMatch ? 'true' : 'false');
+                if (filterMatch) {
+                    totalCount += 1;
+                }
+
+                const propertyNameElement = row.querySelector('.badge-custom');
+                const propertyName = propertyNameElement ? propertyNameElement.textContent.toLowerCase() : '';
+                const searchMatches = searchTerm === '' || propertyName.includes(searchTerm);
+                row.setAttribute('data-search-visible', searchMatches ? 'true' : 'false');
+                if (filterMatch && searchMatches) {
+                    visibleCount += 1;
+                }
+            });
+
+            updateViolationSearchResults(visibleCount, totalCount, rawSearchTerm);
+
+            initPagination('property-violations-container', 'property-violation-row', 'violations-pagination', 'violations-page-size');
+
+            const currentPageSize = document.getElementById('violations-page-size') ?
+                parseInt(document.getElementById('violations-page-size').value) : 10;
+            goToPage(1, 'property-violations-container', 'property-violation-row', currentPageSize, 'violations-pagination');
+        }
+
+        function initViolationSearching() {
+            const searchInput = document.getElementById('violations-search');
+            const searchButton = document.getElementById('violations-search-btn');
+
+            if (!searchInput) return;
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyViolationFilters();
+                } else if (e.key === 'Escape') {
+                    searchInput.value = '';
+                    applyViolationFilters();
+                    searchInput.focus();
+                }
+            });
+
+            if (searchButton) {
+                searchButton.addEventListener('click', function() {
+                    applyViolationFilters();
+                });
+            }
+        }
+
         function initViolationFilter() {
             const statusSelect = document.getElementById('violations-status-filter');
             const kindSelect = document.getElementById('violations-kind-filter');
             const container = document.getElementById('property-violations-container');
 
             if (!container) return;
-
-            function applyViolationFilters() {
-                const statusValue = statusSelect ? statusSelect.value : 'all';
-                const kindValue = kindSelect ? kindSelect.value : 'all';
-                const rows = Array.from(container.getElementsByClassName('property-violation-row'));
-
-                rows.forEach(function(row) {
-                    const status = row.getAttribute('data-status') || 'fail';
-                    const kind = (row.getAttribute('data-kind') || 'unknown').toLowerCase();
-                    const statusMatch = statusValue === 'all' || status === statusValue;
-                    const kindMatch = kindValue === 'all' || kind === kindValue;
-                    row.setAttribute('data-search-visible', statusMatch && kindMatch ? 'true' : 'false');
-                });
-
-                initPagination('property-violations-container', 'property-violation-row', 'violations-pagination', 'violations-page-size');
-
-                const currentPageSize = document.getElementById('violations-page-size') ?
-                    parseInt(document.getElementById('violations-page-size').value) : 10;
-                goToPage(1, 'property-violations-container', 'property-violation-row', currentPageSize, 'violations-pagination');
-            }
 
             if (statusSelect) {
                 statusSelect.addEventListener('change', applyViolationFilters);
