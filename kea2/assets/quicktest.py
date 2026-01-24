@@ -2,39 +2,43 @@ import unittest
 import uiautomator2 as u2
 
 from time import sleep
-from kea2 import precondition, prob, KeaTestRunner, Options, kea, keaTestLoader
+from kea2 import precondition, prob, KeaTestRunner, Options, keaTestLoader, invariant
 
 
 class Omni_Notes_Sample(unittest.TestCase):
+    d: u2.Device
 
-    def setUp(self):
-        self.d = u2.connect() 
-    
-    @prob(0.2)
+    @classmethod
+    def setUpClass(cls):
+        """Here you can setup the initialize setting for uiautomator2
+        """ 
+        print("Setting driver settings")
+        cls.d.settings["wait_timeout"] = 5.0
+        cls.d.settings["operation_delay"] = (0, 1.0)
+
+    @prob(0.5)
     @precondition(
         lambda self: self.d(description="Navigate up").exists
     )
-    def test_goBack(self):
+    def navigate_up(self):
         print("Navigate back")
         self.d(description="Navigate up").click()
-        sleep(0.5)
-    
-    @prob(0.2)
+
+    @prob(0.5)
     @precondition(
-        lambda self: self.d(description="drawer closed").exists and
+        lambda self: self.d(description="drawer closed").exists and 
         not self.d(text="Omni Notes Alpha").exists
     )
-    def test_openDrawer(self):
+    def open_drawer(self):
         print("Open drawer")
         self.d(description="drawer closed").click()
-        sleep(0.5)
 
-    @prob(0.5)  # The probability of executing the function when precondition is satisfied.
+    @prob(0.7)  # The probability of executing the function when precondition is satisfied.
     @precondition(
         lambda self: self.d(text="Omni Notes Alpha").exists
         and self.d(text="Settings").exists
     )
-    def test_goToPrivacy(self):
+    def go_to_privacy_settings(self):
         """
         The ability to jump out of the UI tarpits
 
@@ -45,14 +49,13 @@ class Omni_Notes_Sample(unittest.TestCase):
         """
         print("trying to click Settings")
         self.d(text="Settings").click()
-        sleep(0.5)
         print("trying to click Privacy")
         self.d(text="Privacy").click()
 
     @precondition(
         lambda self: self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
     )
-    def test_rotation(self):
+    def rotation_should_not_close_the_search_input(self):
         """
         The ability to make assertion to find functional bug
 
@@ -65,11 +68,28 @@ class Omni_Notes_Sample(unittest.TestCase):
         """
         print("rotate the device")
         self.d.set_orientation("l")
-        sleep(2)
         self.d.set_orientation("n")
-        sleep(2)
-        assert self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists()
+        assert self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
 
+    @invariant
+    def search_button_and_search_input_box_should_not_exists_at_the_same_time(self):
+        """Search input box and search button should not exists at the same time
+        """
+        search_input_box_exists = self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
+        serach_button_exists = self.d(resourceId="it.feio.android.omninotes.alpha:id/menu_search").exists
+        if search_input_box_exists or serach_button_exists:
+            assert search_input_box_exists ^ serach_button_exists
+
+    @precondition(lambda self: "camera" in self.d.app_current().get("package", ""))
+    def exit_camera(self):
+        """Exit camera app if it is launched 
+        (fastbot can't exit camera app by itself, we use kea2 to exit it to aviod getting stuck in camera)
+        """
+        print("Exiting camera app")
+        pkg_camera = self.d.app_current().get("package", "")
+        print(f"Current package: {pkg_camera}")
+        if "camera" in pkg_camera:
+            self.d.app_stop(pkg_camera)
 
 URL = "https://github.com/federicoiosue/Omni-Notes/releases/download/6.2.0_alpha/OmniNotes-alphaRelease-6.2.0.apk"
 FALL_BACK_URL = "https://gitee.com/XixianLiang/Kea2/raw/main/omninotes.apk"

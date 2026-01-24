@@ -23,7 +23,6 @@ class Omni_Notes_Sample(unittest.TestCase):
     def navigate_up(self):
         print("Navigate back")
         self.d(description="Navigate up").click()
-        sleep(0.5)
 
     @prob(0.5)
     @precondition(
@@ -52,7 +51,6 @@ class Omni_Notes_Sample(unittest.TestCase):
         self.d(text="Settings").click()
         print("trying to click Privacy")
         self.d(text="Privacy").click()
-        self.d.app_stop
 
     @precondition(
         lambda self: self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists
