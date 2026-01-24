@@ -441,102 +441,106 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                 fb_is_running = True
                 self.stepsCount = 0
 
-                while self.stepsCount < self.options.maxStep:
-                    logger.info(f"[Property based testing] [New Iteration] Elapsed: {perf_counter()-start_time:.1f}s")
-                    if self.shouldStop(start_time):
-                        logger.info("Exploration time up (--running-minutes).")
-                        break
+                # Kea2 main testing loop
+                try:
+                    while self.stepsCount < self.options.maxStep:
+                        logger.info(f"[Property based testing] [New Iteration] Elapsed: {perf_counter()-start_time:.1f}s")
+                        if self.shouldStop(start_time):
+                            logger.info("Exploration time up (--running-minutes).")
+                            break
 
-                    if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
-                        self.stepsCount += 1
-                        logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
-                        logger.info("Kill all test apps to restart the app under test.")
-                        for app in self.options.packageNames:
-                            logger.info(f"Stopping app: {app}")
-                            self.scriptDriver.app_stop(app)
-                        sleep(3)
-                        fb.sendInfo("kill_apps")
-                        continue
-                    
-                    try:
-                        # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
-                        # stepMonkey will change the ui state and return the new ui hierarchy
-                        # dumpHierarchy will just return the current ui hierarchy
-                        # this is to avoid losing the ui state after executing a property
-                        xml_raw: str = ""
-                        if fb.executed_prop:
-                            fb.executed_prop = False
-                            xml_raw = fb.dumpHierarchy()
-                        else:
+                        if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
                             self.stepsCount += 1
                             logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
-                            xml_raw = fb.stepMonkey(self._monkeyStepInfo)
-                    # If the connection is refused, fastbot might have stpped running
-                    except u2.HTTPError:
-                        logger.info("Connection refused by remote.")
-                        # If fastbot has exited normally, end the testing process
-                        if fb.get_return_code() == 0:
-                            logger.info("Exploration times up (--running-minutes).")
-                            fb_is_running = False
-                            break
-                        else:
-                            import traceback
-                            traceback.print_exc()
-                            raise RuntimeError("Fastbot Aborted.")
+                            logger.info("Kill all test apps to restart the app under test.")
+                            for app in self.options.packageNames:
+                                logger.info(f"Stopping app: {app}")
+                                self.scriptDriver.app_stop(app)
+                            sleep(3)
+                            fb.sendInfo("kill_apps")
+                            continue
+                        
+                        try:
+                            # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
+                            # stepMonkey will change the ui state and return the new ui hierarchy
+                            # dumpHierarchy will just return the current ui hierarchy
+                            # this is to avoid losing the ui state after executing a property
+                            xml_raw: str = ""
+                            if fb.executed_prop:
+                                fb.executed_prop = False
+                                xml_raw = fb.dumpHierarchy()
+                            else:
+                                self.stepsCount += 1
+                                logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
+                                xml_raw = fb.stepMonkey(self._monkeyStepInfo)
+                        # If the connection is refused, fastbot might have stpped running
+                        except u2.HTTPError:
+                            logger.info("Connection refused by remote.")
+                            # If fastbot has exited normally, end the testing process
+                            if fb.get_return_code() == 0:
+                                logger.info("Exploration times up (--running-minutes).")
+                                fb_is_running = False
+                                break
+                            else:
+                                import traceback
+                                traceback.print_exc()
+                                raise RuntimeError("Fastbot Aborted.")
 
-                    if not xml_raw:
-                        logger.warning("Empty ui hierarchy returned. Skip this step.")
-                        continue
+                        if not xml_raw:
+                            logger.warning("Empty ui hierarchy returned. Skip this step.")
+                            continue
 
-                    result.setCurrentStepsCount(self.stepsCount)
+                        result.setCurrentStepsCount(self.stepsCount)
 
-                    # check all invariants
-                    staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
-                    if self.allInvariants:
-                        print(f"[INFO] Checking {len(self.allInvariants)} invariants...", flush=True)
-                    for _, test in self.allInvariants.items():
-                        setattr(test, self.options.driverName, staticCheckerDriver)
+                        # check all invariants
+                        staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
+                        if self.allInvariants:
+                            print(f"[INFO] Checking {len(self.allInvariants)} invariants...", flush=True)
+                        for _, test in self.allInvariants.items():
+                            setattr(test, self.options.driverName, staticCheckerDriver)
+                            try:
+                                test(result)
+                            finally:
+                                result.printError(test)
+                                result.updateExecutionInfo(test)
+                                if result.lastInvariantInfo.state in {"fail", "error"}:
+                                    fb.logScript(result.lastInvariantInfo)
+
+                        # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
+                        if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
+                            resultSyncer.sync_event.set()
+
+                        # get the checkable properties
+                        checkableProperties = self.getCheckableProperties(xml_raw, result, staticCheckerDriver)
+
+                        if not checkableProperties:
+                            continue
+
+                        self.scriptDriver = U2Driver.getScriptDriver(mode="proxy") 
+
+                        # randomly select a property to execute
+                        propertyName = random.choice(checkableProperties)
+                        test = self.allProperties[propertyName]
+                        result.addExcutedProperty(test, self.stepsCount)
+                        fb.logScript(result.lastPropertyInfo)
+                        # Dependency Injection. driver when doing scripts
+                        setattr(test, self.options.driverName, self.scriptDriver)
                         try:
                             test(result)
                         finally:
                             result.printError(test)
-                            result.updateExecutionInfo(test)
-                            if result.lastInvariantInfo.state in {"fail", "error"}:
-                                fb.logScript(result.lastInvariantInfo)
-
-                    # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
-                    if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
-                        resultSyncer.sync_event.set()
-
-                    # get the checkable properties
-                    checkableProperties = self.getCheckableProperties(xml_raw, result, staticCheckerDriver)
-
-                    if not checkableProperties:
-                        continue
-
-                    self.scriptDriver = U2Driver.getScriptDriver(mode="proxy") 
-
-                    # randomly select a property to execute
-                    propertyName = random.choice(checkableProperties)
-                    test = self.allProperties[propertyName]
-                    result.addExcutedProperty(test, self.stepsCount)
-                    fb.logScript(result.lastPropertyInfo)
-                    # Dependency Injection. driver when doing scripts
-                    setattr(test, self.options.driverName, self.scriptDriver)
-                    try:
-                        test(result)
-                    finally:
-                        result.printError(test)
-                    result.updateExecutionInfo(test)
-                    fb.logScript(result.lastPropertyInfo)
-                    fb.executed_prop = True
+                        result.updateExecutionInfo(test)
+                        fb.logScript(result.lastPropertyInfo)
+                        fb.executed_prop = True
+                        result.flushResult()
+                except KeyboardInterrupt:
+                    logger.info("KeyboardInterrupt received. Stopping the testing process.")
+                finally:
+                    if fb_is_running:
+                        fb.stopMonkey()
                     result.flushResult()
+                    resultSyncer.close()
 
-                if fb_is_running:
-                    fb.stopMonkey()
-                result.flushResult()
-                resultSyncer.close()
-                
             fb.join()
             print(f"Finish sending monkey events.", flush=True)
             log_watcher.close()
