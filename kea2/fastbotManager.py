@@ -237,7 +237,7 @@ class FastbotManager:
 
         outfile = open(self.log_file, "w", encoding="utf-8", buffering=1)
 
-        logger.info("Options info: {}".format(asdict(self.options)))
+        logger.info("Options info: {}".format(self.options.to_dict()))
         logger.info("Launching fastbot with shell command:\n{}".format(" ".join(full_cmd)))
         logger.info("Fastbot log will be saved to {}".format(outfile.name))
 
@@ -263,7 +263,5 @@ class FastbotManager:
 
     def join(self):
         self.thread.join()
-
-
 
 

@@ -196,7 +196,6 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 import unittest
 
 from kea2 import KeaTestRunner, Options, keaTestLoader
-from kea2.u2Driver import U2Driver
 
 class MyTest(unittest.TestCase):
     ...
@@ -206,7 +205,6 @@ if __name__ == "__main__":
     KeaTestRunner.setOptions(
         Options(
             driverName="d",
-            Driver=U2Driver,
             packageNames=[PACKAGE_NAME],
             # serial="emulator-5554",   # 指定设备序列号
             maxStep=100,
@@ -229,7 +227,6 @@ python3 mytest.py
 ```python
     # 脚本中的驱动名称（如 self.d，则为 d）
     driverName: str = None
-    # 驱动（当前只有 U2Driver）
     Driver: AbstractDriver = None
     # 包名列表，指定被测试的应用
     packageNames: List[str] = None

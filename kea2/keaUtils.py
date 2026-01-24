@@ -15,7 +15,7 @@ from contextvars import ContextVar
 from unittest import TextTestRunner, TestLoader, TestSuite, TestCase
 from unittest import registerResult, TextTestResult, SkipTest
 from unittest import main as unittest_main
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, fields, is_dataclass
 from datetime import datetime
 from fnmatch import fnmatchcase
 
@@ -24,7 +24,6 @@ import uiautomator2 as u2
 
 from .typedefs import PRECONDITIONS_MARKER, PROB_MARKER, MAX_TRIES_MARKER, INTERRUPTABLE_MARKER
 from .typedefs import PropertyStore
-from .absDriver import AbstractDriver
 from .report.bug_report_generator import BugReportGenerator
 from .resultSyncer import ResultSyncer
 from .logWatcher import LogWatcher
@@ -111,8 +110,6 @@ class Options:
     """
     # the driver_name in script (if self.d, then d.) 
     driverName: str = None
-    # the driver (only U2Driver available now)
-    Driver: AbstractDriver = U2Driver
     # list of package names. Specify the apps under test
     packageNames: List[str] = None
     # target device
@@ -165,7 +162,7 @@ class Options:
         import logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)
 
-        if self.Driver:
+        if self.agent == "u2":
             self._set_driver()
 
         global STAMP
@@ -180,6 +177,25 @@ class Options:
 
         _check_package_installation(self.packageNames)
         _save_bug_report_configs(self)
+        _save_options_configs(self)
+
+    def to_dict(self):
+        from copy import deepcopy
+        obj = deepcopy(self)
+        for f in fields(obj):
+            v = getattr(obj, f.name)
+            if isinstance(v, Path):
+                setattr(obj, f.name, str(v))
+        return asdict(obj)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Options":
+        data = dict(data)
+        obj = cls.__new__(cls)
+        for f in fields(cls):
+            if f.name in data:
+                setattr(obj, f.name, data[f.name])
+        return obj
         
     def set_stamp(self, stamp: str = None):
         global STAMP, LOGFILE, RESFILE, PROP_EXEC_RESFILE
@@ -223,7 +239,7 @@ class Options:
             target_device["serial"] = self.serial
         if self.transport_id:
             target_device["transport_id"] = self.transport_id
-        self.Driver.setDevice(target_device)
+        U2Driver.setDevice(target_device)
         ADBDevice.setDevice(self.serial, self.transport_id)
     
     def getKeaTestOptions(self, hybrid_test_count: int) -> "Options":
@@ -270,6 +286,13 @@ def _save_bug_report_configs(options: Options):
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
         json.dump(configs, fp, indent=4)
 
+def _save_options_configs(self: "Options"):
+    output_dir = Path(self.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    configs = self.to_dict()
+    with open(output_dir / "options.json", "w", encoding="utf-8") as fp:
+        json.dump(configs, fp, indent=4)
+
 
 class KeaOptionSetter:
     options: Options = None
@@ -278,9 +301,6 @@ class KeaOptionSetter:
     def setOptions(cls, options: Options):
         if not isinstance(options.packageNames, list) and len(options.packageNames) > 0:
             raise ValueError("packageNames should be given in a list.")
-        if options.Driver is not None and options.agent == "native":
-            logger.warning("[Warning] Can not use any Driver when runing native mode.")
-            options.Driver = None
         cls.options = options
 
 
@@ -700,7 +720,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
            """
         def _get_xpath_widgets(func):
             blocked_set = set()
-            script_driver = self.options.Driver.getScriptDriver()
+            script_driver = U2Driver.getScriptDriver()
             preconds = getattr(func, PRECONDITIONS_MARKER, [])
 
             def preconds_pass(preconds):
@@ -757,8 +777,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
     def tearDown(self):
         """tearDown method. Cleanup the env.
         """
-        if self.options.Driver:
-            self.options.Driver.tearDown()
+        U2Driver.tearDown()
     
     def __del__(self):
         """tearDown method. Cleanup the env.
@@ -910,8 +929,8 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         """tearDown method. Cleanup the env.
         """
         try:
-            if hasattr(self, 'options') and self.options and self.options.Driver:
-                self.options.Driver.tearDown()
+            if hasattr(self, 'options') and self.options:
+                U2Driver.tearDown()
         except Exception:
             # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
             pass

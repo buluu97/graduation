@@ -261,11 +261,9 @@ def run(args=None):
     extra_args_info_logger(args)
 
     from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader
-    from kea2.u2Driver import U2Driver
     options = Options(
         agent=args.agent,
         driverName=args.driver_name,
-        Driver=U2Driver,
         packageNames=args.package_names,
         serial=args.serial,
         transport_id=args.transport_id,

@@ -3,7 +3,6 @@ import uiautomator2 as u2
 
 from time import sleep
 from kea2 import precondition, prob, KeaTestRunner, Options, kea, keaTestLoader
-from kea2.u2Driver import U2Driver
 
 
 class Omni_Notes_Sample(unittest.TestCase):
@@ -112,7 +111,6 @@ if __name__ == "__main__":
     KeaTestRunner.setOptions(
         Options(
             driverName="d",
-            Driver=U2Driver,
             packageNames=[PACKAGE_NAME],
             # serial="emulator-5554",   # specify the serial
             maxStep=50,

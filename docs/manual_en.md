@@ -200,7 +200,6 @@ Here is an example (named as `mytest.py`). You can see that the options are dire
 import unittest
 
 from kea2 import KeaTestRunner, Options, keaTestLoader
-from kea2.u2Driver import U2Driver
 
 class MyTest(unittest.TestCase):
     ...
@@ -210,7 +209,6 @@ if __name__ == "__main__":
     KeaTestRunner.setOptions(
         Options(
             driverName="d",
-            Driver=U2Driver,
             packageNames=[PACKAGE_NAME],
             # serial="emulator-5554",   # specify the serial
             maxStep=100,
@@ -233,7 +231,6 @@ Here's all the available options in `Options`.
 ```python
     # the driver_name in script (if self.d, then d.) 
     driverName: str = None
-    # the driver (only U2Driver available now)
     Driver: AbstractDriver = None
     # list of package names. Specify the apps under test
     packageNames: List[str] = None

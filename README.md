@@ -275,7 +275,7 @@ Some notes:
 3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `option` parameter and `configs_path` parameter(where your directory `configs` located, btw, `configs`'s location dependon where you executed `kea2 init`), then pass it to the `run_kea2_testing` function.
 
 ```python
-from kea2 import Kea2Tester, Options, U2Driver
+from kea2 import Kea2Tester, Options
 
 if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
     '''

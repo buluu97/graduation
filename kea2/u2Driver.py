@@ -11,7 +11,6 @@ import re
 from typing import List, Literal, Union, Optional
 from lxml import etree
 from packaging.version import Version
-from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
 from .adbUtils import list_forwards, remove_forward
 from .utils import getLogger
 
@@ -25,7 +24,7 @@ logger = getLogger(__name__)
 """
 The definition of U2ScriptDriver
 """
-class U2ScriptDriver(AbstractScriptDriver):
+class U2ScriptDriver:
     """
     This is the ScriptDriver used to send ui automation request in Property
     When you interact with the mobile in properties. You will use the object here
@@ -512,7 +511,7 @@ class _XPathEntry(u2.xpath.XPathEntry):
         return ui
 
 
-class U2StaticChecker(AbstractStaticChecker):
+class U2StaticChecker:
     """
     This is the StaticChecker used to check the precondition.
     We use the static checker due to the performing issues when runing multi-properties.
@@ -547,7 +546,7 @@ class U2StaticChecker(AbstractStaticChecker):
 """
 The definition of U2Driver
 """
-class U2Driver(AbstractDriver):
+class U2Driver:
     scriptDriver = None
     staticChecker = None
 
