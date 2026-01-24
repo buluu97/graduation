@@ -21,7 +21,8 @@ class Omni_Notes_Sample(unittest.TestCase):
     
     @prob(0.2)
     @precondition(
-        lambda self: self.d(description="drawer closed").exists
+        lambda self: self.d(description="drawer closed").exists and
+        not self.d(text="Omni Notes Alpha").exists
     )
     def test_openDrawer(self):
         print("Open drawer")
