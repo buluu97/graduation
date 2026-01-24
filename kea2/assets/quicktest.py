@@ -2,8 +2,7 @@ import unittest
 import uiautomator2 as u2
 
 from time import sleep
-from kea2 import precondition, prob, KeaTestRunner, Options
-from kea2.u2Driver import U2Driver
+from kea2 import precondition, prob, KeaTestRunner, Options, kea, keaTestLoader
 
 
 class Omni_Notes_Sample(unittest.TestCase):
@@ -22,7 +21,8 @@ class Omni_Notes_Sample(unittest.TestCase):
     
     @prob(0.2)
     @precondition(
-        lambda self: self.d(description="drawer closed").exists
+        lambda self: self.d(description="drawer closed").exists and
+        not self.d(text="Omni Notes Alpha").exists
     )
     def test_openDrawer(self):
         print("Open drawer")
@@ -112,7 +112,6 @@ if __name__ == "__main__":
     KeaTestRunner.setOptions(
         Options(
             driverName="d",
-            Driver=U2Driver,
             packageNames=[PACKAGE_NAME],
             # serial="emulator-5554",   # specify the serial
             maxStep=50,
@@ -123,4 +122,4 @@ if __name__ == "__main__":
             agent="u2"  # 'native' for running the vanilla Fastbot, 'u2' for running Kea2
         )
     )
-    unittest.main(testRunner=KeaTestRunner)
+    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)

@@ -293,6 +293,7 @@ class PathParserMixin:
 class ScreenshotsMixin:
 
     _take_screenshots: bool = None
+    _all_screenshot_names = set()
     
     @property
     def take_screenshots(self: "BugReportGenerator") -> bool:
@@ -418,7 +419,13 @@ class ScreenshotsMixin:
         img.save(screenshot_path)
         return True
     
-    def _add_screenshot_info(self:"BugReportGenerator", step_data: "StepData", step_index: int, data: Dict):
+    def _add_screenshot_info(
+        self: "BugReportGenerator",
+        step_data: "StepData",
+        step_id: str,
+        data: Dict,
+        force_append: bool = False,
+    ):
         """
         Add screenshot information to data structure
 
@@ -427,17 +434,21 @@ class ScreenshotsMixin:
             step_index: Current step index
             data: Data dictionary to update
         """
+        screenshot_name = step_data["Screenshot"]
+        if screenshot_name in self._all_screenshot_names:
+            return
+        self._all_screenshot_names.add(screenshot_name)
+
         caption = ""
         info = step_data.get("Info")
 
         if step_data["Type"] == "Monkey":
             # Extract 'act' attribute for Monkey type and add MonkeyStepsCount
-            monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
             if isinstance(info, dict):
                 action = info.get('act', 'N/A')
             else:
                 action = str(info) if info else 'N/A'
-            caption = f"Monkey Step {monkey_steps_count}: {action}"
+            caption = f"Monkey Step: {action}"
         elif step_data["Type"] == "Script":
             # Extract 'method' attribute for Script type
             if isinstance(info, dict):
@@ -454,10 +465,8 @@ class ScreenshotsMixin:
                 state = str(info) if info else 'N/A'
             caption = f"{prop_name}: {state}" if prop_name else f"{state}"
         elif step_data["Type"] == "Fuzz":
-            monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
-            caption = f"Monkey Step {monkey_steps_count}: Fuzz"
+            caption = f"Monkey Step: Fuzz"
 
-        screenshot_name = step_data["Screenshot"]
 
         # Check if the screenshot file actually exists
         screenshot_file_path = self.data_path.screenshots_dir / screenshot_name
@@ -465,18 +474,24 @@ class ScreenshotsMixin:
             # Skip adding this screenshot if the file doesn't exist
             return
 
+        if hasattr(self, "_screenshot_id_by_filename"):
+            self._screenshot_id_by_filename[screenshot_name] = str(step_id)
+
         # Use relative path string instead of Path object
         abs_screenshots_path = self.data_path.output_dir / "screenshots" / screenshot_name
         relative_screenshot_path = str(abs_screenshots_path.relative_to(self.result_dir))
 
-        data["screenshot_info"][screenshot_name] = {
-            "type": step_data["Type"],
-            "caption": caption,
-            "step_index": step_index
-        }
+        if screenshot_name not in data["screenshot_info"]:
+            data["screenshot_info"][screenshot_name] = {
+                "type": step_data["Type"],
+                "caption": caption,
+                "step_index": step_id
+            }
+        elif not force_append:
+            return
 
         self.screenshots.append({
-            'id': step_index,
+            'id': step_id,
             'path': relative_screenshot_path,  # Now using string path
-            'caption': f"{step_index}. {caption}"
+            'caption': f"{step_id}. {caption}"
         })

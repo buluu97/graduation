@@ -138,7 +138,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="device_output_root",
         type=str,
         required=False,
-        default="/sdcard",
+        default="/sdcard/.kea2",
         help="The root of device output dir. Kea2 will temporarily save the screenshots and result log into `<device-output-root>/output_*********/`. Make sure the root dir can be access.",
     )
 
@@ -260,12 +260,10 @@ def run(args=None):
     driver_info_logger(args)
     extra_args_info_logger(args)
 
-    from kea2 import KeaTestRunner, Options, HybridTestRunner
-    from kea2.u2Driver import U2Driver
+    from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader
     options = Options(
         agent=args.agent,
         driverName=args.driver_name,
-        Driver=U2Driver,
         packageNames=args.package_names,
         serial=args.serial,
         transport_id=args.transport_id,
@@ -296,4 +294,4 @@ def run(args=None):
         KeaTestRunner.setOptions(options)
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args
-    unittest.main(module=None, argv=argv, testRunner=testRunner)
+    unittest.main(module=None, argv=argv, testRunner=testRunner, testLoader=keaTestLoader)

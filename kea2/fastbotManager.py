@@ -16,7 +16,8 @@ from .adbUtils import ADBDevice, ADBStreamShell_V2
 
 from typing import IO, TYPE_CHECKING, Dict
 if TYPE_CHECKING:
-    from .keaUtils import Options, PropertyExecutionInfo
+    from .keaUtils import Options
+    from .typedefs import PropertyExecutionInfo
 
 
 logger = getLogger(__name__)
@@ -114,6 +115,7 @@ class FastbotManager:
             data={
                 "propName": execution_info.propName,
                 "startStepsCount": execution_info.startStepsCount,
+                "kind": execution_info.kind,
                 "state": execution_info.state,
             }
         )
@@ -235,7 +237,7 @@ class FastbotManager:
 
         outfile = open(self.log_file, "w", encoding="utf-8", buffering=1)
 
-        logger.info("Options info: {}".format(asdict(self.options)))
+        logger.info("Options info: {}".format(self.options.to_dict()))
         logger.info("Launching fastbot with shell command:\n{}".format(" ".join(full_cmd)))
         logger.info("Fastbot log will be saved to {}".format(outfile.name))
 
@@ -261,7 +263,5 @@ class FastbotManager:
 
     def join(self):
         self.thread.join()
-
-
 
 
