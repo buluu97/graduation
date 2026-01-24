@@ -138,7 +138,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="device_output_root",
         type=str,
         required=False,
-        default="/sdcard",
+        default="/sdcard/.kea2",
         help="The root of device output dir. Kea2 will temporarily save the screenshots and result log into `<device-output-root>/output_*********/`. Make sure the root dir can be access.",
     )
 

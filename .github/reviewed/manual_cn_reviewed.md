@@ -256,7 +256,7 @@ pre_failure_screenshots: int = 0
 # 失败后截取的截图数量，需要小于等于 pre_failure_screenshots
 post_failure_screenshots: int = 0
 # 设备上的输出目录根路径
-device_output_root: str = "/sdcard"
+device_output_root: str = "/sdcard/.kea2"
 # 是否启用调试模式
 debug: bool = False
 # Activity 白名单文件

@@ -133,7 +133,7 @@ class Options:
     # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
     post_failure_screenshots: int = 0
     # The root of output dir on device
-    device_output_root: str = "/sdcard"
+    device_output_root: str = "/sdcard/.kea2"
     # the debug mode
     debug: bool = False
     # Activity WhiteList File
