@@ -166,7 +166,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 self._config = json.load(fp)
         return self._config
 
-    def __init__(self, result_dir=None):
+    def __init__(self, result_dir=None, sync_data=False):
         """
         Initialize the bug report generator
 
@@ -176,6 +176,15 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         if result_dir is None:
             raise RuntimeError("Result directory must be provided to generate report.")
         self.result_dir = Path(result_dir)
+        if sync_data:
+            from ..resultSyncer import ResultSyncer
+            with open(self.result_dir / "options.json", "r", encoding="utf-8") as f:
+                options_data = json.load(f)
+            if options_data:
+                from ..keaUtils import Options
+                options = Options.from_dict(options_data)
+                device_output_dir = f"{options.device_output_root}/output_{options.log_stamp}"
+                ResultSyncer(device_output_dir, options)._sync_device_data()
         
     def __set_up_jinja_env(self):
         """Set up Jinja2 environment for HTML template rendering"""
@@ -889,3 +898,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 event['screenshot_id'] = screenshot_id
             else:
                 event['screenshot_id'] = ""
+
+
+if __name__ == "__main__":
+    BugReportGenerator(result_dir="/Users/atria/Desktop/coding/Kea2/output/res_2026012416_0726885557").generate_report()

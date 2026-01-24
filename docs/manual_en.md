@@ -283,6 +283,7 @@ The `kea2 report` command generates an HTML test report from existing test resul
 
 | arg | meaning | required | default |
 | --- | --- | --- | --- |
+| -s, --sync | Sync data from device before generating the report | No | |
 | -p, --path | Path to the directory containing test results (res_* directory) | Yes | |
 
 **Usage Examples:**
@@ -290,6 +291,9 @@ The `kea2 report` command generates an HTML test report from existing test resul
 ```bash
 # Generate report from a test result directory
 kea2 report -p res_20240101_120000
+
+# Sync device data before generating the report
+kea2 report -s -p res_20240101_120000
 
 # Generate multiple reports
 kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001

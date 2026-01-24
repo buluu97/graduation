@@ -310,6 +310,10 @@ if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
 Kea2会在每次测试结束后自动生成HTML格式的测试报告，报告位于你工作目录下的`output/`目录中。
 
 你也可以通过命令 `kea2 report` 手动生成测试报告（详情见 `kea2 report -h`）。
+使用 `-s/--sync` 在生成报告前从设备同步数据(如果 kea2 在测试过程被中断，数据会没有同步，这个选项允许重新拉取数据)，使用 `-p/--path` 指定一个或多个结果目录。
+例如：
+`kea2 report -p output/res_1` 
+`kea2 report -s -p output/res_1 ouput/res_2 output/res_3`
 
 此外，可以通过命令 `kea2 merge` 合并多次测试会话的报告（详情见 `kea2 merge -h`）。合并报告对于多次测试非常有用。
 

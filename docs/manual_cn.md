@@ -278,6 +278,7 @@ python3 mytest.py
 
 | 参数 | 意义 | 是否必需 | 默认值 |
 | --- | --- | --- | --- |
+| -s, --sync | 生成报告前从设备同步数据 | 否 |  |
 | -p, --path | 测试结果目录路径（res_* 目录） | 是 |  |
 
 **使用示例：**
@@ -285,6 +286,9 @@ python3 mytest.py
 ```bash
 # 从测试结果目录生成报告
 kea2 report -p res_20240101_120000
+
+# 生成报告前同步设备数据
+kea2 report -s -p res_20240101_120000
 
 # 从多个测试结果目录生成报告
 kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001

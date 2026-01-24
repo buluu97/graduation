@@ -27,7 +27,7 @@ from .typedefs import PropertyStore
 from .report.bug_report_generator import BugReportGenerator
 from .resultSyncer import ResultSyncer
 from .logWatcher import LogWatcher
-from .utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer, getClassName, getFullPropName
+from .utils import TimeStamp, StampManager, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer, getClassName, getFullPropName
 from .u2Driver import StaticU2UiObject, StaticXpathObject, U2Driver, U2StaticDevice
 from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
@@ -38,10 +38,6 @@ logger = getLogger(__name__)
 hybrid_mode = ContextVar("hybrid_mode", default=False)
 
 
-STAMP: str
-LOGFILE: str
-RESFILE: str
-PROP_EXEC_RESFILE: str
 
 
 def precondition(precond: Callable[[Any], bool]) -> Callable:
@@ -165,13 +161,12 @@ class Options:
         if self.agent == "u2":
             self._set_driver()
 
-        global STAMP
-        STAMP = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
+        self.log_stamp = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
+        self._sanitize_stamp(self.log_stamp)
 
-        self._sanitize_stamp()
-
-        self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
-        self.set_stamp()
+        self.output_dir = Path(self.output_dir).absolute() / f"res_{self.log_stamp}"
+        StampManager().set_stamp(self.log_stamp)
+        StampManager().set_output_dir(self.output_dir)
 
         self._sanitize_args()
 
@@ -191,28 +186,34 @@ class Options:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Options":
         data = dict(data)
+        path_fields = {
+            "output_dir",
+            "device_output_root",
+            "act_whitelist_file",
+            "act_blacklist_file",
+        }
         obj = cls.__new__(cls)
         for f in fields(cls):
             if f.name in data:
-                setattr(obj, f.name, data[f.name])
+                value = data[f.name]
+                if f.name in path_fields and value is not None:
+                    value = Path(value)
+                setattr(obj, f.name, value)
         return obj
         
     def set_stamp(self, stamp: str = None):
-        global STAMP, LOGFILE, RESFILE, PROP_EXEC_RESFILE
+        """for hybrid test run. set a new stamp for the Options instance to save logs and results.
+        """
         if stamp:
-            STAMP = stamp
+            self.log_stamp = stamp
+            StampManager().set_stamp(stamp)
 
-        LOGFILE = f"fastbot_{STAMP}.log"
-        RESFILE = f"result_{STAMP}.json"
-        PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
-
-    def _sanitize_stamp(self):
-        global STAMP
+    def _sanitize_stamp(self, stamp: str):
         illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
         for char in illegal_chars:
-            if char in STAMP:
+            if char in stamp:
                 raise ValueError(
-                    f"char: `{char}` is illegal in --log-stamp. current stamp: {STAMP}"
+                    f"char: `{char}` is illegal in --log-stamp. current stamp: {stamp}"
                 )
     
     def _sanitize_args(self):
@@ -280,7 +281,7 @@ def _save_bug_report_configs(options: Options):
         "pre_failure_screenshots": options.pre_failure_screenshots,
         "post_failure_screenshots": options.post_failure_screenshots,
         "device_output_root": options.device_output_root,
-        "log_stamp": options.log_stamp if options.log_stamp else STAMP,
+        "log_stamp": options.log_stamp,
         "test_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
@@ -387,13 +388,13 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
     def _setOuputDir(self):
         output_dir = self.options.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
-        global LOGFILE, RESFILE, PROP_EXEC_RESFILE
-        LOGFILE = output_dir / Path(LOGFILE)
-        RESFILE = output_dir / Path(RESFILE)
-        PROP_EXEC_RESFILE = output_dir / Path(PROP_EXEC_RESFILE)
-        logger.info(f"Log file: {LOGFILE}")
-        logger.info(f"Result file: {RESFILE}")
-        logger.info(f"Property execution info file: {PROP_EXEC_RESFILE}")
+        stamp_manager = StampManager()
+        if not stamp_manager.stamp:
+            stamp_manager.set_stamp(self.options.log_stamp or TimeStamp().getTimeStamp())
+        stamp_manager.set_output_dir(output_dir)
+        logger.info(f"Log file: {stamp_manager.log_file}")
+        logger.info(f"Result file: {stamp_manager.result_file}")
+        logger.info(f"Property execution info file: {stamp_manager.prop_exec_file}")
 
     def run(self, test):
 
@@ -407,7 +408,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         # Setup JsonResult
         KeaJsonResult.setProperties(self.allProperties)
         KeaJsonResult.setInvariants(self.allInvariants)
-        KeaJsonResult.setOutputFile(result_file=RESFILE, property_exec_result_file=PROP_EXEC_RESFILE)
         self.resultclass = KeaJsonResult
         result: KeaJsonResult = self._makeResult()
         registerResult(result)
@@ -417,10 +417,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         result.tb_locals = self.tb_locals
 
         with warnings.catch_warnings():
-            fb = FastbotManager(self.options, LOGFILE)
+            stamp_manager = StampManager()
+            fb = FastbotManager(self.options, stamp_manager.log_file)
             fb.start()
 
-            log_watcher = LogWatcher(LOGFILE)
+            log_watcher = LogWatcher(stamp_manager.log_file)
             
             if self.options.agent == "u2":
                 # initialize the result.json file
@@ -432,7 +433,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                     self.setUpClass(test)
                 
                 fb.check_alive()
-                fb.init(options=self.options, stamp=STAMP)
+                fb.init(options=self.options, stamp=stamp_manager.stamp)
 
                 resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
                 resultSyncer.run()

@@ -7,7 +7,7 @@ from collections import deque
 
 from .state import INVARIANT_MARKER
 from .typedefs import PBTTestResult, PropertyExecutionInfo, PropStatistic
-from .utils import getLogger, getFullPropName
+from .utils import StampManager, getLogger, getFullPropName
 
 
 logger = getLogger(__name__)
@@ -34,8 +34,6 @@ class KeaJsonResult(TextTestResult):
     lastInvariantInfo: PropertyExecutionInfo
     executionInfoBuffer: Deque["PropertyExecutionInfo"] = deque()
     currentStepsCount: int
-    result_file: str
-    property_exection_result_file: str
 
     @classmethod
     def setProperties(cls, allProperties: Dict):
@@ -47,10 +45,14 @@ class KeaJsonResult(TextTestResult):
         for testCase in allInvariants.values():
             cls.res[getFullPropName(testCase)] = PropStatistic(kind=CheckKind.INVARIANT.value)
     
-    @classmethod
-    def setOutputFile(cls, result_file, property_exec_result_file):
-        cls.result_file = result_file
-        cls.property_exection_result_file = property_exec_result_file
+    @property
+    def result_file(self):
+        return StampManager().result_file
+    
+    @property
+    def property_exection_result_file(self):
+        return StampManager().prop_exec_file
+        
 
     def __init__(self, stream, descriptions, verbosity):
         super().__init__(stream, descriptions, verbosity)

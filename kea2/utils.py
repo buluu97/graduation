@@ -77,6 +77,53 @@ class TimeStamp:
         return datetime.datetime.now().strftime('%Y%m%d%H_%M%S%f')
 
 
+@singleton
+class StampManager:
+    stamp: Optional[str] = None
+    output_dir: Optional[Path] = None
+
+    def set_stamp(self, stamp: str):
+        self.stamp = stamp
+
+    def set_output_dir(self, output_dir: Path):
+        self.output_dir = Path(output_dir)
+
+    @property
+    def log_file_name(self) -> Optional[str]:
+        if not self.stamp:
+            return None
+        return f"fastbot_{self.stamp}.log"
+
+    @property
+    def result_file_name(self) -> Optional[str]:
+        if not self.stamp:
+            return None
+        return f"result_{self.stamp}.json"
+
+    @property
+    def prop_exec_file_name(self) -> Optional[str]:
+        if not self.stamp:
+            return None
+        return f"property_exec_info_{self.stamp}.json"
+
+    @property
+    def log_file(self) -> Optional[Path]:
+        if not self.output_dir or not self.log_file_name:
+            return None
+        return Path(self.output_dir) / self.log_file_name
+
+    @property
+    def result_file(self) -> Optional[Path]:
+        if not self.output_dir or not self.result_file_name:
+            return None
+        return Path(self.output_dir) / self.result_file_name
+
+    @property
+    def prop_exec_file(self) -> Optional[Path]:
+        if not self.output_dir or not self.prop_exec_file_name:
+            return None
+        return Path(self.output_dir) / self.prop_exec_file_name
+
 from uiautomator2 import Device
 d = Device
 

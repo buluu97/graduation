@@ -58,8 +58,9 @@ class ResultSyncer:
         """
         Sync the device data to the local directory.
         """
-        logger.debug("Syncing data")
+        logger.info(f"Syncing data: pulling from {self.device_output_dir} to {self.output_dir}")
         self.dev.sync.pull_dir(self.device_output_dir, self.output_dir, exist_ok=True)
 
+        logger.info(f"Cleaning up pulled screenshots from device directory: {self.device_output_dir}")
         remove_pulled_screenshots = ["find", self.device_output_dir, "-name", '"*.png"', "-delete"]
         self.dev.shell(remove_pulled_screenshots)
