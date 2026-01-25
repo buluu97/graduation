@@ -319,10 +319,11 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 if step_index != _last_monkey_step:
                     __monkey_step_index_repeat_count = 1
                     _last_monkey_step = step_index
+                # the invariant is not calculated into the UI screenshots
+                elif step_type == "ScriptInfo" and info.get("kind") == "invariant":
+                    pass
                 else:
-                    # the invariant is not calculated into the UI screenshots
-                    if step_type == "ScriptInfo" and info.get("kind") != "invariant":
-                        __monkey_step_index_repeat_count += 1
+                    __monkey_step_index_repeat_count += 1
                     
                 step_id = f"{monkey_steps_count}-{__monkey_step_index_repeat_count}"
 
