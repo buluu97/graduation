@@ -69,7 +69,7 @@ class TestOmniNotes(unittest.TestCase):
     @precondition(lambda self: "camera" in self.d.app_current().get("package", ""))
     def exit_camera(self):
         """Guided exploration: Exit camera if it is launched 
-        (fastbot can't exit camera app by itself, we use kea2 to exit it to aviod getting stuck in camera)
+        (fastbot can't exit camera app by itself, we use kea2 to exit it to avoid getting stuck in camera)
         """
         print("Exiting camera app")
         pkg_camera = self.d.app_current().get("package", "")
