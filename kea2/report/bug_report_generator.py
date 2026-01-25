@@ -292,6 +292,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         current_property = None
         current_test = {}
+        first_step_time = last_step_time = ""
         step_index = 0
         monkey_events_count = 0  # Track monkey events separately
         last_monkey_step_count = 0
@@ -300,8 +301,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             # Track current test state
 
             __monkey_step_index_repeat_count = 1
-            _last_screenshot_file = ""
-            step_index = 0
+            _last_monkey_step = ""
             for line in f:
                 step_data = self._parse_step_data(line)
 
@@ -311,20 +311,19 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 step_type = step_data.get("Type", "")
                 screenshot = step_data.get("Screenshot", "")
                 monkey_steps_count = step_data.get("MonkeyStepsCount", "")
-                if screenshot and screenshot != _last_screenshot_file:
-                    step_index += 1
-                    _last_screenshot_file = screenshot
-
+                
+                
                 info = step_data.get("Info", {})
 
-                monkey_steps_count = step_data.get("MonkeyStepsCount", "")
-                if monkey_steps_count and monkey_steps_count != last_monkey_step_count:
-                    last_monkey_step_count = monkey_steps_count
+                step_index = monkey_steps_count
+                if step_index != _last_monkey_step:
                     __monkey_step_index_repeat_count = 1
-                elif monkey_steps_count:
+                    _last_monkey_step = step_index
+                else:
+                    # the invariant is not calculated into the UI screenshots
                     if step_type == "ScriptInfo" and info.get("kind") != "invariant":
                         __monkey_step_index_repeat_count += 1
-                    # Adjust monkey_steps_count to ensure uniqueness
+                    
                 step_id = f"{monkey_steps_count}-{__monkey_step_index_repeat_count}"
 
                 # Record restart-app marker events (no screenshot expected)
@@ -379,7 +378,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                     )
 
                 # Store first and last step for time calculation
-                if step_index == 1:
+                if int(monkey_steps_count) == 1 and not first_step_time:
                     first_step_time = step_data["Time"]
                 last_step_time = step_data["Time"]
 
