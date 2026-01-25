@@ -25,6 +25,8 @@ class MyFirstTest(unittest.TestCase):
     ...
 ```
 
+You can optionally define `setUpClass` to do one-time setup for the whole test class (e.g., prepare shared resources). It can also be used to [apply global setup for the u2 driver](https://github.com/openatx/uiautomator2?tab=readme-ov-file#global-settings). If defined, it will be called once before any test methods run.
+
 2. Write your own script by defining test methods
 
 You can decorate the function with `@precondition`. The decorator `@precondition` takes a function which returns boolean as an arugment. When the function returns `True`, the precondition is satisified and the script will be activated, and Kea2 will run the script based on certain probability defined by the decorator `@prob`.

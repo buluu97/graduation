@@ -11,8 +11,9 @@ class Omni_Notes_Sample(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Here you can setup the initialize setting for uiautomator2
+        > Note: this is optional
         """ 
-        print("Setting driver settings")
+        print("Setting driver settings (Optional)")
         cls.d.settings["wait_timeout"] = 5.0
         cls.d.settings["operation_delay"] = (0, 1.0)
 

@@ -24,6 +24,8 @@ class MyFirstTest(unittest.TestCase):
     ...
 ```
 
+你可以选择性地定义 `setUpClass`，用于在测试类级别做一次性初始化（如准备共享资源），也可以用于[对 u2 driver 进行全局设置](https://github.com/openatx/uiautomator2?tab=readme-ov-file#global-settings)。该方法是可选的，只有定义了才会在测试方法执行前调用一次。
+
 2. 通过定义测试方法编写脚本
 
 你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
