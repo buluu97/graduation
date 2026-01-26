@@ -42,6 +42,7 @@ class CovData(TypedDict):
 class ReportData(TypedDict):
     timestamp: str
     bugs_found: int
+    invariant_violations_count: int
     executed_events: int
     total_testing_time: float
     coverage: float
@@ -54,6 +55,7 @@ class ReportData(TypedDict):
     property_violations: List[Dict]
     property_stats: List
     property_error_details: Dict[str, List[Dict]]  # Support multiple errors per property
+    property_kind_summary: Dict[str, int]
     screenshot_info: Dict
     coverage_trend: List
     property_execution_trend: List  # Track executed properties count over steps
@@ -165,7 +167,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 self._config = json.load(fp)
         return self._config
 
-    def __init__(self, result_dir=None):
+    def __init__(self, result_dir=None, sync_data=False):
         """
         Initialize the bug report generator
 
@@ -175,7 +177,16 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         if result_dir is None:
             raise RuntimeError("Result directory must be provided to generate report.")
         self.result_dir = Path(result_dir)
-        
+        if sync_data:
+            from ..resultSyncer import ResultSyncer
+            with open(self.result_dir / "options.json", "r", encoding="utf-8") as f:
+                options_data = json.load(f)
+            if options_data:
+                from ..keaUtils import Options
+                options = Options.from_dict(options_data)
+                device_output_dir = f"{options.device_output_root}/output_{options.log_stamp}"
+                ResultSyncer(device_output_dir, options)._sync_device_data()
+
     def __set_up_jinja_env(self):
         """Set up Jinja2 environment for HTML template rendering"""
         try:
@@ -210,16 +221,18 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         self.__set_up_jinja_env()
         
         self.screenshots = deque()
-        
+        self._screenshot_id_by_filename = {}
+
         test_data = None
         with thread_pool(max_workers=128) as executor:
             logger.debug("Starting bug report generation")
+
             # Collect test data
             test_data: ReportData = self._collect_test_data(executor)
 
         if not test_data:
             raise RuntimeError("No test data collected, cannot generate report.")
-        
+
         # Generate HTML report
         html_content = self._generate_html_report(test_data)
 
@@ -229,10 +242,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             f.write(html_content)
 
         WidgetCoverage(output_dir=self._data_path.output_dir).generate_coverage_report()
-        
+
         logger.info(f"Bug report saved to: {report_path}")
         return str(report_path)
-
 
     @catchException("Error when collecting test data")
     def _collect_test_data(self, executor: "ThreadPoolExecutor"=None) -> ReportData:
@@ -243,6 +255,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "timestamp": self.config.get("log_stamp", ""),
             "test_time": self.config.get("test_time", ""),
             "bugs_found": 0,
+            "invariant_violations_count": 0,
             "executed_events": 0,
             "total_testing_time": 0,
             "coverage": 0,
@@ -253,6 +266,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "property_violations": [],
             "property_stats": [],
             "property_error_details": {},
+            "property_kind_summary": {},
             "screenshot_info": {},
             "coverage_trend": [],
             "property_execution_trend": [],
@@ -266,6 +280,13 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         property_violations = {}  # Store multiple violation records for each property
         executed_properties_by_step = {}  # Track executed properties at each step: {step_count: set()}
         executed_properties = set()  # Track unique executed properties
+        property_kinds = {}
+        for prop_name, result in self.test_result.items():
+            raw_kind = result.get("kind", "unknown")
+            if isinstance(raw_kind, str) and raw_kind.strip():
+                property_kinds[prop_name] = raw_kind.strip().lower()
+            else:
+                property_kinds[prop_name] = "unknown"
 
         if not self.data_path.steps_log.exists():
             logger.error(f"{self.data_path.steps_log} not exists")
@@ -273,13 +294,17 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         current_property = None
         current_test = {}
+        first_step_time = last_step_time = ""
         step_index = 0
         monkey_events_count = 0  # Track monkey events separately
+        last_monkey_step_count = 0
 
         with open(self.data_path.steps_log, "r", encoding="utf-8") as f:
             # Track current test state
 
-            for step_index, line in enumerate(f, start=1):
+            __monkey_step_index_repeat_count = 1
+            _last_monkey_step = ""
+            for line in f:
                 step_data = self._parse_step_data(line)
 
                 if not step_data:
@@ -287,27 +312,37 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
                 step_type = step_data.get("Type", "")
                 screenshot = step_data.get("Screenshot", "")
+                monkey_steps_count = step_data.get("MonkeyStepsCount", "")
+
+
                 info = step_data.get("Info", {})
 
-                # Count Monkey events separately
-                if step_type == "Monkey" or step_type == "Fuzz":
-                    monkey_events_count += 1
+                step_index = monkey_steps_count
+                if step_index != _last_monkey_step:
+                    __monkey_step_index_repeat_count = 1
+                    _last_monkey_step = step_index
+                # the invariant is not calculated into the UI screenshots
+                elif step_type == "ScriptInfo" and info.get("kind") == "invariant":
+                    pass
+                else:
+                    __monkey_step_index_repeat_count += 1
+
+                step_id = f"{monkey_steps_count}-{__monkey_step_index_repeat_count}"
 
                 # Record restart-app marker events (no screenshot expected)
                 if step_type == "Monkey" and info == "kill_apps":
-                    monkey_steps_count = step_data.get("MonkeyStepsCount", "N/A")
-                    caption = f"Monkey Step {monkey_steps_count}: restart app"
+                    caption = f"Monkey Step: restart app"
 
                     data["kill_apps_events"].append({
-                        "step_index": step_index,
+                        "step_index": step_id,
                         "monkey_steps_count": monkey_steps_count,
                     })
 
                     # Show this info event in the Test Screenshots timeline
                     self.screenshots.append({
-                        "id": step_index,
+                        "id": step_id,
                         "path": "",
-                        "caption": f"{step_index}. {caption}",
+                        "caption": f"{step_id}. {caption}",
                         "kind": "info",
                         "info": "kill_apps",
                     })
@@ -318,31 +353,38 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
                 # Collect detailed information for each screenshot
                 if screenshot and screenshot not in data["screenshot_info"]:
-                    self._add_screenshot_info(step_data, step_index, data)
+                    self._add_screenshot_info(step_data, step_id, data)
 
                 # Process ScriptInfo for property violations and execution tracking
                 if step_type == "ScriptInfo":
                     property_name = info.get("propName", "")
                     state = info.get("state", "")
-                    
+                    kind = info.get("kind", "")
+                    normalized_kind = ""
+                    if isinstance(kind, str) and kind:
+                        normalized_kind = kind.strip().lower()
+                    if not normalized_kind:
+                        normalized_kind = property_kinds.get(property_name, "unknown")
+
                     # Track executed properties (properties that have been started)
-                    if property_name and state == "start":
+                    if property_name and state == "start" and normalized_kind != "invariant":
                         executed_properties.add(property_name)
                         # Record the monkey steps count for this property execution
                         executed_properties_by_step[monkey_events_count] = executed_properties.copy()
                     
+                    if normalized_kind == "invariant" and screenshot and screenshot in data["screenshot_info"]:
+                        self._add_screenshot_info(step_data, step_id, data, force_append=True)
+
                     current_property, current_test = self._process_script_info(
-                        property_name, state, step_index, screenshot,
+                        property_name, state, normalized_kind, step_id, screenshot,
                         current_property, current_test, property_violations
                     )
 
                 # Store first and last step for time calculation
-                if step_index == 1:
+                if int(monkey_steps_count) == 1 and not first_step_time:
                     first_step_time = step_data["Time"]
                 last_step_time = step_data["Time"]
 
-            # Set the monkey events count correctly
-            data["executed_events"] = monkey_events_count
 
             # Calculate test time
             if first_step_time and last_step_time:
@@ -356,13 +398,12 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 minutes, seconds = divmod(remainder, 60)
                 data["total_testing_time"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
+        # Set the monkey events count correctly
+        data["executed_events"] = last_monkey_step_count
+
         # Enrich property statistics with derived metrics and calculate bug count
         enriched_property_stats = {}
         for property_name, test_result in self.test_result.items():
-            # Check if failed or error
-            if test_result.get("fail", 0) > 0 or test_result.get("error", 0) > 0:
-                data["bugs_found"] += 1
-
             executed_count = test_result.get("executed", 0)
             fail_count = test_result.get("fail", 0)
             error_count = test_result.get("error", 0)
@@ -370,15 +411,51 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
             enriched_property_stats[property_name] = {
                 **test_result,
-                "pass_count": pass_count
+                "pass_count": pass_count,
+                "kind": property_kinds.get(property_name, "unknown"),
             }
+
+        # Count property violations (exclude invariants)
+        data["bugs_found"] = sum(
+            1
+            for stats in enriched_property_stats.values()
+            if stats.get("kind") != "invariant"
+            and (stats.get("fail", 0) > 0 or stats.get("error", 0) > 0)
+        )
 
         # Store the enriched result data for direct use in HTML template
         data["property_stats"] = enriched_property_stats
 
-        # Calculate properties statistics
-        data["all_properties_count"] = len(self.test_result)
-        data["executed_properties_count"] = sum(1 for result in self.test_result.values() if result.get("executed", 0) > 0)
+        data["invariant_violations_count"] = sum(
+            1
+            for stats in enriched_property_stats.values()
+            if stats.get("kind") == "invariant"
+            and (stats.get("fail", 0) > 0 or stats.get("error", 0) > 0)
+        )
+
+        property_kind_summary = {
+            "all": 0,
+            "property": 0,
+            "invariant": 0,
+            "unknown": 0,
+        }
+        for stats in enriched_property_stats.values():
+            kind = stats.get("kind", "unknown")
+            if kind not in {"property", "invariant"}:
+                kind = "unknown"
+            property_kind_summary[kind] += 1
+            property_kind_summary["all"] += 1
+        data["property_kind_summary"] = property_kind_summary
+
+        # Calculate properties statistics (exclude invariants from summary counts)
+        data["all_properties_count"] = sum(
+            1 for result in enriched_property_stats.values()
+            if result.get("kind") != "invariant"
+        )
+        data["executed_properties_count"] = sum(
+            1 for result in enriched_property_stats.values()
+            if result.get("kind") != "invariant" and result.get("executed", 0) > 0
+        )
 
         # Calculate detailed property statistics for table headers
         property_stats_summary = self._calculate_property_stats_summary(enriched_property_stats)
@@ -453,6 +530,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'test_time': data.get("test_time", ""),
             'log_stamp': data.get("timestamp", ""),
             'bugs_found': data["bugs_found"],
+            'invariant_violations_count': data["invariant_violations_count"],
             'total_testing_time': data["total_testing_time"],
             'executed_events': data["executed_events"],
             'coverage_percent': round(data["coverage"], 2),
@@ -467,6 +545,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'property_violations': data["property_violations"],
             'property_stats': data["property_stats"],
             'property_error_details': data["property_error_details"],
+            'property_kind_summary': data.get("property_kind_summary", {}),
             'coverage_data': coverage_trend_json,
             'take_screenshots': self.take_screenshots,  # Pass screenshot setting to template
             'property_execution_trend': data["property_execution_trend"],
@@ -491,14 +570,24 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         return html_content
 
-    def _process_script_info(self, property_name: str, state: str, step_index: int, screenshot: str,
-                             current_property: str, current_test: Dict, property_violations: Dict) -> Tuple:
+    def _process_script_info(
+        self,
+        property_name: str,
+        state: str,
+        kind: str,
+        step_index: int,
+        screenshot: str,
+        current_property: str,
+        current_test: Dict,
+        property_violations: Dict,
+    ) -> Tuple:
         """
         Process ScriptInfo step for property violations tracking
 
         Args:
             property_name: Property name from ScriptInfo
             state: State from ScriptInfo (start, pass, fail, error)
+            kind: Kind from ScriptInfo (property, invariant)
             step_index: Current step index
             screenshot: Screenshot filename
             current_property: Currently tracked property
@@ -539,6 +628,17 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                     # Reset current test
                     current_property = None
                     current_test = {}
+                elif state in ["fail", "error"] and kind == "invariant":
+                    if property_name not in property_violations:
+                        property_violations[property_name] = []
+
+                    property_violations[property_name].append({
+                        "start": step_index,
+                        "end": step_index,
+                        "screenshot_start": screenshot,
+                        "screenshot_end": screenshot,
+                        "state": state
+                    })
 
         return current_property, current_test
 
@@ -553,6 +653,10 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         if property_violations:
             index = 1
             for property_name, violations in property_violations.items():
+                kind = "unknown"
+                property_stats = data.get("property_stats", {})
+                if isinstance(property_stats, dict):
+                    kind = property_stats.get(property_name, {}).get("kind", "unknown")
                 for violation in violations:
                     start_step = violation["start"]
                     end_step = violation["end"]
@@ -560,7 +664,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                         "index": index,
                         "property_name": property_name,
                         "interaction_pages": [start_step, end_step],
-                        "state": violation.get("state", "fail")
+                        "state": violation.get("state", "fail"),
+                        "kind": kind,
                     })
                     index += 1
 
@@ -777,13 +882,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         if not screenshot_filename:
             return ""
 
-        for screenshot in self.screenshots:
-            # Extract filename from path
-            screenshot_path = screenshot.get('path', '')
-            if screenshot_path.endswith(screenshot_filename):
-                return str(screenshot.get('id', ''))
-
-        return ""
+        screenshot_name = Path(screenshot_filename).name
+        screenshot_map = getattr(self, "_screenshot_id_by_filename", {})
+        return str(screenshot_map.get(screenshot_name, ""))
 
     def _add_screenshot_ids_to_events(self, events: List[Dict]):
         """
