@@ -148,6 +148,10 @@ class Options:
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
     extra_args: List[str] = None
+    # Whether to pull device FBM and merge into PC after test finishes
+    upload_fbm: bool = False
+    # Whether to pull device FBM(s) at start, merge with PC FBM and push merged back to device
+    download_fbm: bool = False
 
     def __setattr__(self, name, value):
         if value is None:
@@ -200,7 +204,7 @@ class Options:
                     value = Path(value)
                 setattr(obj, f.name, value)
         return obj
-        
+
     def set_stamp(self, stamp: str = None):
         """for hybrid test run. set a new stamp for the Options instance to save logs and results.
         """
@@ -328,7 +332,7 @@ class KeaTestLoader(TestLoader):
         testCaseClass.setUp = types.MethodType(setUp, testCaseClass)
         testCaseClass.tearDown = types.MethodType(tearDown, testCaseClass)
         return super().loadTestsFromTestCase(testCaseClass)
-        
+
     def getTestCaseNames(self, testCaseClass):
         """Return a sorted sequence of method names found within testCaseClass
         """
@@ -398,7 +402,15 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
     def run(self, test):
 
+
+        # take device-side snapshots once at the beginning of the run
+        try:
+            self._copy_fbm()
+        except Exception as e:
+            logger.debug(f"Initial device snapshot failed: {e}")
+
         self.validateAndCollectProperties(test)
+
 
         if len(self.allProperties) == 0:
             logger.warning("No property has been found.")
@@ -431,7 +443,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
                 for test in {**self.allProperties, **self.allInvariants}.values():
                     self.setUpClass(test)
-                
+
                 fb.check_alive()
                 fb.init(options=self.options, stamp=stamp_manager.stamp)
 
@@ -459,7 +471,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                             sleep(3)
                             fb.sendInfo("kill_apps")
                             continue
-                        
+
                         try:
                             # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
                             # stepMonkey will change the ui state and return the new ui hierarchy
@@ -516,7 +528,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                         if not checkableProperties:
                             continue
 
-                        self.scriptDriver = U2Driver.getScriptDriver(mode="proxy") 
+                        self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
 
                         # randomly select a property to execute
                         propertyName = random.choice(checkableProperties)
@@ -544,11 +556,19 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             fb.join()
             print(f"Finish sending monkey events.", flush=True)
             log_watcher.close()
-        
+
+        # After run: compute per-device deltas and merge into PC core
+        try:
+            self._finalize_and_merge_deltas()
+        except Exception as e:
+            logger.debug(f"Finalize delta merge failed: {e}")
+
         result.logSummary()
 
         if self.options.agent == "u2":
             self._generate_bug_report()
+
+        # self._upload_fbm()
 
         self.tearDown()
         return result
@@ -563,10 +583,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         r = self._get_block_widgets()
         r["steps_count"] = self.stepsCount
         return r
-    
+
     @property
     def _monkey_event_count(self):
-        return f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf") else f"({self.stepsCount})"                       
+        return f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf") else f"({self.stepsCount})"
 
     def _get_block_widgets(self):
         block_dict = self._getBlockedWidgets()
@@ -606,7 +626,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             if valid:
                 result.addPropertyPrecondSatisfied(test)
                 precondSatisfiedProperties.append(propName)
-        
+
         # get the checkable properties
         checkableProperties = []
         u = random.random()    # sample the execution probability threshold u ~ U(0, 1)
@@ -794,6 +814,103 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             pass
 
 
+    def _finalize_and_merge_deltas(self):
+        """Pull device fbms, compute deltas (snapshot->current) and merge deltas into PC core fbm.
+
+        This function iterates over configured packages and uses pull_and_merge_to_pc which
+        already implements snapshot-aware delta merging when a snapshot is present on device.
+        """
+        try:
+            from kea2.fbm_parser import FBMMerger
+        except Exception as e:
+            logger.debug(f"FBM merger unavailable for finalize: {e}")
+            return
+
+        merger = FBMMerger()
+        pkgs = getattr(self.options, 'packageNames', []) or []
+        for pkg in pkgs:
+            try:
+                logger.info(f"Finalizing FBM delta for package: {pkg}")
+                ok = merger.pull_and_merge_to_pc(pkg, device=self.options.serial,
+                                                 transport_id=self.options.transport_id)
+                if ok:
+                    logger.info(f"Delta merge completed for package: {pkg}")
+                else:
+                    logger.debug(f"Delta merge reported failure for package: {pkg}")
+            except Exception as e:
+                logger.debug(f"Error finalizing delta for {pkg}: {e}")
+
+
+    def _copy_fbm(self):
+        """If options.download_fbm is True, create an on-device snapshot for each package by copying
+        `/sdcard/fastbot_{pkg}.fbm` -> `/sdcard/fastbot_{pkg}.snapshot.fbm` using `adb shell cp`.
+
+        Behavior:
+        - Only runs if options.download_fbm is True.
+        - Tries `adb shell cp` up to `max_retries` times with backoff. Does NOT perform pull/push.
+        - Logs per-package success/failure and does not raise to avoid blocking startup.
+        """
+        # if not getattr(self.options, 'download_fbm', False):
+        #     return
+
+        try:
+            from kea2.adbUtils import adb_shell
+        except Exception:
+            try:
+                from adbUtils import adb_shell  # type: ignore
+            except Exception as e:
+                print(f"ADB utilities not available for creating device snapshot: {e}", flush=True)
+                return
+
+        import time
+        import random
+
+        pkgs = getattr(self.options, 'packageNames', []) or []
+        for pkg in pkgs:
+            src = f"/sdcard/fastbot_{pkg}.fbm"
+            dst = f"/sdcard/fastbot_{pkg}.snapshot.fbm"
+
+            # First check if the source FBM exists on device. If not, skip this package.
+            try:
+                # use a single-string shell command so adb runs: adb -s <dev> shell "test -f <src> && echo OK || echo NO"
+                check_src = adb_shell([f'test -f "{src}" && echo OK || echo NO'], device=self.options.serial, transport_id=self.options.transport_id)
+                if not (isinstance(check_src, str) and "OK" in check_src):
+                    print(f"Source FBM not found on device for package {pkg}: {src}. Skipping snapshot creation.", flush=True)
+                    continue
+            except Exception as e:
+                print(f"Failed to verify source FBM existence for {pkg}: {e}. Skipping.", flush=True)
+                continue
+
+            max_retries = 3
+            success = False
+            for attempt in range(1, max_retries + 1):
+                try:
+                    print(f"Attempt {attempt}: creating device snapshot: cp {src} {dst}", flush=True)
+                    adb_shell(["cp", src, dst], device=self.options.serial, transport_id=self.options.transport_id)
+
+                    # verify snapshot exists on device using a single-command form
+                    try:
+                        # verify snapshot exists on device using a single-string command (matches: adb shell "test -f ... && echo OK || echo NO")
+                        verify = adb_shell([f'test -f "{dst}" && echo OK || echo NO'], device=self.options.serial, transport_id=self.options.transport_id)
+                        if isinstance(verify, str) and "OK" in verify:
+                            print(f"Snapshot created on device for package {pkg}: {dst}", flush=True)
+                            success = True
+                            break
+                        else:
+                            print(f"Snapshot verify failed on attempt {attempt} for {pkg}: {verify}", flush=True)
+                    except Exception as ve:
+                        print(f"Verification command failed after cp attempt {attempt} for {pkg}: {ve}", flush=True)
+                except Exception as e:
+                    print(f"adb shell cp attempt {attempt} failed for {pkg}: {e}", flush=True)
+
+                # backoff before next attempt
+                sleep_time = min(5.0, 0.5 * (2 ** (attempt - 1))) + random.uniform(0, 0.1)
+                time.sleep(sleep_time)
+
+            if not success:
+                print(f"Giving up creating snapshot on device for {pkg} after {max_retries} attempts", flush=True)
+
+
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
     allTestCases: Dict[str, Tuple[TestCase, bool]]
@@ -806,7 +923,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         self.hybrid_report_dirs = []
 
     def run(self, test):
-        
+
         self.allTestCases = dict()
         self.collectAllTestCases(test)
         if len(self.allTestCases) == 0:
@@ -878,7 +995,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             if len(self.hybrid_report_dirs) < 2:
                 logger.info("Only one hybrid test report generated, skipping merge.")
                 return
-            
+
             main_output_dir = self.options.output_dir
 
             merger = TestReportMerger()
@@ -909,7 +1026,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
             raise ValueError("setUp function not found in teardown.py.")
         if tearDown is None:
             raise ValueError("tearDown function not found in teardown.py.")
-        
+
         # Traverse the TestCase to get all properties
         for t in iter_tests(test):
 
@@ -948,3 +1065,4 @@ def kea2_breakpoint():
     """
     if hybrid_mode.get():
         raise SkipTest("Skip the test after the breakpoint and run kea2 in hybrid mode.")
+

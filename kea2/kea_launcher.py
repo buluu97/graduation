@@ -142,6 +142,23 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         help="The root of device output dir. Kea2 will temporarily save the screenshots and result log into `<device-output-root>/output_*********/`. Make sure the root dir can be access.",
     )
 
+    # FBM sync options
+    parser.add_argument(
+        "--download-fbm",
+        dest="download_fbm",
+        action="store_true",
+        required=False,
+        help="When set, pull device FBM(s) at start, merge with PC FBM and push merged back to device",
+    )
+
+    parser.add_argument(
+        "--upload-fbm",
+        dest="upload_fbm",
+        action="store_true",
+        required=False,
+        help="When set, after run finishes pull device FBM(s) and merge into PC storage",
+    )
+
     parser.add_argument(
         "--act-whitelist-file",
         dest="act_whitelist_file",
@@ -283,8 +300,11 @@ def run(args=None):
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,
+        upload_fbm=getattr(args, 'upload_fbm', False),
+        download_fbm=getattr(args, 'download_fbm', False),
     )
-    
+
+
     is_hybrid_test = True if options.unittest_args else False
     if is_hybrid_test:
         HybridTestRunner.setOptions(options)
