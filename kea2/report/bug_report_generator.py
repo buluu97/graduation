@@ -2,7 +2,8 @@ import json
 from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Tuple, TypedDict, List, Deque, NewType, Union, Optional
+from typing import Dict, Tuple, TypedDict, List, Deque, NewType, Optional
+from typing import TYPE_CHECKING
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
@@ -11,6 +12,11 @@ from ..utils import getLogger, catchException
 from .mixin import CrashAnrMixin, PathParserMixin, ScreenshotsMixin
 from .utils import thread_pool
 from .widget_coverage import WidgetCoverage
+
+
+if TYPE_CHECKING:
+    from ..keaUtils import Options
+
 
 logger = getLogger(__name__)
 
@@ -126,6 +132,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
     _cov_trend: Deque[CovData] = None
     _test_result: TestResult = None
+    _options: "Options"
     
     @property
     def cov_trend(self):
@@ -166,6 +173,17 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             with open(self.result_dir / "bug_report_config.json", "r", encoding="utf-8") as fp:
                 self._config = json.load(fp)
         return self._config
+    
+    @property
+    def options(self) -> "Options":
+        if self._options is None:
+            from ..keaUtils import Options
+            with open(self.result_dir / "options.json", "r", encoding="utf-8") as f:
+                options_data = json.load(f)
+            if options_data:
+                self._options = Options.from_dict(options_data)
+        return self._options
+            
 
     def __init__(self, result_dir=None, sync_data=False):
         """
@@ -174,18 +192,16 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         Args:
             result_dir: Directory path containing test results
         """
+        self._options = None
+        self._cov_trend = None
+        self._test_result = None
         if result_dir is None:
             raise RuntimeError("Result directory must be provided to generate report.")
         self.result_dir = Path(result_dir)
         if sync_data:
             from ..resultSyncer import ResultSyncer
-            with open(self.result_dir / "options.json", "r", encoding="utf-8") as f:
-                options_data = json.load(f)
-            if options_data:
-                from ..keaUtils import Options
-                options = Options.from_dict(options_data)
-                device_output_dir = f"{options.device_output_root}/output_{options.log_stamp}"
-                ResultSyncer(device_output_dir, options)._sync_device_data()
+            device_output_dir = f"{self.options.device_output_root}/output_{self.options.log_stamp}"
+            ResultSyncer(device_output_dir, self.options)._sync_device_data()
 
     def __set_up_jinja_env(self):
         """Set up Jinja2 environment for HTML template rendering"""
@@ -230,18 +246,21 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             # Collect test data
             test_data: ReportData = self._collect_test_data(executor)
 
+
         if not test_data:
             raise RuntimeError("No test data collected, cannot generate report.")
-
+        
+        # Genrate Widget Coverage Data
+        widget_coverage = WidgetCoverage(output_dir=self._data_path.output_dir, options=self.options)
+        widget_coverage.generate_coverage_report()
+        
         # Generate HTML report
         html_content = self._generate_html_report(test_data)
-        WidgetCoverage(output_dir=self._data_path.output_dir).generate_coverage_report(self.config.get("profile_period"))
         # Save report
         report_path = self.result_dir / "bug_report.html"
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        WidgetCoverage(output_dir=self._data_path.output_dir).generate_coverage_report()
 
         logger.info(f"Bug report saved to: {report_path}")
         return str(report_path)

@@ -287,7 +287,6 @@ def _save_bug_report_configs(options: Options):
         "device_output_root": options.device_output_root,
         "log_stamp": options.log_stamp,
         "test_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "profile_period": options.profile_period,
     }
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
         json.dump(configs, fp, indent=4)

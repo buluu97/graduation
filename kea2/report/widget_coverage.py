@@ -1,6 +1,12 @@
 from pathlib import Path
 import json
-from typing import Set, List
+from typing import Deque, Set, List, TYPE_CHECKING
+from collections import deque
+
+
+if TYPE_CHECKING:
+    from ..keaUtils import Options
+
 
 try:
     from ..utils import getLogger
@@ -13,38 +19,56 @@ logger = getLogger(__name__)
 
 class WidgetCoverage:
     AUTO_RESOURCE_ID = "<AUTO>"
-
-    def __init__(self, output_dir):
+    _profile_period: int
+    _options: "Options"
+    
+    def __init__(self, output_dir, options:"Options"=None, profile_period:int=None):
         self.output_dir = Path(output_dir)
         self.steps_log = self.output_dir / "steps.log"
         self.coverage_log = self.output_dir / "widget_coverage.log"
+        self._options = options
+        self._profile_period = profile_period
+    
+    @property
+    def profile_period(self):
+        if not self._profile_period:
+            self._profile_period = self.options.profile_period
+        return self._profile_period
+    
+    @property
+    def options(self):
+        if self._options is None:
+            from ..keaUtils import Options
+            with open(self.output_dir / "options.json", "r", encoding="utf-8") as f:
+                options_data = json.load(f)
+            if options_data:
+                self._options = Options.from_dict(options_data)
+        return self._options
 
-    def generate_coverage_report(self, profile_period: int):
+    def generate_coverage_report(self):
         logger.info(
-            f"Generating widget coverage report (profile_period={profile_period})..."
+            f"Generating widget coverage report (profile_period={self.profile_period})..."
         )
 
         if not self.steps_log.exists():
             raise FileNotFoundError(f"Steps log file not found: {self.steps_log}")
 
-        triggered_widgets, coverage_records = self._analyze_steps(profile_period)
+        triggered_widgets, coverage_records = self._analyze_steps(self.profile_period)
         self.__dump_triggered_widgets(triggered_widgets)
         self.__dump_coverage_log(coverage_records)
 
     def __dump_triggered_widgets(self, triggered_widgets: Set[str]):
         output_file = self.output_dir / "widget_coverage_report.txt"
         with open(output_file, "w", encoding="utf-8") as f:
-            for widget in sorted(triggered_widgets):
-                f.write(f"{widget}\n")
+            f.writelines(f"{w}\n" for w in triggered_widgets)
 
-    def __dump_coverage_log(self, records: List[dict]):
+    def __dump_coverage_log(self, records: Deque[str]):
         with open(self.coverage_log, "w", encoding="utf-8") as f:
-            for record in records:
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.writelines(f"{r}\n" for r in records)
 
     def _analyze_steps(self, profile_period: int):
         triggered_widgets: Set[str] = set()
-        coverage_records: List[dict] = []
+        coverage_records: Deque[str] = deque()
 
         last_recorded_step = -1  
 
@@ -62,10 +86,12 @@ class WidgetCoverage:
                     and steps_count % profile_period == 0
                     and steps_count != last_recorded_step
                 ):
-                    coverage_records.append({
-                        "stepsCount": steps_count,
-                        "coverage": len(triggered_widgets)
-                    })
+                    coverage_records.append(
+                        json.dumps({
+                            "stepsCount": steps_count,
+                            "coverage": len(triggered_widgets)  
+                        })
+                    )
                     last_recorded_step = steps_count
 
         return triggered_widgets, coverage_records
