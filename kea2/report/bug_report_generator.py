@@ -235,7 +235,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         # Generate HTML report
         html_content = self._generate_html_report(test_data)
-
+        WidgetCoverage(output_dir=self._data_path.output_dir).generate_coverage_report(self.config.get("profile_period"))
         # Save report
         report_path = self.result_dir / "bug_report.html"
         with open(report_path, "w", encoding="utf-8") as f:
