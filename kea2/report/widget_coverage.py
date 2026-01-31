@@ -68,18 +68,20 @@ class WidgetCoverage:
 
     def _analyze_steps(self, profile_period: int):
         triggered_widgets: Set[str] = set()
-        coverage_records: Deque[str] = deque()
+        coverage_records: List[dict] = []
 
-        last_recorded_step = -1  
+        last_recorded_step = -1
+        final_steps_count = None  # track the last steps count seen
 
         with open(self.steps_log, "r", encoding="utf-8") as f:
             for line in f:
-                data = json.loads(line)   
+                data = json.loads(line)
                 if data.get("Type") == "Monkey":
                     widget_repr = self.__get_widget_repr(data)
                     if widget_repr:
-                        triggered_widgets.add(widget_repr)            
+                        triggered_widgets.add(widget_repr)
                 steps_count = int(data.get("MonkeyStepsCount", 0))
+                final_steps_count = steps_count
 
                 if (
                     steps_count > 0
@@ -87,12 +89,18 @@ class WidgetCoverage:
                     and steps_count != last_recorded_step
                 ):
                     coverage_records.append(
-                        json.dumps({
+                        {
                             "stepsCount": steps_count,
-                            "coverage": len(triggered_widgets)  
-                        })
+                            "coverage": len(triggered_widgets),
+                        }
                     )
                     last_recorded_step = steps_count
+
+        
+        if final_steps_count is not None and final_steps_count > 0 and final_steps_count != last_recorded_step:
+            coverage_records.append(
+                {"stepsCount": final_steps_count, "coverage": len(triggered_widgets)}
+            )
 
         return triggered_widgets, coverage_records
 
