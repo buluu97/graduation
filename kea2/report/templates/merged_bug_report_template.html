@@ -1256,56 +1256,63 @@
 
                     <!-- Statistics Cards -->
                     <div class="row g-4">
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-bug text-danger" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-danger">{{ bugs_found }}</span>
                                 <span class="stat-label">Property Violations</span>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-shield-exclamation text-warning" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-warning">{{ invariant_violations_count }}</span>
                                 <span class="stat-label">Invariant Violations</span>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-x-circle text-danger" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-danger">{{ total_crash_count|default(0) }}</span>
                                 <span class="stat-label">Crashes</span>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-clock text-warning" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-warning">{{ total_anr_count|default(0) }}</span>
                                 <span class="stat-label">ANRs</span>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-pie-chart text-info" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-highlight">{{ "%.2f"|format(coverage_percent) }}%</span>
                                 <span class="stat-label">Activity Coverage</span>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
+                            <div class="text-center">
+                                <i class="bi bi-grid-3x3-gap text-info" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-highlight">{{ widget_coverage_count|default(0) }}</span>
+                                <span class="stat-label">Widget Coverage</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-list-check text-primary" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-highlight">{{ all_properties_count }}</span>
                                 <span class="stat-label">All Properties</span>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-shield text-warning" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-warning">{{ property_kind_summary.invariant|default(0) }}</span>
                                 <span class="stat-label">All Invariants</span>
                             </div>
                         </div>
-                        <div class="col-lg-3 col-md-6 col-sm-12">
+                        <div class="col-lg-4 col-md-4 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-check-square text-success" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-success">{{ executed_properties_count }}</span>
@@ -1378,7 +1385,11 @@
                                                         </div>
                                                         <div class="directory-summary-item" title="Activity Coverage">
                                                             <span class="summary-value text-info">{{ summary.coverage_percent }}</span>
-                                                            <span class="summary-label">Cover</span>
+                                                            <span class="summary-label">Activity</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Widget Coverage">
+                                                            <span class="summary-value text-info">{{ summary.widget_coverage_count }}</span>
+                                                            <span class="summary-label">Widget</span>
                                                         </div>
                                                         <div class="directory-summary-item" title="Executed Properties">
                                                             <span class="summary-value text-primary">{{ summary.executed_properties }}</span>

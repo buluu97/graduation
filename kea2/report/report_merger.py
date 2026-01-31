@@ -60,7 +60,9 @@ class TestReportMerger:
         property_kinds = self._collect_property_kinds()
         source_summaries = self._collect_source_summaries()
         merged_coverage_data = self._merge_coverage_data()
+        merged_widget_coverage = self._merge_widget_coverage_data()
         merged_crash_anr_data = self._merge_crash_dump_data(output_dir)
+        merged_coverage_data.update(merged_widget_coverage)
 
         # Calculate final statistics
         final_data = self._calculate_final_statistics(
@@ -109,6 +111,7 @@ class TestReportMerger:
             "executed_events": 0,
             "coverage_percent": "0.00%",
             "executed_properties": "0/0",
+            "widget_coverage_count": 0,
             "crash_count": 0,
             "anr_count": 0,
         }
@@ -162,6 +165,10 @@ class TestReportMerger:
             if coverage_file.exists():
                 coverage_percent = self._extract_coverage_percent(coverage_file)
                 summary["coverage_percent"] = f"{coverage_percent:.2f}%"
+
+            widget_coverage_report = output_dir / "widget_coverage_report.txt"
+            if widget_coverage_report.exists():
+                summary["widget_coverage_count"] = self._extract_widget_coverage_count(widget_coverage_report)
 
             crash_dump_file = output_dir / "crash-dump.log"
             if crash_dump_file.exists():
@@ -255,6 +262,21 @@ class TestReportMerger:
         if last_coverage and "coverage" in last_coverage:
             return round(float(last_coverage.get("coverage", 0)), 2)
         return 0.0
+
+    def _extract_widget_coverage_count(self, report_file: Path) -> int:
+        """
+        Extract unique widget coverage count from widget_coverage_report.txt.
+        """
+        widgets = set()
+        try:
+            with open(report_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    widget = line.strip()
+                    if widget:
+                        widgets.add(widget)
+        except Exception as exc:
+            logger.warning(f"Failed to read widget coverage report {report_file}: {exc}")
+        return len(widgets)
 
     def _collect_property_kinds(self) -> Dict[str, str]:
         """
@@ -498,6 +520,36 @@ class TestReportMerger:
             "tested_activities_count": len(tested_activities),
             "activity_count_history": dict(activity_counts),
             "total_steps": total_steps
+        }
+
+    def _merge_widget_coverage_data(self) -> Dict:
+        """
+        Merge widget coverage data across all directories.
+        """
+        all_widgets = set()
+
+        for result_dir in self.result_dirs:
+            output_dirs = list(result_dir.glob("output_*"))
+            if not output_dirs:
+                logger.warning(f"No output directory found in {result_dir}")
+                continue
+
+            widget_coverage_report = output_dirs[0] / "widget_coverage_report.txt"
+            if not widget_coverage_report.exists():
+                logger.warning(f"No widget_coverage_report.txt found in {output_dirs[0]}")
+                continue
+
+            try:
+                with open(widget_coverage_report, "r", encoding="utf-8") as f:
+                    for line in f:
+                        widget = line.strip()
+                        if widget:
+                            all_widgets.add(widget)
+            except Exception as exc:
+                logger.warning(f"Failed to read widget coverage report {widget_coverage_report}: {exc}")
+
+        return {
+            "widget_coverage_count": len(all_widgets)
         }
 
     def _merge_crash_dump_data(self, output_dir: Path = None) -> Dict:

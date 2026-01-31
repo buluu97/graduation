@@ -52,6 +52,7 @@ class ReportData(TypedDict):
     executed_events: int
     total_testing_time: float
     coverage: float
+    widget_coverage_count: int
     total_activities_count: int
     tested_activities_count: int
     total_activities: List
@@ -64,6 +65,7 @@ class ReportData(TypedDict):
     property_kind_summary: Dict[str, int]
     screenshot_info: Dict
     coverage_trend: List
+    widget_coverage_trend: List
     property_execution_trend: List  # Track executed properties count over steps
     activity_count_history: Dict[str, int]  # Activity traversal count from final coverage data
     crash_events: List[Dict]  # Crash events from crash-dump.log
@@ -239,6 +241,10 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         self.screenshots = deque()
         self._screenshot_id_by_filename = {}
 
+        # Genrate Widget Coverage Data
+        widget_coverage = WidgetCoverage(output_dir=self.data_path.output_dir, options=self.options)
+        widget_coverage.generate_coverage_report()
+
         test_data = None
         with thread_pool(max_workers=128) as executor:
             logger.debug("Starting bug report generation")
@@ -249,10 +255,6 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         if not test_data:
             raise RuntimeError("No test data collected, cannot generate report.")
-        
-        # Genrate Widget Coverage Data
-        widget_coverage = WidgetCoverage(output_dir=self._data_path.output_dir, options=self.options)
-        widget_coverage.generate_coverage_report()
         
         # Generate HTML report
         html_content = self._generate_html_report(test_data)
@@ -278,6 +280,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "executed_events": 0,
             "total_testing_time": 0,
             "coverage": 0,
+            "widget_coverage_count": 0,
             "total_activities": [],
             "tested_activities": [],
             "all_properties_count": 0,
@@ -288,6 +291,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "property_kind_summary": {},
             "screenshot_info": {},
             "coverage_trend": [],
+            "widget_coverage_trend": [],
             "property_execution_trend": [],
             "activity_count_history": {},
             "crash_events": [],
@@ -492,6 +496,11 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             data["tested_activities_count"] = final_trend["testedActivitiesCount"]
             data["activity_count_history"] = final_trend["activityCountHistory"]
 
+        # Process widget coverage data
+        data["widget_coverage_trend"] = self._load_widget_coverage_trend()
+        if data["widget_coverage_trend"]:
+            data["widget_coverage_count"] = data["widget_coverage_trend"][-1].get("coverage", 0)
+
         # Generate property execution trend aligned with coverage trend
         data["property_execution_trend"] = self._generate_property_execution_trend(executed_properties_by_step)
 
@@ -539,6 +548,11 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             # Use the same field names as in coverage.log file
             data["coverage_trend"] = [{"stepsCount": 0, "coverage": 0, "testedActivitiesCount": 0}]
 
+        # Ensure widget_coverage_trend has data
+        if not data.get("widget_coverage_trend"):
+            logger.warning("No widget coverage trend data")
+            data["widget_coverage_trend"] = [{"stepsCount": 0, "coverage": 0}]
+
         # Convert coverage_trend to JSON string, ensuring all data points are included
         coverage_trend_json = json.dumps(data["coverage_trend"])
         logger.debug(f"Number of coverage trend data points: {len(data['coverage_trend'])}")
@@ -553,6 +567,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'total_testing_time': data["total_testing_time"],
             'executed_events': data["executed_events"],
             'coverage_percent': round(data["coverage"], 2),
+            'widget_coverage_count': data.get("widget_coverage_count", 0),
             'total_activities_count': data["total_activities_count"],
             'tested_activities_count': data["tested_activities_count"],
             'tested_activities': data["tested_activities"],
@@ -566,6 +581,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'property_error_details': data["property_error_details"],
             'property_kind_summary': data.get("property_kind_summary", {}),
             'coverage_data': coverage_trend_json,
+            'widget_coverage_data': json.dumps(data.get("widget_coverage_trend", [])),
             'take_screenshots': self.take_screenshots,  # Pass screenshot setting to template
             'property_execution_trend': data["property_execution_trend"],
             'property_execution_data': json.dumps(data["property_execution_trend"]),
@@ -588,6 +604,24 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         html_content = template.render(**template_data)
 
         return html_content
+
+    def _load_widget_coverage_trend(self) -> List[Dict]:
+        widget_coverage_log = self.data_path.output_dir / "widget_coverage.log"
+        if not widget_coverage_log.exists():
+            logger.warning(f"Widget coverage log {widget_coverage_log} not found")
+            return []
+
+        widget_coverage_trend = []
+        with open(widget_coverage_log, "r", encoding="utf-8") as f:
+            for line_number, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                record = json.loads(line)
+                if isinstance(record, dict):
+                    widget_coverage_trend.append(record)
+
+        return widget_coverage_trend
 
     def _process_script_info(
         self,
