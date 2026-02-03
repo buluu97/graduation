@@ -306,10 +306,53 @@
             margin-bottom: 18px;
         }
 
+        .summary-groups {
+            display: grid;
+            gap: 18px;
+        }
+
+        .summary-group-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-group-title::before {
+            content: '';
+            width: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 999px;
+            display: inline-block;
+        }
+
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(9, minmax(0, 1fr));
             gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .summary-grid.cols-5 {
+            grid-template-columns: repeat(5, minmax(160px, 1fr));
+        }
+
+        .summary-grid.cols-4 {
+            grid-template-columns: repeat(4, minmax(160px, 1fr));
+        }
+
+        .summary-grid.cols-3 {
+            grid-template-columns: repeat(3, minmax(160px, 1fr));
+        }
+
+        .summary-grid.cols-2 {
+            grid-template-columns: repeat(2, minmax(160px, 1fr));
         }
 
         .summary-item {
@@ -332,8 +375,11 @@
         }
 
         @media (max-width: 1200px) {
-            .summary-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+            .summary-grid.cols-5,
+            .summary-grid.cols-4,
+            .summary-grid.cols-3,
+            .summary-grid.cols-2 {
+                grid-template-columns: repeat(2, minmax(160px, 1fr));
             }
         }
         
@@ -837,7 +883,9 @@
                 font-size: 1.4rem;
             }
 
-            .summary-grid {
+            .summary-grid.cols-4,
+            .summary-grid.cols-3,
+            .summary-grid.cols-2 {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -863,7 +911,9 @@
                 padding-right: 5px !important;
             }
 
-            .summary-grid {
+            .summary-grid.cols-4,
+            .summary-grid.cols-3,
+            .summary-grid.cols-2 {
                 grid-template-columns: 1fr;
             }
 
@@ -1298,51 +1348,61 @@
                     <h2 class="section-title">Test Summary</h2>
 
                     <!-- Statistics Cards -->
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <i class="bi bi-bug text-danger"></i>
-                            <span class="stat-value value-danger">{{ bugs_found }}</span>
-                            <span class="stat-label">Property Violations</span>
+                    <div class="summary-groups">
+                        <div class="summary-group">
+                            <div class="summary-group-title">Basic Data</div>
+                            <div class="summary-grid cols-5">
+                                <div class="summary-item">
+                                    <i class="bi bi-list-check text-primary"></i>
+                                    <span class="stat-value value-highlight">{{ all_properties_count }}</span>
+                                    <span class="stat-label">All Properties</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-shield text-warning"></i>
+                                    <span class="stat-value value-warning">{{ property_kind_summary.invariant|default(0) }}</span>
+                                    <span class="stat-label">All Invariants</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-check-square text-success"></i>
+                                    <span class="stat-value value-success">{{ executed_properties_count }}</span>
+                                    <span class="stat-label">Executed Properties</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-pie-chart text-info"></i>
+                                    <span class="stat-value value-highlight">{{ "%.2f"|format(coverage_percent) }}%</span>
+                                    <span class="stat-label">Activity Coverage</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-grid-3x3-gap text-info"></i>
+                                    <span class="stat-value value-highlight">{{ widget_coverage_count|default(0) }}</span>
+                                    <span class="stat-label">Widget Coverage</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="summary-item">
-                            <i class="bi bi-shield-exclamation text-warning"></i>
-                            <span class="stat-value value-warning">{{ invariant_violations_count }}</span>
-                            <span class="stat-label">Invariant Violations</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-x-circle text-danger"></i>
-                            <span class="stat-value value-danger">{{ total_crash_count|default(0) }}</span>
-                            <span class="stat-label">Crashes</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-clock text-warning"></i>
-                            <span class="stat-value value-warning">{{ total_anr_count|default(0) }}</span>
-                            <span class="stat-label">ANRs</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-pie-chart text-info"></i>
-                            <span class="stat-value value-highlight">{{ "%.2f"|format(coverage_percent) }}%</span>
-                            <span class="stat-label">Activity Coverage</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-grid-3x3-gap text-info"></i>
-                            <span class="stat-value value-highlight">{{ widget_coverage_count|default(0) }}</span>
-                            <span class="stat-label">Widget Coverage</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-list-check text-primary"></i>
-                            <span class="stat-value value-highlight">{{ all_properties_count }}</span>
-                            <span class="stat-label">All Properties</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-shield text-warning"></i>
-                            <span class="stat-value value-warning">{{ property_kind_summary.invariant|default(0) }}</span>
-                            <span class="stat-label">All Invariants</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-check-square text-success"></i>
-                            <span class="stat-value value-success">{{ executed_properties_count }}</span>
-                            <span class="stat-label">Executed Properties</span>
+                        <div class="summary-group">
+                            <div class="summary-group-title">Problematic Data</div>
+                            <div class="summary-grid cols-4">
+                                <div class="summary-item">
+                                    <i class="bi bi-bug text-danger"></i>
+                                    <span class="stat-value value-danger">{{ bugs_found }}</span>
+                                    <span class="stat-label">Property Violations</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-shield-exclamation text-warning"></i>
+                                    <span class="stat-value value-warning">{{ invariant_violations_count }}</span>
+                                    <span class="stat-label">Invariant Violations</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-x-circle text-danger"></i>
+                                    <span class="stat-value value-danger">{{ total_crash_count|default(0) }}</span>
+                                    <span class="stat-label">Crashes</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-clock text-warning"></i>
+                                    <span class="stat-value value-warning">{{ total_anr_count|default(0) }}</span>
+                                    <span class="stat-label">ANRs</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
