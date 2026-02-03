@@ -62,9 +62,9 @@ class WidgetCoverage:
         with open(output_file, "w", encoding="utf-8") as f:
             f.writelines(f"{w}\n" for w in triggered_widgets)
 
-    def __dump_coverage_log(self, records: Deque[str]):
+    def __dump_coverage_log(self, records: List[dict]):
         with open(self.coverage_log, "w", encoding="utf-8") as f:
-            f.writelines(f"{r}\n" for r in records)
+            f.writelines(f"{w}\n" for w in records)
 
     def _analyze_steps(self, profile_period: int):
         triggered_widgets: Set[str] = set()
@@ -73,6 +73,14 @@ class WidgetCoverage:
         last_recorded_step = -1
         final_steps_count = None  # track the last steps count seen
 
+        def __record_coverage(steps_count: int):
+            coverage_records.append(
+                json.dumps({
+                    "stepsCount": steps_count,
+                    "coverage": len(triggered_widgets),
+                })
+            )
+        
         with open(self.steps_log, "r", encoding="utf-8") as f:
             for line in f:
                 data = json.loads(line)
@@ -83,24 +91,16 @@ class WidgetCoverage:
                 steps_count = int(data.get("MonkeyStepsCount", 0))
                 final_steps_count = steps_count
 
-                if (
-                    steps_count > 0
-                    and steps_count % profile_period == 0
-                    and steps_count != last_recorded_step
-                ):
-                    coverage_records.append(
-                        {
-                            "stepsCount": steps_count,
-                            "coverage": len(triggered_widgets),
-                        }
-                    )
+                if steps_count % profile_period == 0:
+                    __record_coverage(steps_count)
                     last_recorded_step = steps_count
 
-        
-        if final_steps_count is not None and final_steps_count > 0 and final_steps_count != last_recorded_step:
-            coverage_records.append(
-                {"stepsCount": final_steps_count, "coverage": len(triggered_widgets)}
-            )
+            # Record the last step; avoid duplicate if it's already recorded at a period boundary.
+            if (
+                final_steps_count
+                and final_steps_count != last_recorded_step
+            ):
+                __record_coverage(final_steps_count)
 
         return triggered_widgets, coverage_records
 
