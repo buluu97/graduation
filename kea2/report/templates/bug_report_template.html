@@ -458,6 +458,19 @@
             min-width: 80px;
         }
 
+        .property-name-cell {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            column-gap: 8px;
+        }
+
+        .property-name-badge {
+            white-space: normal;
+            text-align: left;
+            word-break: break-word;
+        }
+
         .table-property-stats th:nth-child(8),
         .table-property-stats td:nth-child(8) {
             width: 26%;
@@ -479,27 +492,27 @@
         }
         
         .stat-value {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             display: block;
-            margin-bottom: 0.8rem;
+            margin-bottom: 0.5rem;
             line-height: 1.2;
         }
         
         .stat-label {
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #666;
             display: block;
-            margin-top: 5px;
+            margin-top: 2px;
         }
 
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 992px) {
             .summary-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -513,21 +526,21 @@
 
         .summary-item {
             text-align: center;
-            padding: 20px 16px;
-            border-radius: 12px;
+            padding: 14px 12px;
+            border-radius: 10px;
             background-color: #f8fafc;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .summary-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.08);
         }
 
         .summary-item i {
-            font-size: 2rem;
+            font-size: 1.6rem;
             display: block;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         
         .chart-container {
@@ -607,8 +620,12 @@
             border-radius: 12px;
             background-color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            margin-bottom: 40px;
+            padding: 22px;
+            margin-bottom: 28px;
+        }
+
+        .summary-card .section-title {
+            margin-bottom: 18px;
         }
         
         .link-button {
@@ -1985,12 +2002,14 @@
                             data-errors="{{ test_result.error|default(0) }}">
                             <td>{{ loop.index }}</td>
                             <td>
-                                <span class="badge bg-light text-dark badge-custom">{{ property_name }}</span>
                                 {% set kind_label = test_result.kind|default('unknown') %}
                                 {% set is_invariant = kind_label == 'invariant' %}
-                                <span class="badge ms-1 {% if kind_label == 'property' %}bg-info text-dark{% elif kind_label == 'invariant' %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
-                                    {{ kind_label|capitalize }}
-                                </span>
+                                <div class="property-name-cell">
+                                    <span class="badge me-1 {% if kind_label == 'property' %}bg-info text-dark{% elif kind_label == 'invariant' %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
+                                        {{ kind_label|capitalize }}
+                                    </span>
+                                    <span class="badge bg-light text-dark badge-custom property-name-badge">{{ property_name }}</span>
+                                </div>
                             </td>
                             <td>{{ '/' if is_invariant else test_result.precond_satisfied|default(0) }}</td>
                             <td>{{ '/' if is_invariant else test_result.executed|default(0) }}</td>
@@ -2356,7 +2375,7 @@
 
             var widgetMax = widgetCoverages.length > 0 ? Math.max(...widgetCoverages) : 0;
             var widgetStep = widgetMax > 0 ? Math.max(1, Math.ceil(widgetMax / 10)) : 1;
-            var widgetYAxisMax = widgetMax > 0 ? Math.ceil(widgetMax / widgetStep) * widgetStep : 1;
+            var widgetYAxisMax = widgetMax > 0 ? Math.ceil((widgetMax + widgetStep) / widgetStep) * widgetStep : 1;
 
             var widgetCtx = document.getElementById('widgetCoverageChart').getContext('2d');
             var widgetChart = new Chart(widgetCtx, {

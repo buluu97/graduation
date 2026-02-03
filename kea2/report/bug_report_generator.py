@@ -337,6 +337,13 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 screenshot = step_data.get("Screenshot", "")
                 monkey_steps_count = step_data.get("MonkeyStepsCount", "")
 
+                
+                monkey_steps_count_int = int(monkey_steps_count)
+
+
+                monkey_events_count = monkey_steps_count_int
+                if monkey_steps_count_int > last_monkey_step_count:
+                    last_monkey_step_count = monkey_steps_count_int
 
                 info = step_data.get("Info", {})
 

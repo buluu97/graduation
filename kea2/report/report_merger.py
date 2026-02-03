@@ -214,6 +214,7 @@ class TestReportMerger:
         Extract executed events count and total testing time from steps.log.
         """
         executed_events = 0
+        fallback_events_count = 0
         first_step_time = None
         last_step_time = None
 
@@ -229,7 +230,13 @@ class TestReportMerger:
 
                 step_type = step_data.get("Type", "")
                 if step_type in {"Monkey", "Fuzz"}:
-                    executed_events += 1
+                    fallback_events_count += 1
+
+                step_count_raw = step_data.get("MonkeyStepsCount", "")
+                step_count = int(step_count_raw)
+
+                if step_count > executed_events:
+                    executed_events = step_count
 
                 step_time = step_data.get("Time")
                 if step_time:
@@ -247,6 +254,9 @@ class TestReportMerger:
             hours, remainder = divmod(total_seconds, 3600)
             minutes, seconds = divmod(remainder, 60)
             total_testing_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+        if executed_events == 0 and fallback_events_count > 0:
+            executed_events = fallback_events_count
 
         return executed_events, total_testing_time
 
