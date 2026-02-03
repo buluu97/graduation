@@ -613,13 +613,12 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         widget_coverage_trend = []
         with open(widget_coverage_log, "r", encoding="utf-8") as f:
-            for line_number, line in enumerate(f, 1):
+            for line in f:
                 line = line.strip()
                 if not line:
                     continue
                 record = json.loads(line)
-                if isinstance(record, dict):
-                    widget_coverage_trend.append(record)
+                widget_coverage_trend.append(record)
 
         return widget_coverage_trend
 

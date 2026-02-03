@@ -556,6 +556,32 @@
             background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
             border-radius: 3px;
         }
+
+        .section-title .summary-link {
+            margin-left: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: #1d4ed8;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            padding: 4px 10px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .section-title .summary-link:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.45);
+            color: #1e3a8a;
+        }
+
+        .section-title .summary-link i {
+            font-size: 0.9em;
+        }
         
         .section-block {
             margin-bottom: 70px;
@@ -1465,7 +1491,13 @@
 
         <!-- Widget Coverage Trend Chart -->
         <div class="section-block">
-            <h2 class="section-title">Widget Coverage Trend</h2>
+            <h2 class="section-title">
+                Widget Coverage Trend
+                <a href="output_{{ log_stamp }}/widget_coverage_report.txt" class="summary-link" title="Open widget_coverage_report.txt">
+                    Widget Coverage Report
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+            </h2>
             <div class="chart-container">
                 <canvas id="widgetCoverageChart"></canvas>
             </div>
