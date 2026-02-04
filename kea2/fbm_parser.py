@@ -578,13 +578,12 @@ class FBMMerger:
         Returns True on success (or if nothing to do), False on failure.
         """
         try:
-            from kea2.adbUtils import pull_file
-        except Exception:
-            try:
-                from adbUtils import pull_file  # type: ignore
-            except Exception as e:
-                print("ADB utilities not available:", e)
-                return False
+            # Use upstream adbutils directly (avoids relying on removed wrapper helpers)
+            from adbutils import adb
+            dev = adb.device(device) if device else adb.device()
+        except Exception as e:
+            print("ADB utilities (adbutils) not available:", e)
+            return False
 
         pc_dir = self._pc_dir
         pc_dir.mkdir(parents=True, exist_ok=True)
@@ -597,9 +596,9 @@ class FBMMerger:
         remote = self._remote_fbm_path(package_name)
         try:
             print(f"Attempting to pull {remote} to {pulled_tmp}")
-            pull_file(remote, str(pulled_tmp), device=device, transport_id=transport_id)
+            dev.sync.pull(remote, str(pulled_tmp))
         except Exception as e:
-            print(f"pull_file failed for {remote}: {e}")
+            print(f"dev.sync.pull failed for {remote}: {e}")
 
         if not pulled_tmp.exists() or pulled_tmp.stat().st_size == 0:
             print(f"No FBM on device for {package_name}, nothing merged to PC.")
@@ -617,7 +616,7 @@ class FBMMerger:
         try:
             # attempt to pull snapshot (may fail silently)
             try:
-                pull_file(snapshot_remote, str(pulled_snap_tmp), device=device, transport_id=transport_id)
+                dev.sync.pull(snapshot_remote, str(pulled_snap_tmp))
             except Exception:
                 # snapshot may not exist on device; ignore error and proceed (treat as empty)
                 pass
@@ -676,25 +675,25 @@ class FBMMerger:
         src = self._remote_fbm_path(package_name)
         dst = snapshot_remote or f"/sdcard/fastbot_{package_name}.snapshot.fbm"
         try:
-            from kea2.adbUtils import adb_shell, pull_file, push_file
-        except Exception:
-            try:
-                from adbUtils import adb_shell, pull_file, push_file  # type: ignore
-            except Exception as e:
-                print("ADB utilities not available:", e)
-                return False
+            # Prefer using adbutils directly for shell commands
+            from adbutils import adb
+            dev = adb.device(device) if device else adb.device()
+        except Exception as e:
+            print("ADB utilities not available:", e)
+            return False
 
         try:
             print(f"Creating device snapshot: cp {src} {dst}")
-            adb_shell(["cp", src, dst], device=device, transport_id=transport_id)
+            # use device.shell (string) to avoid subprocess-specific flags like -t
+            dev.shell(f'cp "{src}" "{dst}"')
             return True
         except Exception as e:
             print(f"adb shell cp failed ({e}), trying pull/push fallback")
             # fallback: pull then push to dst
             try:
                 pc_tmp = os.path.join(self._pc_dir, f"fastbot_{package_name}.snapshot.from_device.fbm")
-                pull_file(src, pc_tmp, device=device, transport_id=transport_id)
-                push_file(pc_tmp, dst, device=device, transport_id=transport_id)
+                dev.sync.pull(src, pc_tmp)
+                dev.sync.push(pc_tmp, dst)
                 try:
                     os.remove(pc_tmp)
                 except Exception:
@@ -864,8 +863,4 @@ class FBMMerger:
         except LockTimeoutError:
             print(f"Timeout acquiring lock to merge/apply delta into {pc_fbm}")
             return False
-
-
-
-
 

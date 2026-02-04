@@ -6,3 +6,4 @@ from .state import state, invariant
 from .kea2_api import Kea2Tester
 from .u2Driver import U2Driver
 from .state import state
+from .fbm_plugin import fbm_run_hook
