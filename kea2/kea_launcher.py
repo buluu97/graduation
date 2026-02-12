@@ -148,7 +148,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="download_fbm",
         action="store_true",
         required=False,
-        help="When set, pull device FBM(s) at start, merge with PC FBM and push merged back to device",
+        help="(Experimental) FBM merge at startup. When enabled, pull FBM(s) from the device at startup, merge them with local PC FBM data.",
     )
 
     parser.add_argument(
@@ -156,7 +156,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="upload_fbm",
         action="store_true",
         required=False,
-        help="When set, after run finishes pull device FBM(s) and merge into PC storage",
+        help="(Experimental) FBM sync after run. When enabled, pull FBM(s) from the device after the run finishes and merge them into local PC storage.",
     )
 
     parser.add_argument(
