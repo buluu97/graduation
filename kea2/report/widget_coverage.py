@@ -1,8 +1,7 @@
 from pathlib import Path
 import json
 from typing import Deque, Set, List, TYPE_CHECKING
-from collections import deque
-
+from ..utils import catchException
 
 if TYPE_CHECKING:
     from ..keaUtils import Options
@@ -104,60 +103,48 @@ class WidgetCoverage:
 
         return triggered_widgets, coverage_records
 
+    @catchException("Error getting widget representation")
     def __get_widget_repr(self, data):
-        try:
-            activity = data.get("Activity", "")
-            if not activity:
-                return ""
-
-            info_str = data.get("Info", "")
-            if not info_str:
-                return ""
-            
-            try:
-                act_info = json.loads(info_str)
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse Info JSON: {e}")
-                return ""
-
-            if act_info.get("act") == "BACK":
-                return (
-                    f"activity:{activity}"
-                    f"|class:KEY_BACK"
-                    f"|resourceId:KEY_BACK"
-                    f"|content-desc:KEY_BACK|"
-                )
-
-            widget_str = act_info.get("widget", "")
-            if not widget_str or widget_str == "":
-                return ""
-            
-            try:
-                act_widget = json.loads(widget_str)
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse widget JSON: {e}")
-                return ""
-
-            className = act_widget.get("class", "")
-            resource_id = act_widget.get("resource-id", "")
-            description = act_widget.get("content-desc", "")
-
-            if not any((className, resource_id, description)):
-                return ""
-
-            normalized_res_id = self.__normalize_resource_id(resource_id)
-
-            widget_repr = (
-                f"activity:{activity}"
-                f"|class:{className}"
-                f"|resourceId:{normalized_res_id}"
-                f"|content-desc:{description}|"
-            )
-            return widget_repr
-            
-        except Exception as e:
-            logger.error(f"Unexpected error in __get_widget_repr: {e}")
+        activity = data.get("Activity", "")
+        if not activity:
             return ""
+
+        info_str = data.get("Info", "")
+        if not info_str:
+            return ""
+        
+        act_info = json.loads(info_str)
+
+        if act_info.get("act") == "BACK":
+            return (
+                f"activity:{activity}"
+                f"|class:KEY_BACK"
+                f"|resourceId:KEY_BACK"
+                f"|content-desc:KEY_BACK|"
+            )
+
+        widget_str = act_info.get("widget", "")
+        if not widget_str or widget_str == "":
+            return ""
+
+        act_widget = json.loads(widget_str)
+
+        className = act_widget.get("class", "")
+        resource_id = act_widget.get("resource-id", "")
+        description = act_widget.get("content-desc", "")
+
+        if not any((className, resource_id, description)):
+            return ""
+
+        normalized_res_id = self.__normalize_resource_id(resource_id)
+
+        widget_repr = (
+            f"activity:{activity}"
+            f"|class:{className}"
+            f"|resourceId:{normalized_res_id}"
+            f"|content-desc:{description}|"
+        )
+        return widget_repr
 
     def __normalize_resource_id(self, resource_id: str) -> str:
         if not resource_id:
