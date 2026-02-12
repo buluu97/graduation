@@ -204,30 +204,20 @@ def extra_args_info_logger(args):
 
 def driver_info_logger(args):
     print("[INFO] Driver Settings:", flush=True)
-    if args.serial:
-        print("  serial:", args.serial, flush=True)
-    if args.transport_id:
-        print("  transport_id:", args.transport_id, flush=True)
-    if args.package_names:
-        print("  package_names:", args.package_names, flush=True)
-    if args.agent:
-        print("  agent:", args.agent, flush=True)
-    if args.running_minutes:
-        print("  running_minutes:", args.running_minutes, flush=True)
-    if args.throttle_ms:
-        print("  throttle_ms:", args.throttle_ms, flush=True)
-    if args.log_stamp:
-        print("  log_stamp:", args.log_stamp, flush=True)
+
+    for name, value in vars(args).items():
+        if name in ["take_screenshots", "pre_failure_screenshots", "post_failure_screenshots",
+                    "extra", "unittest_args", "propertytest_args", "subparser"]:
+            continue
+        if value:
+            print(f"  {name}: {value}", flush=True)
+    
     if args.take_screenshots:
         print("  take_screenshots:", args.take_screenshots, flush=True)
         if args.pre_failure_screenshots:
             print("  pre_failure_screenshots:", args.pre_failure_screenshots, flush=True)
         if args.post_failure_screenshots:
             print("  post_failure_screenshots:", args.post_failure_screenshots, flush=True)
-    if args.max_step:
-        print("  max_step:", args.max_step, flush=True)
-    if args.restart_app_period > 0:
-        print("  restart_app_period:", args.restart_app_period, flush=True)
 
 
 def parse_args(argv: List):
@@ -300,8 +290,8 @@ def run(args=None):
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,
-        upload_fbm=getattr(args, 'upload_fbm', False),
-        download_fbm=getattr(args, 'download_fbm', False),
+        upload_fbm=args.upload_fbm,
+        download_fbm=args.download_fbm,
     )
 
 

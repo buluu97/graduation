@@ -18,7 +18,6 @@ from unittest import main as unittest_main
 from dataclasses import dataclass, asdict, fields, is_dataclass
 from datetime import datetime
 from fnmatch import fnmatchcase
-from .fbm_plugin import fbm_run_hook, create_device_snapshots, finalize_and_merge
 import uiautomator2 as u2
 
 
@@ -33,6 +32,7 @@ from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
 from .state import invariant, INVARIANT_MARKER
 from .result import KeaJsonResult, KeaTextTestResult
+from .fbm_plugin import merge_fbm
 
 logger = getLogger(__name__)
 hybrid_mode = ContextVar("hybrid_mode", default=False)
@@ -400,12 +400,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         logger.info(f"Result file: {stamp_manager.result_file}")
         logger.info(f"Property execution info file: {stamp_manager.prop_exec_file}")
 
-    @fbm_run_hook
+    @merge_fbm
     def run(self, test):
 
-
         self.validateAndCollectProperties(test)
-
 
         if len(self.allProperties) == 0:
             logger.warning("No property has been found.")
