@@ -199,7 +199,7 @@ kea2 run -h
 
 ```bash
 # 启动Kea2并加载单个脚本 quicktest.py。
-kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 propertytest discover -p quicktest.py
 ```
 
 ## 特性 3（运行增强版Fastbot：加入自动断言）

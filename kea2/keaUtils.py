@@ -109,15 +109,13 @@ class Options:
     Kea and Fastbot configurations
     """
     # the driver_name in script (if self.d, then d.) 
-    driverName: str = None
+    driverName: str = "d"
     # list of package names. Specify the apps under test
     packageNames: List[str] = None
     # target device
     serial: str = None
     # target device with transport_id
     transport_id: str = None
-    # test agent. "native" for stage 1 and "u2" for stage 1~3
-    agent: Literal["u2", "native"] = "u2"
     # max step in exploration (availble in stage 2~3)
     maxStep: Union[str, float] = float("inf")
     # time(mins) for exploration
@@ -164,8 +162,7 @@ class Options:
         import logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)
 
-        if self.agent == "u2":
-            self._set_driver()
+        self._set_driver()
 
         self.log_stamp = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
         self._sanitize_stamp(self.log_stamp)
@@ -236,9 +233,6 @@ class Options:
         self.throttle = int(self.throttle)
         if self.throttle < 0:
             raise ValueError("--throttle should be greater than or equal to 0")
-
-        if self.agent == 'u2' and self.driverName == None:
-            raise ValueError("--driver-name should be specified when customizing script in --agent u2")
 
     def _set_driver(self):
         target_device = dict()
@@ -556,8 +550,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
                 result.logSummary()
 
-                if self.options.agent == "u2":
-                    self._generate_bug_report()
+                self._generate_bug_report()
 
         self.tearDown()
         return result

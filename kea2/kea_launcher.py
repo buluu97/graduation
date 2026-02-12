@@ -54,15 +54,6 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
     parser.add_argument(
-        "--agent",
-        dest="agent",
-        type=str,
-        default="u2",
-        choices=["native", "u2"],
-        help="By default, `u2` is used and supports all the three important features of Kea2. If you hope to run the orignal Fastbot, please use `native`.",
-    )
-
-    parser.add_argument(
         "--running-minutes",
         dest="running_minutes",
         type=int,
@@ -76,7 +67,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="max_step",
         type=int,
         required=False,
-        help="The maxium number of monkey events to send (only available in `--agent u2`)",
+        help="The maxium number of monkey events to send",
     )
 
     parser.add_argument(
@@ -92,7 +83,18 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="driver_name",
         type=str,
         required=False,
+        default="d",
         help="The name of driver used in the kea2's scripts. If `--driver-name d` is specified, you should use `d` to interact with a device, e..g, `self.d(..).click()`. ",
+    )
+
+    # Deprecated argument placeholder: keep parsing to provide a clear error message.
+    parser.add_argument(
+        "--agent",
+        dest="agent",
+        type=str,
+        required=False,
+        default=None,
+        help=argparse.SUPPRESS,
     )
 
     parser.add_argument(
@@ -192,8 +194,6 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
 
 
 def extra_args_info_logger(args):
-    if args.agent == "native":
-        print("[Warning] Property not availble in native agent.", flush=True)
     if args.unittest_args:
         print("Captured unittest args:", args.unittest_args, flush=True)
     if args.propertytest_args:
@@ -232,11 +232,13 @@ def parse_args(argv: List):
 def _sanitize_args(args):
     args.mode = None
     args.propertytest_args = None
-    if args.agent == "u2" and not args.driver_name:
+    if args.agent is not None:
+        raise ValueError("--agent is deprecated and native mode is no longer supported. Please remove this parameter.")
+    if not args.driver_name:
         if args.extra == []:
             args.driver_name = "d"
         else:
-            raise ValueError("--driver-name should be specified when customizing script in --agent u2")
+            raise ValueError("--driver-name should be specified when customizing script")
     
     extra_args = {
         "unittest": [],
@@ -269,7 +271,6 @@ def run(args=None) -> ReturnCode:
 
     from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader, KeaRuntimeError
     options = Options(
-        agent=args.agent,
         driverName=args.driver_name,
         packageNames=args.package_names,
         serial=args.serial,
@@ -299,7 +300,7 @@ def run(args=None) -> ReturnCode:
         HybridTestRunner.setOptions(options)
         testRunner = HybridTestRunner
         argv = ["python3 -m unittest"] + options.unittest_args
-    if not is_hybrid_test or options.agent == "u2":
+    if not is_hybrid_test:
         KeaTestRunner.setOptions(options)
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args

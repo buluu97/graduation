@@ -205,7 +205,7 @@ class FastbotManager:
             "/sdcard/kea2-thirdpart.jar",
             "exec", "app_process",
             "/system/bin", "com.android.commands.monkey.Monkey",
-            "--agent-u2" if self.options.agent == "u2" else "--agent",
+            "--agent-u2",
             "reuseq",
             "--running-minutes", f"{self.options.running_mins}",
             "--throttle", f"{self.options.throttle}",

@@ -140,11 +140,10 @@ You can launch Kea2 by shell commands `kea2 run`.
 | -t | The transport id of your device, which can be found by `adb devices -l` | |
 | -p | Specify the target app package name(s) to test (e.g., com.example.app). *Supports multiple packages: `-p pkg1 pkg2 pkg3`* | 
 | -o | The ouput directory for logs and results | `output` |
-| --agent |  {native, u2}. By default, `u2` is used and supports all the three important features of Kea2. If you hope to run the orignal Fastbot, please use `native`.| `u2` |
 | --running-minutes | The time (in minutes) to run Kea2 | `10` |
-| --max-step | The maxium number of monkey events to send (only available in `--agent u2`) | `inf` (infinite) |
+| --max-step | The maxium number of monkey events to send | `inf` (infinite) |
 | --throttle | The delay time (in milliseconds) between two monkey events | `200` |
-| --driver-name | The name of driver used in the kea2's scripts. If `--driver-name d` is specified, you should use `d` to interact with a device, e..g, `self.d(..).click()`. |
+| --driver-name | The name of driver used in the kea2's scripts. If `--driver-name d` is specified, you should use `d` to interact with a device, e..g, `self.d(..).click()`. | `d` |
 | --log-stamp | the stamp for log file and result file. (e.g., if `--log-stamp 123` is specified, the log files will be named as `fastbot_123.log` and `result_123.json`.) | current time stamp |
 | --profile-period | The period (in the numbers of monkey events) to profile coverage and collect UI screenshots. Specifically, the UI screenshots are stored on the SDcard of the mobile device, and thus you need to set an appropriate value according to the available device storage. | `25` |
 | --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
@@ -171,10 +170,10 @@ Sample shell commands:
 
 ```bash
 # Launch Kea2 and load one single script quicktest.py.
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 propertytest discover -p quicktest.py
 
 # Launch Kea2 and load multiple scripts from the directory mytests/omni_notes
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -s mytests/omni_notes -p test*.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 propertytest discover -s mytests/omni_notes -p test*.py
 ```
 
 #### **1.2.2 (Expirimental Feature) `unitest` sub-command (hybrid test)**
@@ -189,7 +188,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 If you need to pass extra arguments to the underlying Fastbot, append `--` after the regular arguments, then list the extra arguments. For example, to set the touch event percentage to 30%, run:
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 -- --pct-touch 30 unittest discover -p quicktest.py
 ```
 ### Return Code
 `kea2 run` (and `python -m kea2.cli run`) exits with:
@@ -227,7 +226,6 @@ if __name__ == "__main__":
             maxStep=100,
             # running_mins=10,  # specify the maximal running time in minutes, default value is 10m
             # throttle=200,   # specify the throttle in milliseconds, default value is 200ms
-            # agent='native'  # 'native' for running the vanilla Fastbot
         )
     )
     # Declare the KeaTestRunner
@@ -237,54 +235,6 @@ if __name__ == "__main__":
 We can directly run the script `mytest.py` to launch Kea2, e.g.,
 ```bash
 python3 mytest.py
-```
-
-Here's all the available options in `Options`.
-
-```python
-    # the driver_name in script (if self.d, then d.) 
-    driverName: str = None
-    Driver: AbstractDriver = None
-    # list of package names. Specify the apps under test
-    packageNames: List[str] = None
-    # target device
-    serial: str = None
-    # target device with transport_id
-    transport_id: str = None
-    # test agent. "native" for stage 1 and "u2" for stage 1~3
-    agent: Literal["u2", "native"] = "u2"
-    # max step in exploration (availble in stage 2~3)
-    maxStep: Union[str, float] = float("inf")
-    # time(mins) for exploration
-    running_mins: int = 10
-    # time(ms) to wait when exploring the app
-    throttle: int = 200
-    # the output_dir for saving logs and results
-    output_dir: str = "output"
-    # the stamp for log file and result file, default: current time stamp
-    log_stamp: str = None
-    # the profiling period to get the coverage result.
-    profile_period: int = 25
-    # take screenshots for every step
-    take_screenshots: bool = False
-    # Screenshots before failure (Dump n screenshots before failure. 0 means take screenshots for every step)
-    pre_failure_screenshots: int = 0
-    # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
-    post_failure_screenshots: int = 0
-    # The root of output dir on device
-    device_output_root: str = "/sdcard/.kea2"
-    # the debug mode
-    debug: bool = False
-    # Activity WhiteList File
-    act_whitelist_file: str = None
-    # Activity BlackList File
-    act_blacklist_file: str = None
-    # propertytest sub-commands args (eg. discover -s xxx -p xxx)
-    propertytest_args: str = None
-    # unittest sub-commands args (Feat 4)
-    unittest_args: List[str] = None
-    # Extra args (directly passed to fastbot)
-    extra_args: List[str] = None
 ```
 
 
@@ -386,7 +336,7 @@ You can enable debug mode by adding the `-d` option when using Kea2. In debug mo
 
 > ```bash
 > # add -d to enable debug mode
-> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
+> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 unittest discover -p quicktest.py
 > ```
 
 ## Examining the running statistics of scripts
