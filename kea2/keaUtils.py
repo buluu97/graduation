@@ -152,16 +152,14 @@ class Options:
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
     extra_args: List[str] = None
-    # Whether to pull device FBM and merge into PC after test finishes
-    upload_fbm: bool = False
     # Whether to pull device FBM(s) at start, merge with PC FBM and push merged back to device
-    download_fbm: bool = False
+    merge_fbm: bool = False
 
     def __setattr__(self, name, value):
         if value is None:
             return
         super().__setattr__(name, value)
-    
+
     def __post_init__(self):
         import logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)

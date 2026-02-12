@@ -26,7 +26,7 @@ def create_device_snapshots(options: "Options") -> None:
     """Create on-device snapshot copies of fastbot fbm files for configured packages.
 
     Behavior:
-    - Only runs when options.download_fbm is truthy.
+    - Only runs when options.merge_fbm is truthy.
     - Uses ADBDevice.shell (no subprocess) and retries cp up to max_retries.
     - Logs errors and never raises to avoid blocking startup.
     """
@@ -53,7 +53,7 @@ def create_device_snapshots(options: "Options") -> None:
         r = ADBDevice().shell(verify_cmd)
         if not "OK" in r:
             raise FBMSanapshotCreationError("Failed to create ")
-        logger.info(f"Snapshot created on device for package {pkg}: {dst}", flush=True)
+        logger.info(f"Snapshot created on device for package {pkg}: {dst}")
             
 
 
@@ -85,14 +85,14 @@ def merge_fbm(func):
     @functools.wraps(func)
     def wrapper(self: "KeaTestRunner", *args, **kwargs):
         # Pre-run snapshot creation
-        if self.options.download_fbm:
+        if self.options.merge_fbm:
             create_device_snapshots(self.options)
 
         try:
             return func(self, *args, **kwargs)
         finally:
             # Post-run finalize/merge
-            if self.options.upload_fbm:
+            if self.options.merge_fbm:
                 finalize_and_merge(self.options)
 
     return wrapper

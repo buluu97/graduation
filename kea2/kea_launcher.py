@@ -151,20 +151,13 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
 
     # FBM sync options
     parser.add_argument(
-        "--download-fbm",
-        dest="download_fbm",
+        "--merge-fbm",
+        dest="merge_fbm",
         action="store_true",
         required=False,
         help="(Experimental) FBM merge at startup. When enabled, pull FBM(s) from the device at startup, merge them with local PC FBM data.",
     )
 
-    parser.add_argument(
-        "--upload-fbm",
-        dest="upload_fbm",
-        action="store_true",
-        required=False,
-        help="(Experimental) FBM sync after run. When enabled, pull FBM(s) from the device after the run finishes and merge them into local PC storage.",
-    )
 
     parser.add_argument(
         "--act-whitelist-file",
@@ -297,8 +290,7 @@ def run(args=None) -> ReturnCode:
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,
-        upload_fbm=args.upload_fbm,
-        download_fbm=args.download_fbm,
+        merge_fbm=args.merge_fbm,
     )
 
 
