@@ -2,6 +2,13 @@ import sys
 import argparse
 import unittest
 from typing import List
+from enum import IntEnum
+
+
+class ReturnCode(IntEnum):
+    SUCCESS = 0
+    TEST_FAILURE = 1
+    ERROR = 2
 
 
 def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"):
@@ -260,14 +267,14 @@ def _sanitize_args(args):
     args.extra = extra_args["extra"]
 
 
-def run(args=None):
+def run(args=None) -> ReturnCode:
     if args is None:
         args = parse_args(sys.argv[1:])
     _sanitize_args(args)
     driver_info_logger(args)
     extra_args_info_logger(args)
 
-    from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader
+    from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader, KeaRuntimeError
     options = Options(
         agent=args.agent,
         driverName=args.driver_name,
@@ -304,4 +311,23 @@ def run(args=None):
         KeaTestRunner.setOptions(options)
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args
-    unittest.main(module=None, argv=argv, testRunner=testRunner, testLoader=keaTestLoader)
+
+    try:
+        program = unittest.main(
+            module=None,
+            argv=argv,
+            testRunner=testRunner,
+            testLoader=keaTestLoader,
+            exit=False,
+        )
+    except KeaRuntimeError:
+        return ReturnCode.ERROR
+    except Exception:
+        return ReturnCode.ERROR
+
+    result = getattr(program, "result", None)
+    if isinstance(result, int):
+        return ReturnCode.TEST_FAILURE if result != 0 else ReturnCode.SUCCESS
+    if result is None or not hasattr(result, "wasSuccessful"):
+        return ReturnCode.ERROR
+    return ReturnCode.SUCCESS if result.wasSuccessful() else ReturnCode.TEST_FAILURE

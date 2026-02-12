@@ -199,7 +199,7 @@ def cmd_run(args):
 
     check_config_compatibility()
 
-    run(args)
+    return run(args)
 
 
 _commands = [
@@ -318,8 +318,8 @@ def main():
         logger.debug("args: %s", args)
 
     if args.subparser:
-        actions[args.subparser](args)
-        return
+        ret = actions[args.subparser](args)
+        sys.exit(0 if ret is None else int(ret))
 
     parser.print_help()
 

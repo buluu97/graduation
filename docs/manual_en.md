@@ -191,6 +191,17 @@ If you need to pass extra arguments to the underlying Fastbot, append `--` after
 ```bash
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
 ```
+### Return Code
+`kea2 run` (and `python -m kea2.cli run`) exits with:
+
+| code | meaning |
+| --- | --- |
+| `0` | Success. Test run completed without test failures. |
+| `1` | Test failure. At least one test failed. |
+| `2` | Unexpected runtime error. |
+
+Notes:
+- `KeyboardInterrupt` (Ctrl-C) is treated as a normal stop. It is not classified as an unexpected runtime error.
 
 ### 2. Launch Kea2 by `unittest.main`
 

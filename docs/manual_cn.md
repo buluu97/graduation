@@ -188,6 +188,18 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
 ```
 
+### 返回码
+`kea2 run`（以及 `python -m kea2.cli run`）的退出码如下：
+
+| code | 含义 |
+| --- | --- |
+| `0` | 成功。测试运行完成且没有失败用例。 |
+| `1` | 测试失败。至少有一个测试失败。 |
+| `2` | 非预期运行时错误。 |
+
+说明：
+- `KeyboardInterrupt`（Ctrl-C）按正常停止处理，不归类为非预期运行时错误。
+
 ### 2. 通过 `unittest.main` 启动 Kea2
 
 像 unittest 一样，可以通过 `unittest.main` 方法启动 Kea2。
