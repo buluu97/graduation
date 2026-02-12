@@ -9,8 +9,12 @@ from .utils import getLogger
 
 logger = getLogger(__name__)
 
-PATTERN_EXCEPTION = re.compile(r"\[Fastbot\].+Internal\serror\n([\s\S]*)")
+PATTERN_EXCEPTION = re.compile(r"\[Fastbot\].+Internal\serror\n(?P<exception_body>[\s\S]*)")
 PATTERN_STATISTIC = re.compile(r".+Monkey\sis\sover!\n([\s\S]+)")
+PATTERN_ANR = re.compile(
+    r"(?:\[Fastbot\]\*\*\* ERROR \*\*\* NOT RESPONDING: (?P<pkg>[\w.]+) \(pid \d+\)\n)?"
+    r"\[Fastbot\]\*\*\* ERROR \*\*\* ANR in (?P<anr_pkg>[\w.]+) \((?P<activity>[^)]+)\)"
+)
 
 
 def thread_excepthook(args):
@@ -41,13 +45,23 @@ class LogWatcher:
     def parse_log(self, content):
         exception_match = PATTERN_EXCEPTION.search(content)
         if exception_match:
-            exception_body = exception_match.group(1).strip()
+            exception_body = exception_match.group("exception_body").strip()
             if exception_body:
                 raise RuntimeError(
                     "[Error] Fatal Execption while running fastbot:\n" + 
                     exception_body + 
                     f"\nSee {self.log_file} for details."
                 )
+
+        anr_match = PATTERN_ANR.search(content)
+        if anr_match:
+            package = anr_match.group("anr_pkg") or anr_match.group("pkg") or "unknown"
+            activity = anr_match.group("activity") or "unknown"
+            print(
+                "[INFO] ANR detected while running fastbot:\n"
+                f"package: {package}, activity: {activity}",
+                flush=True
+            )
         
         statistic_match = PATTERN_STATISTIC.search(content)
         if statistic_match and not self.statistic_printed:
@@ -55,9 +69,10 @@ class LogWatcher:
             if statistic_body:
                 self.statistic_printed = True
                 print(
-                    "[INFO] Fastbot exit:\n" + 
-                    statistic_body
-                , flush=True)
+                    "[INFO] Fastbot exit:\n" +
+                    statistic_body, 
+                    flush=True
+                )
 
     def __init__(self, log_file):
         logger.info(f"Watching log: {log_file}")
