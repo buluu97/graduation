@@ -269,7 +269,8 @@ def run(args=None) -> ReturnCode:
     driver_info_logger(args)
     extra_args_info_logger(args)
 
-    from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader, KeaRuntimeError
+    from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader
+    from kea2.keaUtils import KeaRuntimeError
     options = Options(
         driverName=args.driver_name,
         packageNames=args.package_names,
