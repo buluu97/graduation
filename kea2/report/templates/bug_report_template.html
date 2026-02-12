@@ -424,7 +424,7 @@
         .table-property-stats th:nth-child(2),
         .table-property-stats td:nth-child(2) {
             width: 22%;
-            min-width: 200px;
+            min-width: 260px;
             text-align: left;
         }
 
@@ -459,16 +459,20 @@
         }
 
         .property-name-cell {
-            display: grid;
-            grid-template-columns: auto 1fr;
+            display: flex;
             align-items: center;
-            column-gap: 8px;
+            gap: 8px;
+            min-width: 0;
         }
 
         .property-name-badge {
+            display: block;
+            flex: 1 1 auto;
+            min-width: 0;
             white-space: normal;
             text-align: left;
-            word-break: break-word;
+            word-break: normal;
+            overflow-wrap: break-word;
         }
 
         .table-property-stats th:nth-child(8),
@@ -881,15 +885,24 @@
         }
 
         .table-violations th:nth-child(2), .table-violations td:nth-child(2) { /* Property Name */
-            width: 40%;
-            min-width: 200px;
+            width: 45%;
+            min-width: 260px;
             text-align: left;
         }
 
         .table-violations th:nth-child(3), .table-violations td:nth-child(3) { /* Interaction Scenario Pages */
-            width: 50%;
+            width: 45%;
             min-width: 150px;
             text-align: center;
+        }
+
+        .table-violations td:nth-child(2) .badge-custom {
+            display: inline-block;
+            max-width: 100%;
+            white-space: normal;
+            word-break: normal;
+            overflow-wrap: break-word;
+            text-align: left;
         }
         
         @media (max-width: 768px) {
