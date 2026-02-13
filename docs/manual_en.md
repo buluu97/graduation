@@ -196,8 +196,10 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 | code | meaning |
 | --- | --- |
 | `0` | Success. Test run completed without test failures. |
-| `1` | Test failure. At least one test failed. |
-| `2` | Unexpected runtime error. |
+| `1` | Property violation detected. |
+| `2` | Crash or ANR detected. |
+| `3` | Both property violation and Crash or ANR detected. |
+| `4` | Unexpected runtime error. |
 
 Notes:
 - `KeyboardInterrupt` (Ctrl-C) is treated as a normal stop. It is not classified as an unexpected runtime error.
