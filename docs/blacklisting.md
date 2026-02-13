@@ -61,7 +61,6 @@ def global_block_tree(d: "Device"):
     """
     Specify UI widget trees to be blocked globally during testing.
     Returns a list of root nodes whose entire subtrees will be blocked from exploration.
-    This function is only available in 'u2 agent' mode.
     """
     return [d(text="trees to block"), d.xpath(".//node[@text='tree to block']")]
 ```
@@ -255,7 +254,7 @@ Once specified, you don't need to push the file to the device yourself; we'll ha
    
    Example command to run
    ```
-   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --act-whitelist-file /sdcard/awl.strings --driver-name d unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-whitelist-file /sdcard/awl.strings unittest discover -p quicktest.py
    ```
 
 ### Activity Blacklist Configuration
@@ -279,12 +278,11 @@ Once specified, you don't need to push the file to the device yourself; we'll ha
    
    Example command to run
    ```
-   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --act-blacklist-file /sdcard/abl.strings --driver-name d unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-blacklist-file /sdcard/abl.strings unittest discover -p quicktest.py
    ```
 
 
 ### Important Notes
 - Whitelist and blacklist **cannot be set at the same time**. It follows the principle: either whitelist or blacklist. If a whitelist is set, all activities outside of it are considered blacklisted.
 - Through hook in Fastbot, activity launches and switches are monitored. If a blacklisted activity is about to launch, the launch will be blocked, which makes the UI seem unresponsive to the transition action.
-
 

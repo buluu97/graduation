@@ -57,7 +57,6 @@ def global_block_tree(d: "Device"):
     """
     指定测试过程中全局屏蔽的 UI 控件树。
     返回根节点列表，整个子树将被屏蔽不被探索。
-    该函数仅在 'u2 agent' 模式下可用。
     """
     return [d(text="trees to block"), d.xpath(".//node[@text='tree to block']")]
 ```
@@ -245,7 +244,7 @@ d(text="Alarm", className="android.widget.Button")
    
    示例运行命令：
    ```
-   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --act-whitelist-file /sdcard/awl.strings --driver-name d unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-whitelist-file /sdcard/awl.strings unittest discover -p quicktest.py
    ```
 
 ### Activity黑名单配置
@@ -269,7 +268,7 @@ d(text="Alarm", className="android.widget.Button")
    
    示例运行命令：
    ```
-   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --act-blacklist-file /sdcard/abl.strings --driver-name d unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-blacklist-file /sdcard/abl.strings unittest discover -p quicktest.py
    ```
 
 ### 重要说明

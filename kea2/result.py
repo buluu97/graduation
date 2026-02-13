@@ -34,6 +34,7 @@ class KeaJsonResult(TextTestResult):
     lastInvariantInfo: PropertyExecutionInfo
     executionInfoBuffer: Deque["PropertyExecutionInfo"] = deque()
     currentStepsCount: int
+    has_crash_or_anr: bool = False
 
     @classmethod
     def setProperties(cls, allProperties: Dict):

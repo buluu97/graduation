@@ -135,11 +135,10 @@ def invariant_non_negative_word_count(self):
 | -t | 设备的传输 ID，可通过 `adb devices -l` 查看 |  |
 | -p | 指定被测试应用的包名（例如 com.example.app）。*支持多个包：`-p pkg1 pkg2 pkg3`* |  |
 | -o | 日志和结果输出目录 | `output` |
-| --agent | {native, u2}。默认使用 `u2`，支持 Kea2 三个重要功能。如果想运行原生 Fastbot，请使用 `native`。 | `u2` |
 | --running-minutes | 运行 Kea2 的时间（分钟） | `10` |
-| --max-step | 发送的最大随机事件数（仅在 `--agent u2` 有效） | `inf`（无限） |
+| --max-step | 发送的最大随机事件数 | `inf`（无限） |
 | --throttle | 两次随机事件之间的延迟时间（毫秒） | `200` |
-| --driver-name | Kea2 脚本中使用的驱动名称。如果指定 `--driver-name d`，则需用 `d` 操作设备，例如 `self.d(..).click()`。 |  |
+| --driver-name | Kea2 脚本中使用的驱动名称。如果指定 `--driver-name d`，则应使用 `d` 与设备交互，例如 `self.d(..).click()`。 | `d` |
 | --log-stamp | 日志文件和结果文件的标识（例如指定 `--log-stamp 123`，日志文件命名为 `fastbot_123.log`，结果文件命名为 `result_123.json`） | 当前时间戳 |
 | --profile-period | 覆盖率分析和截图采集周期（单位为随机事件数）。截图保存在设备 SD 卡，根据设备存储调整此值。 | `25` |
 | --take-screenshots | 在每个随机事件执行时截图，截图会被周期性地自动从设备拉取到主机（周期由 `--profile-period` 指定）。 |  |
@@ -168,10 +167,10 @@ kea2 run <Kea2 cmds> propertytest <unittest discovery cmds>
 
 ```bash
 # 启动 Kea2 并加载单个脚本 quicktest.py
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -p quicktest.py
 
 # 启动 Kea2 并从目录 mytests/omni_notes 加载多个脚本
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -s mytests/omni_notes -p test*.py
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -s mytests/omni_notes -p test*.py
 ```
 
 #### **1.2.2（实验性功能）`unittest` 子命令（混合测试）**
@@ -185,8 +184,22 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 如果需要向底层 Fastbot 传递额外参数，请在常规参数后添加 `--`，然后列出额外参数。例如，设置触摸事件比例为 30%：
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d -- --pct-touch 30 unittest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  -- --pct-touch 30 unittest discover -p quicktest.py
 ```
+
+### 返回码
+`kea2 run`（以及 `python -m kea2.cli run`）的退出码如下：
+
+| code | 含义 |
+| --- | --- |
+| `0` | 成功。测试运行完成，且没有测试失败。 |
+| `1` | 检测到性质违反（Property violation）。 |
+| `2` | 检测到 Crash 或 ANR。 |
+| `3` | 同时检测到性质违反和 Crash 或 ANR。 |
+| `4` | 非预期运行时错误。 |
+
+说明：
+- `KeyboardInterrupt`（Ctrl-C）按正常停止处理，不归类为非预期运行时错误。
 
 ### 2. 通过 `unittest.main` 启动 Kea2
 
@@ -212,7 +225,6 @@ if __name__ == "__main__":
             maxStep=100,
             # running_mins=10,  # 指定最大运行时间（分钟），默认10分钟
             # throttle=200,   # 指定延迟时间（毫秒），默认200毫秒
-            # agent='native'  # 'native' 运行原生 Fastbot
         )
     )
     # 声明 KeaTestRunner
@@ -224,59 +236,11 @@ if __name__ == "__main__":
 python3 mytest.py
 ```
 
-以下是 `Options` 中的所有可用选项。
-
-```python
-    # 脚本中的驱动名称（如 self.d，则为 d）
-    driverName: str = None
-    Driver: AbstractDriver = None
-    # 包名列表，指定被测试的应用
-    packageNames: List[str] = None
-    # 目标设备序列号
-    serial: str = None
-    # 目标设备传输 ID
-    transport_id: str = None
-    # 测试 agent，默认 "u2"
-    agent: "u2" | "native" = "u2"
-    # 最大探索步数（阶段 2~3 可用）
-    maxStep: Union[str, float] = float("inf")
-    # 探索时长（分钟）
-    running_mins: int = 10
-    # 探索时等待时间（毫秒）
-    throttle: int = 200
-    # 日志和结果保存目录
-    output_dir: str = "output"
-    # 日志文件和结果文件的时间戳标识，默认当前时间戳
-    log_stamp: str = None
-    # 覆盖率采样周期
-    profile_period: int = 25
-    # 是否每步截图
-    take_screenshots: bool = False
-    # 失败前截取的截图数量，0 表示每步都截图
-    pre_failure_screenshots: int = 0
-    # 失败后截取的截图数量，需要小于等于 pre_failure_screenshots
-    post_failure_screenshots: int = 0
-    # 设备上的输出目录根路径
-    device_output_root: str = "/sdcard/.kea2"
-    # 是否启用调试模式
-    debug: bool = False
-    # Activity 白名单文件
-    act_whitelist_file: str = None
-    # Activity 黑名单文件
-    act_blacklist_file: str = None
-    # propertytest 子命令参数（例如 discover -s xxx -p xxx）
-    propertytest_args: str = None
-    # unittest 子命令参数（功能 4）
-    unittest_args: List[str] = None
-    # 额外参数（直接传递给 fastbot）
-    extra_args: List[str] = None
-```
-
 ## 管理 Kea2 报告
 
 ### 生成 kea2 报告（`kea2 report`）
 
-`kea2 report` 命令根据已有的测试结果生成 HTML 测试报告。该命令分析测试数据，创建一个全面的可视化报告，展示测试执行统计、覆盖率信息、性质违规和崩溃详情。
+`kea2 report` 命令根据已有的测试结果生成 HTML 测试报告。该命令分析测试数据，创建一个全面的可视化报告，展示测试执行统计、覆盖率信息、性质违反和崩溃详情。
 
 | 参数 | 意义 | 是否必需 | 默认值 |
 | --- | --- | --- | --- |
@@ -300,7 +264,7 @@ kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240
 - **测试摘要**：发现的总缺陷数、执行时间、覆盖率百分比
 - **性质测试结果**：每个测试性质的执行统计（前置条件满足次数、执行次数、失败次数、错误次数）
 - **代码覆盖率**：Activity 覆盖趋势及详细覆盖信息
-- **性质违规**：失败的测试性质详细信息及错误堆栈
+- **性质违反**：失败的测试性质详细信息及错误堆栈
 - **崩溃事件**：测试中检测到的应用崩溃
 - **ANR 事件**：应用无响应事件
 - **截图**：测试过程中采集的 UI 截图（如果启用）
@@ -369,7 +333,7 @@ kea2 -d merge -p res_20240101_120000 res_20240102_130000
 
 > ```bash
 > # 加上 -d 启用调试模式
-> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
+> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  unittest discover -p quicktest.py
 > ```
 
 ## 查看脚本运行统计
@@ -463,7 +427,7 @@ Kea2 默认会阻止探索过程中与第三方包（如广告包）的交互。
 例如：
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  --driver -- --allow-any-starts propertytest discover -p quicktest.py
 ```
 
 ## 提升 Kea2 性能的建议
