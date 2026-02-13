@@ -109,6 +109,14 @@ class WidgetCoverage:
         activity = data.get("Activity", "")
         if not activity:
             return ""
+        
+        # Check if activity matches any of the specified package names
+        # filter out irrelevant widgets (not in the target packages)
+        for pkg in self.options.packageNames:
+            if pkg in activity:
+                break
+        else:
+            return ""
 
         info_str = data.get("Info", "")
         if not info_str:
