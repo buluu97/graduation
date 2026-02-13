@@ -147,14 +147,15 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         cov_trend = list()
 
-        with open(self.data_path.coverage_log, "r", encoding="utf-8") as f:
-            for line in f:
-                if not line.strip():
-                    continue
+        if self.data_path.coverage_log.exists():
+            with open(self.data_path.coverage_log, "r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
 
-                coverage_data = json.loads(line)
-                cov_trend.append(coverage_data)
-        self._cov_trend = cov_trend
+                    coverage_data = json.loads(line)
+                    cov_trend.append(coverage_data)
+            self._cov_trend = cov_trend
         return self._cov_trend
 
     @property
