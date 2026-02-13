@@ -170,10 +170,10 @@ Sample shell commands:
 
 ```bash
 # Launch Kea2 and load one single script quicktest.py.
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  propertytest discover -p quicktest.py
 
 # Launch Kea2 and load multiple scripts from the directory mytests/omni_notes
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 propertytest discover -s mytests/omni_notes -p test*.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  propertytest discover -s mytests/omni_notes -p test*.py
 ```
 
 #### **1.2.2 (Expirimental Feature) `unitest` sub-command (hybrid test)**
@@ -188,7 +188,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 If you need to pass extra arguments to the underlying Fastbot, append `--` after the regular arguments, then list the extra arguments. For example, to set the touch event percentage to 30%, run:
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 -- --pct-touch 30 unittest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  -- --pct-touch 30 unittest discover -p quicktest.py
 ```
 ### Return Code
 `kea2 run` (and `python -m kea2.cli run`) exits with:
@@ -336,7 +336,7 @@ You can enable debug mode by adding the `-d` option when using Kea2. In debug mo
 
 > ```bash
 > # add -d to enable debug mode
-> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 unittest discover -p quicktest.py
+> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  unittest discover -p quicktest.py
 > ```
 
 ## Examining the running statistics of scripts
@@ -426,7 +426,7 @@ Kea2 will block the third-party packages (e.g., ad packages) during exploration 
 
 For example:
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  --driver -- --allow-any-starts propertytest discover -p quicktest.py
 ```
 
 ## Tips to Enhance Kea2 performance

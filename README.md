@@ -148,7 +148,7 @@ Otherwise, please help [file a bug report](https://github.com/ecnusse/Kea2/issue
 Test your app with the full capability of Fastbot for stress testing and finding *stability problems* (i.e., *crashing bugs*); 
 
 ```bash
-kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10
 ```
 
 To understand the meanings of the options, you can see our [user manual](docs/manual_en.md#launching-kea2).
@@ -197,7 +197,7 @@ You can find the full example in script `quicktest.py`, and run this script with
 
 ```bash
 # Launch Kea2 and load one single script quicktest.py.
-kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 propertytest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -p quicktest.py
 ```
 
 ## Feature 3(运行增强版Fastbot：加入自动断言)
