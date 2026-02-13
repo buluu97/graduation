@@ -6,7 +6,6 @@ import json
 import os
 import functools
 
-from collections import deque
 from copy import deepcopy
 from pathlib import Path
 from time import perf_counter, sleep
@@ -398,6 +397,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
     @merge_fbm
     def run(self, test):
+        has_crash_or_anr = False
         self.validateAndCollectProperties(test)
 
         if len(self.allProperties) == 0:
@@ -547,9 +547,9 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                 fb.join()
                 print(f"Finish sending monkey events.", flush=True)
                 log_watcher.close()
+                result.has_crash_or_anr = log_watcher.has_crash_or_anr
 
                 result.logSummary()
-
                 self._generate_bug_report()
 
         self.tearDown()

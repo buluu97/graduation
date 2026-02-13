@@ -6,9 +6,11 @@ from enum import IntEnum
 
 
 class ReturnCode(IntEnum):
-    SUCCESS = 0
-    TEST_FAILURE = 1
-    ERROR = 2
+    SUCCESS = 0                               # 0b000
+    PROPERTY_VIOLATION = 1                    # 0b001 
+    CRASH_OR_ANR = 2                          # 0b010
+    PROPERTY_VIOLATION_and_CRASH_OR_ANR = 3   # 0b011 (PROPERTY_VIOLATION | CRASH_OR_ANR)
+    ERROR = 4                                 # 0b100
 
 
 def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"):
@@ -320,8 +322,8 @@ def run(args=None) -> ReturnCode:
         return ReturnCode.ERROR
 
     result = getattr(program, "result", None)
-    if isinstance(result, int):
-        return ReturnCode.TEST_FAILURE if result != 0 else ReturnCode.SUCCESS
     if result is None or not hasattr(result, "wasSuccessful"):
         return ReturnCode.ERROR
-    return ReturnCode.SUCCESS if result.wasSuccessful() else ReturnCode.TEST_FAILURE
+    mask1 = ReturnCode.PROPERTY_VIOLATION if not result.wasSuccessful() else ReturnCode.SUCCESS
+    mask2 = ReturnCode.CRASH_OR_ANR if getattr(result, "has_crash_or_anr", False) else ReturnCode.SUCCESS
+    return mask1 | mask2
