@@ -53,6 +53,7 @@ class WidgetCoverage:
             raise FileNotFoundError(f"Steps log file not found: {self.steps_log}")
 
         triggered_widgets, coverage_records = self._analyze_steps(self.profile_period)
+        logger.info(f"Total unique widgets triggered: {len(triggered_widgets)}")
         self.__dump_triggered_widgets(triggered_widgets)
         self.__dump_coverage_log(coverage_records)
 
