@@ -5,16 +5,8 @@
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ecnusse/Kea2)
 
-
-####  Github repo [https://github.com/ecnusse/Kea2](https://github.com/ecnusse/Kea2)
-####  Gitee mirror [https://gitee.com/XixianLiang/Kea2](https://gitee.com/XixianLiang/Kea2)
-
-
-
-
-### [点击此处：查看中文文档](README_cn.md) 
-
-## About 
+[<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />](https://github.com/ecnusse/Kea2)
+[<img src="https://img.shields.io/badge/Gitee-Mirror-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2)
 
 <div align="center">
     <img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
@@ -25,9 +17,14 @@
 </br>
 
 
+
+### [点击此处：查看中文文档](README_cn.md) 
+
+## About 
+
 Kea2 is an easy-to-use tool for fuzzing mobile apps. Its key *novelty* is able to fuse automated UI testing with scripts (usually written by human), thus empowering automated UI testing with human intelligence for effectively finding *crashing bugs* as well as *non-crashing functional (logic) bugs*. 
 
-Kea2 is currently built on top of [Fastbot](https://github.com/ecnusse/Fastbot_Android) 3.0 (a modified/enhanced version of the original [FastBot](https://github.com/bytedance/Fastbot_Android) 2.0), *an industrial-strength automated UI testing tool from ByteDance*, and [uiautomator2](https://github.com/openatx/uiautomator2), *an easy-to-use and stable Android automation library*. 
+Kea2 is currently built on top of [Fastbot 3.0](https://github.com/ecnusse/Fastbot_Android) (a modified/enhanced version of the original [FastBot 2.0](https://github.com/bytedance/Fastbot_Android)), *an industrial-strength automated UI testing tool from ByteDance*, and [uiautomator2](https://github.com/openatx/uiautomator2), *an easy-to-use and stable Android automation library*. 
 Kea2 currently targets [Android](https://en.wikipedia.org/wiki/Android_(operating_system)) apps. 
 
 
@@ -59,6 +56,7 @@ https://github.com/user-attachments/assets/6120d8f5-5a9d-4ead-b27e-840c8757e28e
 | **Finding crashes**                              | :+1:          | :+1:          | :+1:          |
 | **Finding crashes in deep states**               |               | :+1:          | :+1:          |
 | **Finding non-crashing functional (logic) bugs** |               |               | :+1:          |
+
 
 ## Kea2's Users
 
