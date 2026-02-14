@@ -5,12 +5,6 @@
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ecnusse/Kea2)
 
-<div>
-    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
-</div>
-
-
-Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat discussion group. Of course, we are also ready on GitHub to answer your questions/feedback.
 
 ####  Github repo [https://github.com/ecnusse/Kea2](https://github.com/ecnusse/Kea2)
 ####  Gitee mirror [https://gitee.com/XixianLiang/Kea2](https://gitee.com/XixianLiang/Kea2)
@@ -30,10 +24,17 @@ Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) 
 </div>
 </br>
 
+
 Kea2 is an easy-to-use tool for fuzzing mobile apps. Its key *novelty* is able to fuse automated UI testing with scripts (usually written by human), thus empowering automated UI testing with human intelligence for effectively finding *crashing bugs* as well as *non-crashing functional (logic) bugs*. 
 
 Kea2 is currently built on top of [Fastbot](https://github.com/ecnusse/Fastbot_Android) 3.0 (a modified/enhanced version of the original [FastBot](https://github.com/bytedance/Fastbot_Android) 2.0), *an industrial-strength automated UI testing tool from ByteDance*, and [uiautomator2](https://github.com/openatx/uiautomator2), *an easy-to-use and stable Android automation library*. 
 Kea2 currently targets [Android](https://en.wikipedia.org/wiki/Android_(operating_system)) apps. 
+
+
+https://github.com/user-attachments/assets/6120d8f5-5a9d-4ead-b27e-840c8757e28e
+
+
+
 
 ## Novelty & Important features
 
@@ -310,29 +311,17 @@ if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
 ## Test Reports（测试报告）
 
 Kea2 automatically generates a HTML test report after each testing session. You can find the report in `output/` under your working directory.
+<div align="center">
+    <img style="border-radius: 14px; width: 70%; height: 70%;" src="https://github.com/user-attachments/assets/83a30d44-1884-4098-8062-9bab62bfdb19" />
+</div>
 
-You can also manually generate the test report by 
-```bash
-kea2 report -p [RES_DIR]
-``` 
+#### Sample test reports
+- [Single test report](https://ecnusse.github.io/Kea2_sample_report/) - Courtesy of Opay.
+- [Merged test report (multiple runs)](https://ecnusse.github.io/kea2_sample_test_report/) - Summary for multiple runs.
 
-Use `-s/--sync` to sync data from device before generating the report, and `-p/--path` to point to one or more result directories.
-For example:
+> You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
 
-```bash
-`kea2 report -p output/res_YYYYMMDDHH_xxxxxx`
-`kea2 report -s -p output/res_YYYYMMDDHH_xxxxxx`
-``` 
 
-You can also merge the test report from multiple testing sessions by 
-
-```bash
-kea2 merge -p [RES_DIR1] [RES_DIR2] ... -o [OUTPUT_DIR]
-```
-
-The merged test report is quite useful if you would test your apps for multiple sessions.
-
-> You can find a sample [test report](https://ecnusse.github.io/Kea2_sample_report/) from Opay (Thank you!). You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
 
 ## Documentations（更多文档）
 
@@ -415,7 +404,18 @@ kea2做了什么：
 
 > Guided, Stochastic Model-Based GUI Testing of Android Apps. ESEC/FSE 2017.  [pdf](https://dl.acm.org/doi/10.1145/3106237.3106298)
 
-## Maintainers/Contributors
+
+## Contact us
+
+Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat discussion group. 
+
+Of course, we are also ready on GitHub to answer your questions/feedback.
+
+<div align="center">
+    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+</div>
+
+### Maintainers/Contributors
 
 Kea2 has been actively developed and maintained by the people in [ecnusse](https://github.com/ecnusse):
 
