@@ -1,14 +1,46 @@
 
-# Documentation
-
 [中文文档](manual_cn.md)
 
-## Kea2's tutorials 
+
+# Documentation
+
+## Directory Structure
+
+### 1. Kea2's high-level idea
+- [Kea2's high-level idea](#kea2s-high-level-idea)
+### 1. How to write Kea2's scripts?
+- [Kea2's Scripts](#kea2s-script-tutorials)
+- [Kea2's Script APIs](#kea2s-scripts-apis) (Test class structure, decorators)
+### 2. How to launch Kea2?
+- [Kea2's Command Line Interface](#1-launch-kea2-by-shell-commands) (args for `kea2 run`, sub-commands, and retrun code)
+- [Launch in python code (Unittest Main)](#2-launch-kea2-by-unittestmain)
+### 3. How to read and manage Kea2's reports?
+-  [Read Kea2's test reports](#meaning-of-property-violations) (meaning of property violations)
+-  [Generate Kea2's test reports](#manually-generate-kea2-report)
+-  [Generate merged test report](#merge-multiple-test-reports-for-multiple-test-sessions)
+### 4. Configuration File
+- [Fastbot configuration files (Customizing fuzzing engine)](#configuration-file-fastbot-blacklistwhitelist)
+- [Blackling and whitelisting]
+1. Tips to enhance Kea2's performance
+
+
+
+
+## Kea2's high-level idea
+
+- :star: [Blog: 别再苦哈哈写测试脚本了，生成它们吧！](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
+- :star: [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/)
+- [Q&A for Kea2 and PBT (对Kea2和PBT技术的常见问题和回答)](https://sy8pzmhmun.feishu.cn/wiki/SLGwwqgzIiEuC3kwmV8cSZY0nTg?from=from_copylink) 
+- [Kea2 101 (Kea2 从0到1 的入门教程与最佳实践，建议新手阅读)](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)
+
+
+## Kea2's script tutorials
+We provide two tutorials to show you how to write Kea2's scripts and illustrate some sample usage of Kea2's scripts.
 
 1. [A guide of making use of Kea2's Feature 2 and 3 to test your app. (Take WeChat for example)](Scenario_Examples_zh.md).
 2. [A guide of writing Kea2's scripts to stress test a particular feature of your app. (Take lark for example)](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc).
 
-## Kea2's scripts
+## Kea2's scripts APIs
 
 Kea2 uses [Unittest](https://docs.python.org/3/library/unittest.html) to manage scripts. Test classes should extend `unittest.TestCase`.
 
@@ -100,26 +132,6 @@ def test_func1(self):
 ```
 
 The decorator `@max_tries` takes an integer as an argument. The number represents the maximum number of times function `test_func1` will be executed when the precondition is satisfied. The default value is `inf` (infinite).
-
-### `@invariant`
-
-Invariant checks define properties that should always hold. A normal property contains a precondition P, an interaction scenario I, and an assertion Q. An invariant is a special property where P is always true, I is empty, and Q is checked in every state.
-
-Kea2 checks all invariants every time the app enters a new state (i.e., after each property execution or monkey event).
-
-```python
-from kea2 import invariant
-
-@invariant
-def invariant_non_negative_word_count(self):
-    if self.d(resourceId="word_count").exists:
-        # Get the unlearned word count
-        word_count_text = self.d(resourceId="word_count").get_text()
-        word_count = int(word_count_text)
-        assert word_count >= 0, f"Word count is negative: {word_count}"
-```
-
-`@invariant` marks an invariant check. All invariants are executed after every property execution or monkey event (on each iteration). Invariants are suitable for always-true conditions, such as layout issues on a single page or state consistency derived from [Stateful testing](#stateful-testing). Keep invariants fast and side-effect free.
 
 
 ## Launch Kea2
@@ -240,16 +252,31 @@ python3 mytest.py
 ```
 
 
-## Manage Kea2 reports
+## Read and Manage Kea2 test reports
 
-### Generate kea2 report (`kea2 report`)
+**[:page_facing_up: View the sample test report](https://ecnusse.github.io/Kea2_sample_report/)** - *Courtesy of Opay.*
+
+**[:page_facing_up: View the sample merged test report](https://ecnusse.github.io/kea2_sample_test_report/)**
+
+### Meaning of Property Violations
+
+Field | Description | Meaning
+--- | --- | --- |
+precond_satisfied | During exploration, how many times has the test method's precondition been satisfied? | Does we reach the state during exploration? 
+executed | During UI testing, how many times the test method has been executed? | Has the test method ever been executed?
+fail | How many times did the test method fail the assertions during UI testing? | When failed, the test method found a likely functional bug. 
+error | How many times does the test method abort during UI tsting due to some unexpected errors (e.g. some UI widgets used in the test method cannot be found) | When some error happens, the script needs to be updated/fixed because the script leads to some unexpected errors.
+
+### Manually generate Kea2 report
+
+
 
 The `kea2 report` command generates an HTML test report from existing test results. This command analyzes test data and creates a comprehensive visual report showing test execution statistics, coverage information, property violations, and crash details.
 
-| arg | meaning | required | default |
-| --- | --- | --- | --- |
-| -s, --sync | Sync data from device before generating the report | No | |
-| -p, --path | Path to the directory containing test results (res_* directory) | Yes | |
+| arg | meaning | required |
+| --- | --- | --- |
+| -s, --sync | Sync data from device before generating the report |
+| -p, --path *[PATHS]* | Path to the directory containing test results (res_* directory) | :white_check_mark: |
 
 **Usage Examples:**
 
@@ -264,44 +291,14 @@ kea2 report -s -p res_20240101_120000
 kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001
 ```
 
-**What the report includes:**
-- **Test Summary**: Total bugs found, execution time, coverage percentage
-- **Property Test Results**: Execution statistics for each test property (preconditions satisfied, executed, failed, errors)
-- **Code Coverage**: Activity coverage trends and detailed coverage information
-- **Property Violations**: Detailed information about failed test properties with error traces
-- **Crash Events**: Application crashes detected during testing
-- **ANR Events**: Application Not Responding events
-- **Screenshots**: UI screenshots captured during testing (if enabled)
-- **Activity Traversal**: History of activities visited during testing
-
-**Output:**
-The report command generates:
-- An HTML report file (`bug_report.html`) in the specified test result directory
-- Interactive charts and visualizations for coverage and execution trends
-- Detailed error information with stack traces for debugging
-
-**Input Directory Structure:**
-The command expects a test result directory with the following structure:
-```
-res_<timestamp>/
-├── bug_report_config.json           # Report configuration (Includes test infos)
-├── result_<timestamp>.json          # Property test results
-├── output_<timestamp>/
-│   ├── steps.log                    # Test execution steps
-│   ├── coverage.log                 # Coverage data
-│   ├── crash-dump.log               # Crash and ANR events
-│   └── screenshots/                 # UI screenshots (if enabled)
-└── property_exec_info_<timestamp>.json  # Property execution details
-```
-
-### Merge multiple test reports (`kea2 merge`)
+### Merge multiple test reports (for multiple test sessions)
 
 The `kea2 merge` command allows you to merge multiple test report directories and generate a combined report. This is useful when you have run multiple test sessions and want to consolidate the results into a single comprehensive report.
 
-| arg | meaning | required | default |
-| --- | --- | --- | --- |
-| -p, --paths | Paths to test report directories (res_* directories) to merge. At least 2 paths are required. | Yes | |
-| -o, --output | Output directory for merged report | No | `merged_report_<timestamp>` |
+| arg | meaning | required |
+| --- | --- | --- |
+| -p, --paths | Paths to test report directories (res_* directories) to merge. At least 2 paths are required. | :white_check_mark: |
+| -o, --output | Output directory for merged report |  |
 
 **Usage Examples:**
 
@@ -311,69 +308,20 @@ kea2 merge -p res_20240101_120000 res_20240102_130000
 
 # Merge multiple test report directories with custom output
 kea2 merge -p res_20240101_120000 res_20240102_130000 res_20240103_140000 -o my_merged_report
-
-# Enable debug mode while merging
-kea2 -d merge -p res_20240101_120000 res_20240102_130000
 ```
 
-**What gets merged:**
-- Property test execution statistics (preconditions satisfied, executed, failed, errors)
-- Code coverage data (activities covered, coverage percentage)
-- Crash and ANR events
-- Test execution steps and timing information
 
-**Output:**
-The merge command generates:
-- A merged report directory containing consolidated data
-- An HTML report (`merged_report.html`) with visual summaries
-- Merge metadata including source directories and timestamp
+## Configuration File (Fastbot, blacklist/whitelist)
 
-## Debug Mode (`kea2 -d ...`)
-
-You can enable debug mode by adding the `-d` option when using Kea2. In debug mode, Kea2 will print more detailed logs to help diagnose issues.
-
-| arg | meaning | default |
-| --- | --- | --- |
-| -d | Enable debug mode | |
-
-> ```bash
-> # add -d to enable debug mode
-> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  unittest discover -p quicktest.py
-> ```
-
-## Examining the running statistics of scripts
-
-If you want to examine whether your scripts have been executed or how many times they have been executed during testing. Open the file `result.json` after the testing is finished.
-
-Here's an example.
-
-```json
-{
-    "test_goToPrivacy": {
-        "precond_satisfied": 8,
-        "executed": 2,
-        "fail": 0,
-        "error": 1
-    },
-    ...
-}
-```
-
-**How to read `result.json`**
-
-Field | Description | Meaning
---- | --- | --- |
-precond_satisfied | During exploration, how many times has the test method's precondition been satisfied? | Does we reach the state during exploration? 
-executed | During UI testing, how many times the test method has been executed? | Has the test method ever been executed?
-fail | How many times did the test method fail the assertions during UI testing? | When failed, the test method found a likely functional bug. 
-error | How many times does the test method abort during UI tsting due to some unexpected errors (e.g. some UI widgets used in the test method cannot be found) | When some error happens, the script needs to be updated/fixed because the script leads to some unexpected errors.
-
-## Configuration File
+### Fastbot configuration files
 
 After executing `Kea2 init`, some configuration files will be generated in the `configs` directory. 
 These configuration files belong to `Fastbot`, and their specific introductions are provided in [Introduction to configuration files](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E4%B8%93%E5%AE%B6%E7%B3%BB%E7%BB%9F).
 
-## Update of User Configuration Files
+### Blacklisting and whitelisting
+[blacklisting and whitelisting](../docs/blacklisting.md)
+
+### Update of User Configuration Files
 When updating Kea2, the user's local configuration sometimes needs to be updated. (The latest kea2 version may not be compatible with the old configuration files.)
 
 When runtime error detected, Kea2 will check whether the local configuration files are compatible with the current Kea2 version. If not, a warning message will be printed in the console. Update the local configuration files according to the following instructions.
@@ -383,7 +331,20 @@ When runtime error detected, Kea2 will check whether the local configuration fil
 3. run `kea2 init` to generate the latest configuration files.
 4. Merge your old configurations into the new configuration files according to your needs.
 
-## Stateful Testing
+## App's Crash Bugs
+Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the output directory specified by `-o`. You can search the keyword `FATAL EXCEPTION` in `fastbot_*.log` to find the concrete information of crash bugs.
+
+These crash bugs are also recorded on your device. [See the Fastbot manual for details](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E7%BB%93%E6%9E%9C%E8%AF%B4%E6%98%8E).
+
+## Interacting with Thrid-party Packages
+Kea2 will block the third-party packages (e.g., ad packages) during exploration by default. If you want to interact with these packages, please add `--allow-any-starts` in [extra arguments](#---sub-command-extra-arguments) when launching Kea2.
+
+For example:
+```bash
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  --driver -- --allow-any-starts propertytest discover -p quicktest.py
+```
+
+## Advanced Feature 1: Stateful Testing (带状态的测试)
 
 Stateful testing is an advanced approach in property-based testing. The idea is to model the app's internal data state and share it across multiple properties to guide exploration and uncover more complex defects.
 
@@ -418,17 +379,89 @@ class MyStatefulTest(unittest.TestCase):
 
 > If you want to learn more about stateful testing, see the [Hypothesis Stateful Testing documentation](https://hypothesis.readthedocs.io/en/latest/stateful.html)
 
-## App's Crash Bugs
-Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the output directory specified by `-o`. You can search the keyword `FATAL EXCEPTION` in `fastbot_*.log` to find the concrete information of crash bugs.
+## Advanced Feature 2: Ivariant Checks (不变式检查)
 
-These crash bugs are also recorded on your device. [See the Fastbot manual for details](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E7%BB%93%E6%9E%9C%E8%AF%B4%E6%98%8E).
+Invariant checks (`@invariant`) define properties that should always hold. A normal property contains a precondition P, an interaction scenario I, and an assertion Q. An invariant is a special property where P is always true, I is empty, and Q is checked in every state.
 
-## Interacting with Thrid-party Packages
-Kea2 will block the third-party packages (e.g., ad packages) during exploration by default. If you want to interact with these packages, please add `--allow-any-starts` in [extra arguments](#---sub-command-extra-arguments) when launching Kea2.
+Kea2 checks all invariants every time the app enters a new state (i.e., after each property execution or monkey event).
 
-For example:
-```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  --driver -- --allow-any-starts propertytest discover -p quicktest.py
+We illustrate the difference between normal properties and invariants with the following figure:
+
+**For normal properties:** 
+
+`total steps` > `precondition satified times` > `property check times` > `fails` + `errors`
+
+**For invariants:**
+
+`total steps` = `invariant checks times` > `fails` + `errors`
+
+```python
+from kea2 import invariant
+
+@invariant
+def invariant_non_negative_word_count(self):
+    if self.d(resourceId="word_count").exists:
+        # Get the unlearned word count
+        word_count_text = self.d(resourceId="word_count").get_text()
+        word_count = int(word_count_text)
+        assert word_count >= 0, f"Word count is negative: {word_count}"
+```
+
+`@invariant` marks an invariant check. All invariants are executed after every property execution or monkey event (on each iteration). Invariants are suitable for always-true conditions, such as layout issues on a single page or state consistency derived from [Stateful testing](#stateful-testing). Keep invariants fast and side-effect free.
+
+
+## Advanced Feature 3: Reusing regression tests (兼容已有脚本：通过前置脚本步骤到达特定层次)
+
+Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
+
+For example, you may already have some existing Ui test scripts "login and add a friend", This feature allows you to use the existing script, set some breakpoints (i.e., interruptable points) in the script, and launch Fastbot to explore the app after every breakpoint. By using this feature, you can do the login first and then launch Fastbot to explore the app after login. Which helps Fastbot to explore deep app states. (fastbot can't do login by itself easily).
+
+### Example
+
+Here are four example scripts in hybridetest_examples, each corresponding to different forms of user scripts, showing you how to launch kea2 in the existing code.
+
+Specifically:  
+
+* [u2_unittest_example.py](hybridtest_examples\u2_unittest_example.py) is a u2 script organized with unittest.
+* [u2_pytest_example.py](hybridtest_examples\u2_pytest_example.py) is a u2 script organized with pytest.
+* [appium_unittest_example.py](hybridtest_examples\appium_unittest_example.py) is an appium script organized with unittest.
+* [appium_pytest_example.py](hybridtest_examples\appium_pytest_example.py) is an appium script organized with pytest.
+
+Some notes:
+
+1. You can control whether to execute the kea2-related code you have written by modifying the condition of 'if'. This allows you to easily enable or disable kea2 operations in the same script. Here we use environment variable as an example.
+2. Since kea2 is driven by u2, if an appium-written script wants to launch kea2, it is necessary to first close the appium session. Remember to configure the parameter `"noReset": True` in `desired_caps` to avoid resetting the application when closing the session.
+3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `option` parameter and `configs_path` parameter(where your directory `configs` located, btw, `configs`'s location dependon where you executed `kea2 init`), then pass it to the `run_kea2_testing` function.
+
+```python
+from kea2 import Kea2Tester, Options
+
+if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
+    '''
+    Note: The if condition here can be modified as needed according to the actual 
+    situation of the project, the form of environment variables is just an example.    
+    '''
+
+    # close your driver session etc. here
+    # ...
+    
+    tester = Kea2Tester()
+    result = self.tester.run_kea2_testing(
+        Options(
+            driverName="d",
+            packageNames=[PACKAGE_NAME],
+            propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
+            serial=DEVICE_SERIAL,
+            running_mins=2,
+            maxStep=20
+        ),
+        configs_path = None  # Default, if your configs folder is located in the root directory, miss this.           
+    )
+    
+    # restart your driver session or clean instance here
+    # ...
+    
+    return  # this make your following steps of this testcase not work
 ```
 
 ## Tips to Enhance Kea2 performance
@@ -456,3 +489,16 @@ for example:
 ):
 ...
 ```
+
+## Debug Mode (`kea2 -d ...`)
+
+You can enable debug mode by adding the `-d` option when using Kea2. In debug mode, Kea2 will print more detailed logs to help diagnose issues.
+
+| arg | meaning | default |
+| --- | --- | --- |
+| -d | Enable debug mode | |
+
+> ```bash
+> # add -d to enable debug mode
+> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  unittest discover -p quicktest.py
+> ```

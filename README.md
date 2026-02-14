@@ -264,59 +264,7 @@ For the preceding always-holding property, we can write the following script to 
 
 You can run this example by using the similar command line in Feature 2.
 
-## Feature 4(兼容已有脚本：通过前置脚本步骤到达特定层次)
 
-Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
-
-For example, you may already have some existing Ui test scripts "login and add a friend", This feature allows you to use the existing script, set some breakpoints (i.e., interruptable points) in the script, and launch Fastbot to explore the app after every breakpoint. By using this feature, you can do the login first and then launch Fastbot to explore the app after login. Which helps Fastbot to explore deep app states. (fastbot can't do login by itself easily).
-
-### Example
-
-Here are four example scripts in hybridetest_examples, each corresponding to different forms of user scripts, showing you how to launch kea2 in the existing code.
-
-Specifically:  
-
-* [u2_unittest_example.py](hybridtest_examples\u2_unittest_example.py) is a u2 script organized with unittest.
-* [u2_pytest_example.py](hybridtest_examples\u2_pytest_example.py) is a u2 script organized with pytest.
-* [appium_unittest_example.py](hybridtest_examples\appium_unittest_example.py) is an appium script organized with unittest.
-* [appium_pytest_example.py](hybridtest_examples\appium_pytest_example.py) is an appium script organized with pytest.
-
-Some notes:
-
-1. You can control whether to execute the kea2-related code you have written by modifying the condition of 'if'. This allows you to easily enable or disable kea2 operations in the same script. Here we use environment variable as an example.
-2. Since kea2 is driven by u2, if an appium-written script wants to launch kea2, it is necessary to first close the appium session. Remember to configure the parameter `"noReset": True` in `desired_caps` to avoid resetting the application when closing the session.
-3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `option` parameter and `configs_path` parameter(where your directory `configs` located, btw, `configs`'s location dependon where you executed `kea2 init`), then pass it to the `run_kea2_testing` function.
-
-```python
-from kea2 import Kea2Tester, Options
-
-if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
-    '''
-    Note: The if condition here can be modified as needed according to the actual 
-    situation of the project, the form of environment variables is just an example.    
-    '''
-
-    # close your driver session etc. here
-    # ...
-    
-    tester = Kea2Tester()
-    result = self.tester.run_kea2_testing(
-        Options(
-            driverName="d",
-            packageNames=[PACKAGE_NAME],
-            propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
-            serial=DEVICE_SERIAL,
-            running_mins=2,
-            maxStep=20
-        ),
-        configs_path = None  # Default, if your configs folder is located in the root directory, miss this.           
-    )
-    
-    # restart your driver session or clean instance here
-    # ...
-    
-    return  # this make your following steps of this testcase not work
-```
 
 
 
@@ -335,27 +283,7 @@ Kea2 automatically generates a HTML test report after each testing session. You 
 
 
 
-## Documentations（更多文档）
-
-
-### :blue_book: [User Manual](docs/manual_en.md) (Important!)
-You can find the [user manual](docs/manual_en.md), which includes:
-- Examples of using Kea2 on WeChat (in Chinese);
-- How to define Kea2's scripts and use the decorators (e.g., `@precondition`、`@prob`、`@max_tries`);
-- How to run Kea2 and Kea2's command line options
-- How to find and understand Kea2's testing results
-- How to [whitelist or blacklist](docs/blacklisting.md) specific activities, UI widgets and UI regions during fuzzing
-
-### Other resources about Kea2 (in Chinese)
-- [Q&A for Kea2 and PBT (对Kea2和PBT技术的常见问题和回答)](https://sy8pzmhmun.feishu.cn/wiki/SLGwwqgzIiEuC3kwmV8cSZY0nTg?from=from_copylink) 
-- [Kea2 101 (Kea2 从0到1 的入门教程与最佳实践，建议新手阅读)](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)
-- [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/)
-- [Kea2 工具快速介绍 (2025.11, bilibili 录播)](https://www.bilibili.com/video/BV1WAyUBDEMw/)
-
-Some blogs on Kea/Kea2 (in Chinese):
-- [别再苦哈哈写测试脚本了，生成它们吧！(一)](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
-- [别再苦哈哈写测试脚本了，生成它们吧！(二)](https://mp.weixin.qq.com/s/s4WkdstNcKupu9OP8jeOXw)
-- [别再苦哈哈写测试脚本了，生成它们吧！(三)](https://mp.weixin.qq.com/s/BjXyo-xJRmPB_sCc4pmh8g)
+## News & Media
 - [2025 Let’s GoSSIP 软件安全暑期学校预告第一弹——Kea2](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
 - [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) --- 视频回放&PPT@MTSC 2025
 
