@@ -62,6 +62,9 @@ https://github.com/user-attachments/assets/6120d8f5-5a9d-4ead-b27e-840c8757e28e
 
 Kea2 (and its idea) has been used/integrated by
 
+<img src="https://github.com/user-attachments/assets/8334d717-c9d2-4fda-ad9b-611fa37935b4" alt="OPay" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/f4eefbe3-1a4c-4a6e-acca-b97d35e34487" alt="Huawei" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/c8da7eb1-c7bd-4fc8-ac7c-ee241168566c" alt="WeChat Pay" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/cef587b2-0142-40ed-91f0-baf087d0a03a" alt="WeChat" height="70" style="border-radius: 14px;"/> 
+
+
 - [OPay Business](https://play.google.com/store/apps/details?id=team.opay.pay.merchant.service) --- a financial & payment app (20 millions of active users daily). OPay uses Kea2 for regression testing on POS machines and mobile devices.
 
 - [WeChat's iExplorer]() --- WeChat's in-house testing platform (coming with an interactive UI-based tool to ease writing scripts)
@@ -75,12 +78,23 @@ Kea2 (and its idea) has been used/integrated by
 Please let us know and willing to hear your feedback/questions if you are also using Kea2.
 
 ## Design & Roadmap
-Kea2 currently works with:
+
+
+
+
+Some of the key features of kea2 are inspired by
+- [hypothesis](https://github.com/HypothesisWorks/hypothesis), the python property based testing framework
+
+## Design & Roadmap
+
+**Kea2 currently works with 3 open-sourced projects:**
 - [unittest](https://docs.python.org/3/library/unittest.html) as the testing framework to manage the scripts;
 - [uiautomator2](https://github.com/openatx/uiautomator2) as the UI test driver; 
-- [Fastbot](https://github.com/bytedance/Fastbot_Android) as the backend automated UI testing tool. 
+- [Fastbot](https://github.com/bytedance/Fastbot_Android) as the backend automated UI testing tool.
 
-In the future, Kea2 will be extended to support
+Several key features of Kea2 are inspired by **[Hypothesis](https://github.com/HypothesisWorks/hypothesis)**, the property-based testing framework for Python.
+
+**In the future, Kea2 will be extended to support:**
 - [pytest](https://docs.pytest.org/en/stable/), another popular python testing framework;
 - [Appium](https://github.com/appium/appium), [Hypium](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/hypium-python-guidelines) (for HarmonyOS/Open Harmony);
 - any other automated UI testing tools (not limited to Fastbot)
@@ -385,12 +399,6 @@ kea2做了什么：
     增加了元素操作能力。
 </details>
 
-
-## Open-source projects used by Kea2
-
-- [Fastbot](https://github.com/bytedance/Fastbot_Android)
-- [uiautomator2](https://github.com/openatx/uiautomator2)
-- [hypothesis](https://github.com/HypothesisWorks/hypothesis)
 
 ## Relevant papers of Kea2
 
