@@ -79,9 +79,6 @@ Please let us know and willing to hear your feedback/questions if you are also u
 
 ## Design & Roadmap
 
-
-
-
 Some of the key features of kea2 are inspired by
 - [hypothesis](https://github.com/HypothesisWorks/hypothesis), the python property based testing framework
 
@@ -105,7 +102,7 @@ Several key features of Kea2 are inspired by **[Hypothesis](https://github.com/H
 Running environment:
 - support Windows, MacOS and Linux
 - python 3.8+, Android 5.0~16.0 (Android SDK installed)
-- **VPN closed** (Features 2 and 3 required)
+- **Disable localhost proxy** (some VPNs affect u2). Set it to bypass `localhost` or turn off the VPN if needed. (Required for Features 2 and 3.)
 
 Install Kea2 by `pip`:
 ```bash
@@ -166,7 +163,7 @@ kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10
 
 To understand the meanings of the options, you can see our [user manual](docs/manual_en.md#launching-kea2).
 
-> The usage is similar to the the original Fastbot's [shell commands](https://github.com/bytedance/Fastbot_Android?tab=readme-ov-file#run-fastbot-with-shell-command). 
+> The usage is similar to the the original Fastbot's [shell commands](https://github.com/bytedance/Fastbot_Android?tab=readme-ov-file#run-fastbot-with-shell-command).
 
 See more options by 
 ```bash
@@ -284,8 +281,8 @@ Kea2 automatically generates a HTML test report after each testing session. You 
 
 
 ## News & Media
-- [2025 Let’s GoSSIP 软件安全暑期学校预告第一弹——Kea2](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
 - [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) --- 视频回放&PPT@MTSC 2025
+- [2025 Let’s GoSSIP 软件安全暑期学校预告第一弹——Kea2](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
 
 工业界对Kea2的理解和评价（点击箭头查看详情）：
 

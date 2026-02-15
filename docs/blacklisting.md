@@ -19,7 +19,7 @@ Blacklisting is defined by two dimensions: scope (widget-level vs tree-level) an
 
 **See Example in:** [:blue_book: widget.block.py](../kea2/assets/fastbot_configs/widget.block.py)
 
-### Supported Selectors for Blacklisting
+#### :white_check_mark: Supported Selectors for Blacklisting
 
 Commonly used attributes are listed below. For detailed usage, please refer to the [uiautomator2 documentation](https://github.com/openatx/uiautomator2/):
 
@@ -86,9 +86,9 @@ d.xpath('@android:id/list').child('/android.widget.TextView')
 
 
 
-### Unsupported Selectors for Blacklisting
+#### :no_entry_sign: Unsupported Selectors for Blacklisting
 
-⚠️ Please avoid using the following methods as they are **not supported** for blacklist configuration:
+ Please avoid using the following methods as they are **not supported** for blacklist configuration:
 
 <details>
   <summary>Positional relations based queries</summary>

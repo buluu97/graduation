@@ -8,25 +8,34 @@
 
 ### 1. Kea2's high-level idea
 - [Kea2's high-level idea](#kea2s-high-level-idea)
-### 1. How to write Kea2's scripts?
+### 2. How to write Kea2's scripts?
 - [Kea2's Scripts](#kea2s-script-tutorials)
 - [Kea2's Script APIs](#kea2s-scripts-apis) (Test class structure, decorators)
-### 2. How to launch Kea2?
+### 3. How to launch Kea2?
 - [Kea2's Command Line Interface](#1-launch-kea2-by-shell-commands) (args for `kea2 run`, sub-commands, and retrun code)
 - [Launch in python code (Unittest Main)](#2-launch-kea2-by-unittestmain)
-### 3. How to read and manage Kea2's reports?
+### 4. How to read and manage Kea2's reports?
 -  [Read Kea2's test reports](#meaning-of-property-violations) (meaning of property violations)
 -  [Generate Kea2's test reports](#manually-generate-kea2-report)
 -  [Generate merged test report](#merge-multiple-test-reports-for-multiple-test-sessions)
-### 4. Configuration File
-- [Fastbot configuration files (Customizing fuzzing engine)](#configuration-file-fastbot-blacklistwhitelist)
-- [Blackling and whitelisting]
-1. Tips to enhance Kea2's performance
+### 5. Configuration File
+- [Fastbot configuration files](#fastbot-configuration-files)
+- [Blacklisting/Whitelisting](#blacklisting-specific-ui-widgetsregions-黑白名单控件界面特定区域)
+- [Update user configuration files](#update-of-user-configuration-files)
+### 6. Advanced Features
+- [Advanced Feature 1: Stateful Testing](#advanced-feature-1-stateful-testing-带状态的测试)
+- [Advanced Feature 2: Invariant Checks](#advanced-feature-2-ivariant-checks-不变式检查)
+- [Advanced Feature 3: Reusing regression tests](#advanced-feature-3-reusing-regression-tests-兼容已有脚本通过前置脚本步骤到达特定层次)
+### 7. FAQs and Tips
+- [FAQs](#faqs)
+- [Interacting with Third-party Packages](#interacting-with-third-party-packages)
+- [Tricks to enhance Kea2 performance](#tricks-to-enhance-kea2-performance)
 
 
 
 
-## Kea2's high-level idea
+
+# Kea2's high-level idea
 
 - :star: [Blog: 别再苦哈哈写测试脚本了，生成它们吧！](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
 - :star: [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/)
@@ -34,21 +43,17 @@
 - [Kea2 101 (Kea2 从0到1 的入门教程与最佳实践，建议新手阅读)](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)
 
 
-## Kea2's script tutorials
+# Kea2's script tutorials
 We provide two tutorials to show you how to write Kea2's scripts and illustrate some sample usage of Kea2's scripts.
 
 1. [A guide of making use of Kea2's Feature 2 and 3 to test your app. (Take WeChat for example)](Scenario_Examples_zh.md).
 2. [A guide of writing Kea2's scripts to stress test a particular feature of your app. (Take lark for example)](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc).
 
-## Kea2's scripts APIs
-
-Kea2 uses [Unittest](https://docs.python.org/3/library/unittest.html) to manage scripts. Test classes should extend `unittest.TestCase`.
-
-Kea2 uses [Uiautomator2](https://github.com/openatx/uiautomator2) to manipulate android devices. Refer to [Uiautomator2's docs](https://github.com/openatx/uiautomator2?tab=readme-ov-file#quick-start) for more details. 
+# Kea2's scripts APIs
 
 Basically, you can write Kea2's scripts by following two steps:
 
-1. Create a test class which extends `unittest.TestCase`. 
+### 1. Create a test class that extends `unittest.TestCase`
 
 ```python
 import unittest 
@@ -57,17 +62,18 @@ class MyFirstTest(unittest.TestCase):
     ...
 ```
 
-You can optionally define `setUpClass` to do one-time setup for the whole test class (e.g., prepare shared resources). It can also be used to [apply global setup for the u2 driver](https://github.com/openatx/uiautomator2?tab=readme-ov-file#global-settings). If defined, it will be called once before any test methods run.
+> Kea2 uses [unittest](https://docs.python.org/3/library/unittest.html) to manage scripts. Test classes should extend `unittest.TestCase`.
 
-2. Write your own script by defining test methods
+You can optionally define `setUpClass` to do one-time setup for the class (e.g., prepare shared resources). It can also be used to [apply global setup for the u2 driver](https://github.com/openatx/uiautomator2?tab=readme-ov-file#global-settings). If defined, it is called once before any test methods run.
 
-You can decorate the function with `@precondition`. The decorator `@precondition` takes a function which returns boolean as an arugment. When the function returns `True`, the precondition is satisified and the script will be activated, and Kea2 will run the script based on certain probability defined by the decorator `@prob`.
+### 2. Write scripts by defining test methods
 
-Note that if a test method is not decorated with `@precondition`.
-This test method will never be activated during automated UI testing, and will be treated as a normal `unittset` test method.
-Thus, you need to explicitly specify `@precondition(lambda self: True)` when the test method should be always executed. When a test method is not decorated with `@prob`, the default probability is 1 (always execute when precondition satisfied). 
+You can decorate a test method with `@precondition`. It takes a boolean-returning function as an argument. When it returns `True`, the precondition is satisfied and the method becomes eligible to run. Kea2 then executes it based on the probability defined by `@prob`.
 
-Here's an recommended way to write your Kea2's scripts. (You can use it as a template.)
+If a test method is not decorated with `@precondition`, it will not be activated during automated UI testing and will be treated as a normal `unittest` test method.
+To always execute a method during exploration, specify `@precondition(lambda self: True)`. (You may need [invariant checking](#advanced-feature-2-ivariant-checks-不变式检查) if you want to check some properties at every step.) If `@prob` is not provided, the default probability is 1 (always execute when the precondition is satisfied).
+
+Here is a recommended template:
 
 ```python
 import unittest
@@ -84,7 +90,9 @@ class MyFirstTest(unittest.TestCase):
         ...
 ```
 
-You can read [Kea - Write your fisrt property](https://kea-docs.readthedocs.io/en/latest/part-keaUserManuel/first_property.html) for more details.
+> Kea2 uses [uiautomator2](https://github.com/openatx/uiautomator2) to manipulate Android devices. Refer to [uiautomator2's docs](https://github.com/openatx/uiautomator2?tab=readme-ov-file#quick-start) for more details. 
+
+You can read [Kea - Write your first property](https://kea-docs.readthedocs.io/en/latest/part-keaUserManuel/first_property.html) for more details.
 
 ## Decorators 
 
@@ -134,11 +142,11 @@ def test_func1(self):
 The decorator `@max_tries` takes an integer as an argument. The number represents the maximum number of times function `test_func1` will be executed when the precondition is satisfied. The default value is `inf` (infinite).
 
 
-## Launch Kea2
+# Launch Kea2
 
 We offer two ways to launch Kea2.
 
-### 1. Launch Kea2 by shell commands
+## 1. Launch Kea2 by shell commands
 
 You can launch Kea2 by shell commands `kea2 run`.
 
@@ -216,7 +224,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 Notes:
 - `KeyboardInterrupt` (Ctrl-C) is treated as a normal stop. It is not classified as an unexpected runtime error.
 
-### 2. Launch Kea2 by `unittest.main`
+## 2. Launch Kea2 by `unittest.main`
 
 Like unittest, we can launch Kea2 through the method `unittest.main`.
 
@@ -252,12 +260,13 @@ python3 mytest.py
 ```
 
 
-## Read and Manage Kea2 test reports
+# Read and Manage Kea2 test reports
 
 **[:page_facing_up: View the sample test report](https://ecnusse.github.io/Kea2_sample_report/)** - *Courtesy of Opay.*
 
 **[:page_facing_up: View the sample merged test report](https://ecnusse.github.io/kea2_sample_test_report/)**
 
+## Read Kea2's test reports
 ### Meaning of Property Violations
 
 Field | Description | Meaning
@@ -267,9 +276,20 @@ executed | During UI testing, how many times the test method has been executed? 
 fail | How many times did the test method fail the assertions during UI testing? | When failed, the test method found a likely functional bug. 
 error | How many times does the test method abort during UI tsting due to some unexpected errors (e.g. some UI widgets used in the test method cannot be found) | When some error happens, the script needs to be updated/fixed because the script leads to some unexpected errors.
 
+### Meaning of Widget Coverage
+
+Widget coverage counts the distinct widgets triggered during exploration (events generated by the fuzzing engine). A widget is identified by the tuple `<activity, class, resourceId, content-desc>`.
+
+### Improve testing by analyzing the report
+
+Use coverage trends (activity and widget coverage) to understand exploration progress and refine scripts for better results.
+
+**1. Set a time budget.** Coverage typically saturates after a while, so longer runs do not always yield better results. Identify the saturation point from the report and set the budget accordingly. Multiple short runs can be more effective than one long run.
+
+**2. Design kea2 scripts.** Use `--take-screenshots` to capture each step, then review the report to find where exploration gets stuck. For example, if it stalls at a login page, add a login script to help it move past that state and reach deeper screens. After adding the appropriate scripts, you can use the `--pre-failure-screenshots` and `--post-failure-screenshots` options to avoid generating too many screenshots to enhance performance.
+
+## Manage Kea2's test reports
 ### Manually generate Kea2 report
-
-
 
 The `kea2 report` command generates an HTML test report from existing test results. This command analyzes test data and creates a comprehensive visual report showing test execution statistics, coverage information, property violations, and crash details.
 
@@ -311,17 +331,198 @@ kea2 merge -p res_20240101_120000 res_20240102_130000 res_20240103_140000 -o my_
 ```
 
 
-## Configuration File (Fastbot, blacklist/whitelist)
+# Configuration Files (Fastbot, blacklist/whitelist)
 
-### Fastbot configuration files
+## Fastbot configuration files
 
 After executing `Kea2 init`, some configuration files will be generated in the `configs` directory. 
 These configuration files belong to `Fastbot`, and their specific introductions are provided in [Introduction to configuration files](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E4%B8%93%E5%AE%B6%E7%B3%BB%E7%BB%9F).
 
-### Blacklisting and whitelisting
-[blacklisting and whitelisting](../docs/blacklisting.md)
+## Blacklisting specific UI widgets/regions (黑白名单/控件/界面特定区域)
 
-### Update of User Configuration Files
+Blacklisting is defined by two dimensions: scope (widget-level vs tree-level) and rule type (global vs conditional).
+
+#### 1. Scope (what to block)
+**Widget-level** — block a single widget.  
+**Tree-level** — block a widget and its entire subtree (a UI region).
+
+#### 2. Rule Type (when to block)
+**Global** — applied on every page/screen.  
+**Conditional** — applied only on pages that satisfy `@precondition`.
+
+### APIs for Blacklisting/Whitelisting UI widgets/regions
+
+| Scope \ Rule Type | Global (always) | Conditional (`@precondition`) |
+|-|-|-|
+| Widget-level | `global_block_widgets` | `@precondition → block_*` |
+| Tree-level | `global_block_tree` | `@precondition → block_tree_*` |
+
+**See Example in:** [:blue_book: widget.block.py](../kea2/assets/fastbot_configs/widget.block.py)
+
+#### :white_check_mark: Supported Selectors for Blacklisting
+
+Commonly used attributes are listed below. For detailed usage, please refer to the [uiautomator2 documentation](https://github.com/openatx/uiautomator2/):
+
+
+<details>
+  <summary>Basic Selectors</summary>
+
+- **Text-related attributes**  
+  `text`, `textContains`, `textStartsWith`
+
+- **Class-related attributes**  
+  `className`
+
+- **Description-related attributes**  
+  `description`, `descriptionContains`, `descriptionStartsWith`
+
+- **State-related attributes**  
+  `checkable`, `checked`, `clickable`, `longClickable`, `scrollable`, `enabled`, `focusable`, `focused`, `selected`
+
+- **Package name related attributes**  
+  `packageName`
+
+- **Resource ID related attributes**  
+  `resourceId`
+
+- **Index related attributes**  
+  `index`
+</details>
+
+<details>
+  <summary>Children and Siblings Selector</summary>
+
+- **Locate child or grandchild elements**  
+
+  ```python
+  d(className="android.widget.ListView").child(text="Wi-Fi")
+  ```
+
+- **Locate sibling elements**  
+
+  ```python
+  d(text="Settings").sibling(className="android.widget.ImageView")
+  ```
+</details>
+
+<details>
+  <summary>Basic XPath Expressions</summary>
+
+**Basic**  
+```python
+d.xpath('//*[@text="Private FM"]')
+```
+
+**Starting with @**  
+```python
+d.xpath('@personal-fm') # Equivalent to d.xpath('//*[@resource-id="personal-fm"]').exists
+```
+
+**Child element positioning**  
+```python
+d.xpath('@android:id/list').child('/android.widget.TextView')
+```
+</details>
+
+
+
+#### :no_entry_sign: Unsupported Selectors for Blacklisting
+
+ Please avoid using the following methods as they are **not supported** for blacklist configuration:
+
+<details>
+  <summary>Positional relations based queries</summary>
+
+```python
+d(A).left(B)    # Select B to the left of A
+d(A).right(B)   # Select B to the right of A
+d(A).up(B)      # Select B above A
+d(A).down(B)    # Select B below A
+```
+</details>
+
+<details>
+  <summary>Child querying selectors</summary>
+
+`child_by_text`, `child_by_description`, `child_by_instance`.
+```python
+d(className="android.widget.ListView", resourceId="android:id/list") \
+  .child_by_text("Bluetooth", className="android.widget.LinearLayout")
+
+d(className="android.widget.ListView", resourceId="android:id/list") \
+  .child_by_text(
+    "Bluetooth",
+    allow_scroll_search=True,  # default False
+    className="android.widget.LinearLayout"
+  )
+```
+</details>
+
+<details>
+  <summary>instance</summary>
+
+```python
+d(className="android.widget.Button", instance=2)
+```
+</details>
+
+<details>
+  <summary>Regular expression-based queries</summary>
+
+`textMatches`, `classNameMatches`, `descriptionMatches`, `packageNameMatches`, `resourceIdMatches`
+</details>
+
+<details>
+  <summary>Chained XPath selectors</summary>
+
+Chained XPath selectors with parent-child relationships:
+```python
+d.xpath('//android.widget.Button').xpath('//*[@text="Private FM"]')
+```
+
+```python
+d.xpath('//*[@text="Private FM"]').parent() # Position to the parent element
+d.xpath('//*[@text="Private FM"]').parent("@android:list") # Position to the parent element that meets the condition
+```
+
+Xpath selectors with logical operators:
+```python
+(d.xpath("NFC") & d.xpath("@android:id/item"))
+```
+
+```python
+(d.xpath("NFC") | d.xpath("App") | d.xpath("Content"))
+```
+</details>
+
+
+### Blacklisting/Whitelisting activities
+
+We inherit Fastbot's blacklisting and whitelisting mechanism for activities. To use this feature, you need to:
+
+1. specify the activities to be blacklisted or whitelisted in `configs/awl.strings`.
+2. Add the corresponding parameter (`--act-blacklist-file`, `--act-whitelist-file`) when running kea2.
+
+> The `configs/awl.strings` file is generated by `Kea2 init`. [View the sample configuration file](/kea2/assets/fastbot_configs/abl.strings)
+
+### Parameters for activity blacklisting and whitelisting
+
+| arg | meaning | default |
+| --- | --- | --- |
+| `--act-blacklist-file` | Activate activity blacklisting. | |
+| `--act-whitelist-file` | Activate activity whitelisting. | |
+
+Sample Usage:
+```
+kea2 run -p it.feio.android.omninotes.alpha --act-blacklist-file propertytest discover -p quicktest.py
+```
+
+### Mechanism of activity blacklisting and whitelisting
+- Whitelist and blacklist **cannot be set at the same time**. Choose one mode: if a whitelist is set, all activities outside it are treated as blacklisted.
+- Fastbot monitors activity launches. When a blacklisted activity is about to start, it is blocked, so the UI may appear unresponsive during that transition.
+
+
+## Update of User Configuration Files
 When updating Kea2, the user's local configuration sometimes needs to be updated. (The latest kea2 version may not be compatible with the old configuration files.)
 
 When runtime error detected, Kea2 will check whether the local configuration files are compatible with the current Kea2 version. If not, a warning message will be printed in the console. Update the local configuration files according to the following instructions.
@@ -331,19 +532,7 @@ When runtime error detected, Kea2 will check whether the local configuration fil
 3. run `kea2 init` to generate the latest configuration files.
 4. Merge your old configurations into the new configuration files according to your needs.
 
-## App's Crash Bugs
-Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the output directory specified by `-o`. You can search the keyword `FATAL EXCEPTION` in `fastbot_*.log` to find the concrete information of crash bugs.
-
-These crash bugs are also recorded on your device. [See the Fastbot manual for details](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E7%BB%93%E6%9E%9C%E8%AF%B4%E6%98%8E).
-
-## Interacting with Thrid-party Packages
-Kea2 will block the third-party packages (e.g., ad packages) during exploration by default. If you want to interact with these packages, please add `--allow-any-starts` in [extra arguments](#---sub-command-extra-arguments) when launching Kea2.
-
-For example:
-```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  --driver -- --allow-any-starts propertytest discover -p quicktest.py
-```
-
+# Advanced Features
 ## Advanced Feature 1: Stateful Testing (带状态的测试)
 
 Stateful testing is an advanced approach in property-based testing. The idea is to model the app's internal data state and share it across multiple properties to guide exploration and uncover more complex defects.
@@ -464,7 +653,23 @@ if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
     return  # this make your following steps of this testcase not work
 ```
 
-## Tips to Enhance Kea2 performance
+# Other Tips and FAQs
+
+## FAQs
+### Kea2 always goes back to home or exits a page, why?
+You may be using gesture navigation. Fastbot’s scroll events can be recognized as a “back” gesture, causing the current page to exit. We recommend switching to 3-button navigation to avoid this issue.
+
+See [Kea2 issue #99](https://github.com/ecnusse/Kea2/issues/99) for more details.
+
+## Interacting with Third-party Packages
+Kea2 blocks third-party packages (e.g., ad packages) during exploration by default. If you want to interact with them, add `--allow-any-starts` in [extra arguments](#---sub-command-extra-arguments) when launching Kea2.
+
+For example:
+```bash
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  --driver -- --allow-any-starts propertytest discover -p quicktest.py
+```
+
+## Tricks to enhance Kea2 performance
 
 Currently, we have an algorithm in `@precondition` decorator and `widgets.block.py` to enhence the performance of the tool. The algorithm only support basic selector (No parent-child relationship) in uiautomator2. If you have many properties with complex preconditions and observed performance issue, you're recommanded to specify it in xpath.
 
