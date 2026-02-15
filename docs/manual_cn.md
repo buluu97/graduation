@@ -1,6 +1,40 @@
 # 文档
 
-[中文文档](manual_cn.md)
+[English](/docs/manual_en.md) | 简体中文
+
+## 目录结构
+
+### 1. Kea2 的整体思路
+- [Kea2 的整体思路](#kea2-的整体思路)
+### 2. 如何编写 Kea2 脚本
+- [Kea2 教程](#kea2-教程)
+- [Kea2 脚本](#kea2-脚本)
+- [装饰器](#装饰器)
+### 3. 如何启动 Kea2
+- [通过 shell 命令启动](#1-通过-shell-命令启动)
+- [通过 `unittest.main` 启动](#2-通过-unittestmain-启动-kea2)
+### 4. 如何阅读和管理测试报告
+- [阅读 Kea2 报告](#阅读-kea2-报告)
+- [管理 Kea2 报告](#管理-kea2-报告)
+### 5. 配置文件
+- [Fastbot 配置文件](#fastbot-配置文件)
+- [黑白名单（Activity、控件、区域）](#黑白名单activity控件区域)
+- [用户配置文件更新](#用户配置文件更新)
+### 6. 高级功能
+- [高级功能 1：带状态测试](#高级功能-1带状态测试stateful-testing)
+- [高级功能 2：不变式检查](#高级功能-2不变式检查invariant-checks)
+- [高级功能 3：复用回归脚本](#高级功能-3复用回归脚本)
+### 7. 常见问题与技巧
+- [FAQ](#faq)
+- [与第三方包交互](#与第三方包交互)
+- [提升 Kea2 性能的建议](#提升-kea2-性能的建议)
+
+## Kea2 的整体思路
+
+- :star: [Blog: 别再苦哈哈写测试脚本了，生成它们吧！](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
+- :star: [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/)
+- [Kea2 与 PBT 常见问答](https://sy8pzmhmun.feishu.cn/wiki/SLGwwqgzIiEuC3kwmV8cSZY0nTg?from=from_copylink)
+- [Kea2 101（从 0 到 1 入门与最佳实践）](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)
 
 ## Kea2 教程
 
@@ -115,7 +149,7 @@ def invariant_non_negative_word_count(self):
         assert word_count >= 0, f"Word count is negative: {word_count}"
 ```
 
-`@invariant` 用于标记不变式检查。每次执行性质或发送 monkey 事件后，所有不变式都会被完整执行（每一轮都会执行一遍）。不变式适合用于检查始终应成立的条件，比如单一页面的布局问题，或基于 [带状态的测试 (Stateful testing)](#带状态的测试stateful-testing) 推导出的状态一致性问题。
+`@invariant` 用于标记不变式检查。每次执行性质或发送 monkey 事件后，所有不变式都会被完整执行（每一轮都会执行一遍）。不变式适合用于检查始终应成立的条件，比如单一页面的布局问题，或基于带状态测试推导出的状态一致性问题。
 
 ## 启动 Kea2
 
@@ -155,7 +189,7 @@ Kea2 支持 3 个子命令：`propertytest`、`unittest` 和 `--`（额外参数
 
 #### **1.2.1 `propertytest` 子命令及测试发现（基于性质的测试）**
 
-Kea2 兼容 `unittest` 框架。你可以用 unittest 风格管理测试用例，并使用 [unittest 发现选项](https://docs.python.org/3/library/unittest.html#test-discovery) 发现测试用例。你可以用 `kea run` 加上驱动参数和子命令 `propertytest` 启动 Kea2。
+Kea2 兼容 `unittest` 框架。你可以用 unittest 风格管理测试用例，并使用 [unittest 发现选项](https://docs.python.org/3/library/unittest.html#test-discovery) 发现测试用例。你可以用 `kea2 run` 加上驱动参数和子命令 `propertytest` 启动 Kea2。
 
 shell 命令示例：
 ```
@@ -177,7 +211,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 
 > 该功能仍在开发中，期待您的反馈！如有兴趣，请联系我们。
 
-`unittest` 子命令用于功能 4（混合测试）。你可以用 `kea run` 加上驱动参数和子命令 `unittest` 启动 Kea2。与 `propertytest` 一样，你可以使用 [unittest 发现选项](https://docs.python.org/3/library/unittest.html#test-discovery) 加载测试用例。
+`unittest` 子命令用于功能 4（混合测试）。你可以用 `kea2 run` 加上驱动参数和子命令 `unittest` 启动 Kea2。与 `propertytest` 一样，你可以使用 [unittest 发现选项](https://docs.python.org/3/library/unittest.html#test-discovery) 加载测试用例。
 
 #### **1.2.3 `--` 子命令（额外参数）**
 
@@ -235,6 +269,32 @@ if __name__ == "__main__":
 ```bash
 python3 mytest.py
 ```
+
+## 阅读与管理 Kea2 报告
+
+**[:page_facing_up: 查看单次示例报告](https://ecnusse.github.io/Kea2_sample_report/)** - *由 OPay 提供*
+
+**[:page_facing_up: 查看多次合并示例报告](https://ecnusse.github.io/kea2_sample_test_report/)**
+
+## 阅读 Kea2 报告
+
+### 属性检查结果字段含义
+
+字段 | 说明 | 含义
+--- | --- | ---
+precond_satisfied | 在探索过程中，测试方法前置条件满足的次数 | 是否到达该状态
+executed | 在 UI 测试过程中，测试方法实际执行次数 | 是否真的触发过该脚本
+fail | 脚本断言失败次数 | 失败通常表示发现了潜在功能缺陷
+error | 脚本异常中断次数（如目标控件找不到） | 脚本本身可能需要修复或更新
+
+### Widget 覆盖率含义
+
+Widget 覆盖率统计的是探索过程中被触发的不同控件。一个控件由 `<activity, class, resourceId, content-desc>` 组合唯一标识。
+
+### 基于报告优化测试
+
+1. 先设置合理测试时长。覆盖率通常会在一段时间后趋于饱和，时长更长不一定收益更高。可以根据覆盖率趋势图找到饱和点，再设定预算。
+2. 设计脚本突破卡点。建议先用 `--take-screenshots` 观察卡住位置（例如登录页）；再补充对应脚本引导穿越该状态。脚本稳定后，可使用 `--pre-failure-screenshots` 与 `--post-failure-screenshots` 控制截图量，减少性能开销。
 
 ## 管理 Kea2 报告
 
@@ -363,10 +423,20 @@ executed | UI 测试过程中，测试方法被执行的次数 | 该测试方法
 fail | UI 测试中，测试方法断言失败次数 | 失败时，测试方法发现了可能的功能缺陷 
 error | UI 测试中，测试方法因发生意外错误（如找不到某些 UI 控件）中断的次数 | 出现错误时，意味着脚本需要更新或修复，因为脚本导致了意外错误 
 
-## 配置文件
+## 配置文件（Fastbot、黑白名单）
 
-执行 `Kea2 init` 后，会在 `configs` 目录生成一些配置文件。
-这些配置文件属于 `Fastbot`，具体介绍请参见 [配置文件介绍](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E4%B8%93%E5%AE%B6%E7%B3%BB%E7%BB%9F)。
+## Fastbot 配置文件
+
+执行 `Kea2 init` 后，会在 `configs` 目录生成一些配置文件。这些配置文件属于 `Fastbot`，具体介绍请参见 [配置文件介绍](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E4%B8%93%E5%AE%B6%E7%B3%BB%E7%BB%9F)。
+
+## 黑白名单（Activity、控件、区域）
+
+Kea2 支持两类黑白名单配置：
+
+1. Activity 黑白名单：通过 `--act-blacklist-file` 和 `--act-whitelist-file` 启用。
+2. UI 控件/区域黑白名单：通过 `configs/widget.block.py` 编写规则（支持全局规则和条件规则，支持控件级与树级屏蔽）。
+
+详细语法、支持/不支持的选择器、完整示例请查看中文详细文档：`docs/blacklisting_cn.md`。
 
 ## 用户配置文件更新
 
@@ -379,7 +449,9 @@ error | UI 测试中，测试方法因发生意外错误（如找不到某些 UI
 3. 运行 `kea2 init` 生成最新配置文件。
 4. 根据需要将旧配置合并到新配置文件中。
 
-## 带状态的测试（Stateful Testing）
+# 高级功能
+
+## 高级功能 1：带状态测试（Stateful Testing）
 
 带状态的测试是基于性质测试中的一种进阶方法。其思想是对应用内部数据状态进行建模，并在多个性质间共享该状态以控制测试进程，以及发现更复杂的缺陷。
 
@@ -414,11 +486,45 @@ class MyStatefulTest(unittest.TestCase):
 
 > 如果想了解更多关于带状态的测试技术，请参考 [Hypothesis Stateful Testing 文档](https://hypothesis.readthedocs.io/en/latest/stateful.html)
 
+## 高级功能 2：不变式检查（Invariant Checks）
+
+不变式检查（`@invariant`）用于定义“任何状态下都应恒为真”的性质。与普通性质相比，不变式没有交互步骤，会在每次状态变更后自动检查。
+
+- 普通性质通常是：前置条件 P + 交互 I + 断言 Q
+- 不变式可视为：P 恒真 + I 为空 + 始终检查 Q
+
+`@invariant` 的示例和用法见本文前面的“装饰器”章节。建议将不变式设计为“快速、无副作用”的检查。
+
+## 高级功能 3：复用回归脚本
+
+Kea2 支持在已有 UI 自动化脚本（如 u2/appium + unittest/pytest）中嵌入 Kea2，先执行已有步骤（如登录），再交给 Fastbot 继续探索，帮助覆盖更深层状态。
+
+可参考目录 `hybridtest_examples/` 的四个示例脚本：
+
+- `hybridtest_examples/u2_unittest_example.py`
+- `hybridtest_examples/u2_pytest_example.py`
+- `hybridtest_examples/appium_unittest_example.py`
+- `hybridtest_examples/appium_pytest_example.py`
+
+使用要点：
+
+1. 用条件开关（如环境变量）控制是否启用 Kea2 逻辑，便于在同一脚本中切换。
+2. 若从 Appium 脚本启动 Kea2，需要先关闭 Appium 会话，并确保 `desired_caps` 中设置 `"noReset": True`。
+3. 在现有测试用例中插入 `Kea2Tester().run_kea2_testing(...)`，并正确传入 `Options` 与 `configs_path`。
+
 ## 应用崩溃缺陷
 
 Kea2 会将触发的崩溃缺陷转储在由 `-o` 指定输出目录中的 `fastbot_*.log` 文件内。你可以在 `fastbot_*.log` 中搜索关键词 `FATAL EXCEPTION` 来获取崩溃缺陷的具体信息。
 
 这些崩溃缺陷也会记录在你的设备上。[详情请参考 Fastbot 手册](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E7%BB%93%E6%9E%9C%E8%AF%B4%E6%98%8E)。
+
+## FAQ
+
+### Kea2 经常回到桌面或退出当前页面，为什么？
+
+这通常和手势导航有关。Fastbot 的部分滚动事件可能被系统识别为“返回手势”，从而导致页面退出。建议切换为三键导航模式以避免该问题。
+
+更多讨论见 [Kea2 issue #99](https://github.com/ecnusse/Kea2/issues/99)。
 
 ## 与第三方包交互
 
@@ -432,7 +538,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 
 ## 提升 Kea2 性能的建议
 
-目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议在 xpath 中指定选择器。
+目前，我们在 `@precondition` 装饰器和 `widget.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议在 xpath 中指定选择器。
 
 | | **推荐** | **不推荐** |
 | -- | -- | -- |

@@ -6,7 +6,9 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ecnusse/Kea2)
 
 [<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />](https://github.com/ecnusse/Kea2)
-[<img src="https://img.shields.io/badge/Gitee-Mirror-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2)
+[<img src="https://img.shields.io/badge/Gitee-Mirror-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2) 
+
+### English | [简体中文](/README_cn.md)
 
 <div align="center">
     <img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
@@ -16,9 +18,7 @@
 </div>
 </br>
 
-
-
-### [点击此处：查看中文文档](README_cn.md) 
+### [:blue_book: User Manual](/docs/manual_en.md) | [:blue_book: 用户手册](/docs/manual_cn.md)
 
 ## About 
 
@@ -161,7 +161,7 @@ Test your app with the full capability of Fastbot for stress testing and finding
 kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10
 ```
 
-To understand the meanings of the options, you can see our [user manual](docs/manual_en.md#launching-kea2).
+To understand the meanings of the options, you can see our [user manual](/docs/manual_en.md#launch-kea2).
 
 > The usage is similar to the the original Fastbot's [shell commands](https://github.com/bytedance/Fastbot_Android?tab=readme-ov-file#run-fastbot-with-shell-command).
 
@@ -279,49 +279,55 @@ Kea2 automatically generates a HTML test report after each testing session. You 
 > You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
 
 
+## :blue_book: User Manual (用户手册)
 
-## News & Media
-- [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) --- 视频回放&PPT@MTSC 2025
-- [2025 Let’s GoSSIP 软件安全暑期学校预告第一弹——Kea2](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
+Please see the [user manual](/docs/manual_en.md) for more details on how to use Kea2.
 
-工业界对Kea2的理解和评价（点击箭头查看详情）：
+请查看[用户手册](/docs/manual_cn.md)以获取更多Kea2的详细文档。
+
+
+## :mega: News & Media
+-  [Property-driven Testing Technology: Next-generation GUI Automated Testing](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) - Video replay and slides @ MTSC 2025
+- [Let's GoSSIP 2025 Software Security Summer School: Kea2 (Preview #1)](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
+
+Industry perspectives on Kea2 (click to expand, courtesy of Opay):
 
 <details>
-  <summary>Kea2的性质是什么含义？Kea2意义和价值是什么？</summary>
+  <summary>What does a “property” mean in Kea2? What is Kea2's value?</summary>
 
-    kea2 其实是一个工具，它是python+u2+fastbot的集合体。 它本身更像是一台装好了发动机和轮子的汽车底盘。
+    Kea2 is essentially a toolkit that combines Python, uiautomator2, and Fastbot. It is like a vehicle chassis with an engine and wheels already assembled.
     
-    性质是苏老师他们团队提出的一个概念， 转换到测试领域的实际工作中，性质对应的是最小单位的功能（原子级功能），性质的依赖条件很少或没有，它可以自身运行。一个典型的性质就是登录，它仅仅具有输入用户名，输入密码，提交。再举个例子，给视频点个赞，也就是简单的两三步。就是一个性质。
+    The concept of “property” was introduced by Prof. Su's team. In practical testing work, a property corresponds to a minimal, atomic app function with little or no dependency on other flows, so it can run independently. Typical examples include login (enter username, enter password, submit) or liking a video with just a few steps.
     
-    性质与kea2结合的意义是在于解决过去使用appium过重的问题。用appium去测试一个性质通常要写很多行的代码，引导界面到达性质的位置。但使用kea2，就只需要编写性质，如何到其所在的位置是交给fastbot和它的学习算法来搞定的。 
+    The value of combining properties with Kea2 is that it addresses the “heavy scripting” issue in Appium-style tests. With Appium, testing one property often requires many lines of navigation code. With Kea2, you mainly define the property itself, and Fastbot plus its learning strategy handles how to reach the target state.
     
-    kea2另个重大的价值是，它解决了上述思想所需要的技术支撑，比appium更轻量的UI编写方式，fastbot编写性质的能力不足，以及无法编写逻辑和断言。整体上是保留了fastbot以往的优秀品质，完善了其不足和短板。
+    Another major value is technical enablement: Kea2 provides lighter UI scripting than Appium, while compensating for Fastbot's original limitations in property logic and assertions. It preserves Fastbot's strengths and fills key capability gaps.
     
-    简而言之，需要做传统的编排型的功能测试，仍然使用appium，使用kea2也行，但你感觉不到它的价值。本身有需要做混沌测试，模糊测试，兼容性测试。那么强烈，强烈推荐kea2。kea2更偏探索性测试而非编排型。
+    In short, for strictly orchestrated functional test cases, Appium is still a fine choice. But if your goal is exploratory testing, fuzz/stress testing, or compatibility testing, Kea2 is strongly recommended.
 </details>
 
 <details>
-  <summary>kea2组成是什么？kea2的核心作用？kea2做了什么？</summary>
+  <summary>What is Kea2 made of? What is its core role? What has it changed?</summary>
 
-kea2 组成：
+Kea2 is composed of:
 
-    fastbot  --  fuzz测试引擎，负责跑路。
-    u2 -- 负责进行业务空间的操作。与使用selenium，appium，没什么区别。
-    python --  u2的操作，逻辑的编写，定制化的实现。
+    Fastbot -- the fuzzing engine that drives large-scale exploration.
+    u2 -- executes business-level UI actions, similar in spirit to Selenium/Appium interactions.
+    Python -- used to write UI actions, logic, and custom behaviors.
 
-kea2的核心作用：
+Kea2's core role:
 
-    提供了条件触发器。 在FB跑路的时候，会不停遍历条件触发器，一旦触发，挂起FB，开始执行触发器指定的 ui test 及 assert。执行完毕，继续切回FB跑路。
+    It provides condition triggers. While Fastbot is exploring, Kea2 continuously evaluates trigger conditions. When a condition is met, Fastbot is paused, the specified UI test/assertions are executed, and then control returns to Fastbot.
 
-kea2做了什么：
+What Kea2 has changed:
 
-    替换了FB的条件触发功能。
-    替换了FB的黑名单，黑控件功能。
-    替换了FB剪枝功能。
-    增加了多元化的元素空间操作能力。
-    增加了fuzz测试中的 逻辑设定。
-    增加了断言能力。
-    增加了元素操作能力。
+    Replaced Fastbot's original condition-trigger mechanism.
+    Replaced Fastbot's activity/widget blacklist mechanism.
+    Replaced Fastbot's pruning mechanism.
+    Added richer element-space operation capabilities.
+    Added logic modeling in fuzz testing workflows.
+    Added assertion support.
+    Expanded UI element interaction capabilities.
 </details>
 
 
@@ -374,6 +380,6 @@ See [Developer guide](DEVELOP.md) for more details.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=ecnusse/Kea2&type=Date)](https://www.star-history.com/#ecnusse/Kea2&Date)
 
-[^1]: 不少UI自动化测试工具提供了“自定义事件序列”能力（如[Fastbot](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BA%8B%E4%BB%B6%E5%BA%8F%E5%88%97) 和[AppCrawler](https://github.com/seveniruby/AppCrawler)），但在实际使用中存在不少问题，如自定义能力有限、使用不灵活等。此前不少Fastbot用户抱怨过其“自定义事件序列”在使用中的问题，如[#209](https://github.com/bytedance/Fastbot_Android/issues/209), [#225](https://github.com/bytedance/Fastbot_Android/issues/225), [#286](https://github.com/bytedance/Fastbot_Android/issues/286)等。
+[^1]: Many UI automated testing tools provide “custom event sequence” features (such as [Fastbot](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BA%8B%E4%BB%B6%E5%BA%8F%E5%88%97) and [AppCrawler](https://github.com/seveniruby/AppCrawler)), but these features often have practical limitations, such as restricted flexibility and difficult maintenance. Many Fastbot users have reported issues with its custom event sequence capability, e.g., [#209](https://github.com/bytedance/Fastbot_Android/issues/209), [#225](https://github.com/bytedance/Fastbot_Android/issues/225), and [#286](https://github.com/bytedance/Fastbot_Android/issues/286).
 
-[^2]: 在UI自动化测试过程中支持自动断言是一个很重要的能力，但几乎没有测试工具提供这样的能力。我们注意到[AppCrawler](https://ceshiren.com/t/topic/15801/5)的开发者曾经希望提供一种断言机制，得到了用户的热切响应，不少用户从21年就开始催更，但始终未能实现。 
+[^2]: Supporting automatic assertions during UI automated testing is an important capability, but very few tools provide it. We noticed that the developers of [AppCrawler](https://ceshiren.com/t/topic/15801/5) once planned to introduce an assertion mechanism; the idea received strong user interest, and users kept asking for updates since 2021, but it has not been delivered.

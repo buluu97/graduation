@@ -1,8 +1,5 @@
-
-[中文文档](manual_cn.md)
-
-
 # Documentation
+English | [简体中文](/docs/manual_cn.md)
 
 ## Directory Structure
 
