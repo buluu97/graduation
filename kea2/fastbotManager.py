@@ -20,6 +20,11 @@ if TYPE_CHECKING:
     from .typedefs import PropertyExecutionInfo
 
 
+CONFIG_PATH = getProjectRoot() / "configs"
+WHITELIST_PATH = CONFIG_PATH / "awl.strings"
+BLACKLIST_PATH = CONFIG_PATH / "abl.strings"
+
+
 logger = getLogger(__name__)
 
 
@@ -180,22 +185,6 @@ class FastbotManager:
             "/data/local/tmp/x86_64/libfastbot_native.so",
         )
 
-        cwd = getProjectRoot()
-        whitelist = self.options.act_whitelist_file
-        blacklist = self.options.act_blacklist_file
-        if bool(whitelist) ^ bool(blacklist):
-            if whitelist:
-                file_to_push = cwd / 'configs' / 'awl.strings'
-                remote_path = whitelist
-            else:
-                file_to_push = cwd / 'configs' / 'abl.strings'
-                remote_path = blacklist
-
-            self.dev.sync.push(
-                file_to_push,
-                remote_path
-            )
-
     def _startFastbotService(self) -> ADBStreamShell_V2:
         shell_command = [
             "CLASSPATH="
@@ -209,7 +198,6 @@ class FastbotManager:
             "reuseq",
             "--running-minutes", f"{self.options.running_mins}",
             "--throttle", f"{self.options.throttle}",
-            # "--bugreport",
             "--output-directory", f"{self.options.device_output_root}/output_{self.options.log_stamp}",
         ]
 
@@ -219,13 +207,13 @@ class FastbotManager:
         if self.options.profile_period:
             shell_command += ["--profile-period", f"{self.options.profile_period}"]
 
-        whitelist = self.options.act_whitelist_file
-        blacklist = self.options.act_blacklist_file
-        if bool(whitelist) ^ bool(blacklist):
-            if whitelist:
-                shell_command += ["--act-whitelist-file", f"{whitelist}"]
+        if self.options.act_blacklist_file ^ self.options.act_blacklist_file:
+            if self.options.act_whitelist_file:
+                self.dev.sync.push(WHITELIST_PATH, self.options.act_whitelist_file)
+                shell_command += ["--act-whitelist-file", self.options.act_whitelist_file]
             else:
-                shell_command += ["--act-blacklist-file", f"{blacklist}"]
+                self.dev.sync.push(BLACKLIST_PATH, self.options.act_blacklist_file)
+                shell_command += ["--act-blacklist-file", self.options.act_blacklist_file]
 
         shell_command += ["-v", "-v", "-v"]
 

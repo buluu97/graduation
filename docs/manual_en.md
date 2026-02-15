@@ -171,8 +171,8 @@ You can launch Kea2 by shell commands `kea2 run`.
 | --post-failure-screenshots | Dump n screenshots after failure. Should be smaller than `--pre-failure-screenshots`. This option is only valid when `--take-screenshots` is set. | `0` |
 | --restart-app-period | The period (in the numbers of monkey events) to restart the app under test. | `0` (never restart) |
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
-| --act-whitelist-file | Activity WhiteList File. Only the activities listed in the file can be explored during testing. | |
-| --act-blacklist-file | Activity BlackList File. The activities listed in the file will be avoided during testing. | |
+| --act-whitelist-file | Activity WhiteList File. You can pass a custom path, or omit the value to use `/sdcard/.kea2/awl.strings`. | |
+| --act-blacklist-file | Activity BlackList File. You can pass a custom path, or omit the value to use `/sdcard/.kea2/abl.strings`. | |
 
 ### 1.2 Sub-commands and their arguments
 Kea2 supports 3 sub-commands: `propertytest`, `unittest`, and `--` (extra arguments).
@@ -509,12 +509,15 @@ We inherit Fastbot's blacklisting and whitelisting mechanism for activities. To 
 
 | arg | meaning | default |
 | --- | --- | --- |
-| `--act-blacklist-file` | Activate activity blacklisting. | |
-| `--act-whitelist-file` | Activate activity whitelisting. | |
+| `--act-blacklist-file [path]` | Activate activity blacklisting. If `path` is omitted, use `/sdcard/.kea2/abl.strings`. | |
+| `--act-whitelist-file [path]` | Activate activity whitelisting. If `path` is omitted, use `/sdcard/.kea2/awl.strings`. | |
 
 Sample Usage:
 ```
 kea2 run -p it.feio.android.omninotes.alpha --act-blacklist-file propertytest discover -p quicktest.py
+
+# custom blacklist file path
+kea2 run -p it.feio.android.omninotes.alpha --act-blacklist-file /sdcard/custom_abl.strings propertytest discover -p quicktest.py
 ```
 
 ### Mechanism of activity blacklisting and whitelisting

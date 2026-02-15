@@ -169,12 +169,15 @@ We inherit Fastbot's blacklisting and whitelisting mechanism for activities. To 
 
 | arg | meaning | default |
 | --- | --- | --- |
-| `--act-blacklist-file` | Activate activity blacklisting. | |
-| `--act-whitelist-file` | Activate activity whitelisting. | |
+| `--act-blacklist-file [path]` | Activate activity blacklisting. If `path` is omitted, use `/sdcard/.kea2/abl.strings`. | |
+| `--act-whitelist-file [path]` | Activate activity whitelisting. If `path` is omitted, use `/sdcard/.kea2/awl.strings`. | |
 
 Sample Usage:
 ```
 kea2 run -p it.feio.android.omninotes.alpha --act-blacklist-file propertytest discover -p quicktest.py
+
+# custom blacklist file path
+kea2 run -p it.feio.android.omninotes.alpha --act-blacklist-file /sdcard/custom_abl.strings propertytest discover -p quicktest.py
 ```
 
 ### Mechanism of activity blacklisting and whitelisting
