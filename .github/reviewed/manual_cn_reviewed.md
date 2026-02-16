@@ -4,8 +4,8 @@
 
 ## 目录
 
-### 1. Kea2 的整体思路
-- [Kea2 的整体思路](#kea2-的整体思路)
+### 1. Kea2 的工具理念
+- [Kea2 的工具理念](#kea2-的工具理念)
 ### 2. 如何编写 Kea2 脚本
 - [Kea2 脚本教程](#kea2-脚本教程)
 - [Kea2 脚本 API（测试类结构与装饰器）](#kea2-脚本-api)
@@ -29,7 +29,7 @@
 - [与第三方包交互](#与第三方包交互)
 - [提升 Kea2 性能的建议](#提升-kea2-性能的建议)
 
-# Kea2 的整体思路
+# Kea2 的工具理念
 
 - :star: [Blog: 别再苦哈哈写测试脚本了，生成它们吧！](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
 - :star: [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/)
