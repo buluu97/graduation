@@ -19,11 +19,6 @@ if TYPE_CHECKING:
     from .typedefs import PropertyExecutionInfo
 
 
-CONFIG_PATH = Path(getProjectRoot()) / "configs"
-WHITELIST_PATH = CONFIG_PATH / "awl.strings"
-BLACKLIST_PATH = CONFIG_PATH / "abl.strings"
-
-
 logger = getLogger(__name__)
 
 
@@ -207,11 +202,14 @@ class FastbotManager:
             shell_command += ["--profile-period", f"{self.options.profile_period}"]
 
         if self.options.act_blacklist_file ^ self.options.act_blacklist_file:
+            config_path = getProjectRoot() / "configs"
             if self.options.act_whitelist_file:
-                self.dev.sync.push(WHITELIST_PATH, self.options.act_whitelist_file)
+                whitelist_path = config_path / self.options.act_whitelist_file
+                self.dev.sync.push(whitelist_path, self.options.act_whitelist_file)
                 shell_command += ["--act-whitelist-file", self.options.act_whitelist_file]
             else:
-                self.dev.sync.push(BLACKLIST_PATH, self.options.act_blacklist_file)
+                blacklist_path = config_path / self.options.act_blacklist_file
+                self.dev.sync.push(blacklist_path, self.options.act_blacklist_file)
                 shell_command += ["--act-blacklist-file", self.options.act_blacklist_file]
 
         shell_command += ["-v", "-v", "-v"]
@@ -250,5 +248,4 @@ class FastbotManager:
 
     def join(self):
         self.thread.join()
-
 
