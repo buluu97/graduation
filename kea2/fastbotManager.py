@@ -2,7 +2,6 @@ import itertools
 import requests
 
 from time import sleep
-from dataclasses import asdict
 from pathlib import Path
 
 from retry import retry
@@ -20,7 +19,7 @@ if TYPE_CHECKING:
     from .typedefs import PropertyExecutionInfo
 
 
-CONFIG_PATH = getProjectRoot() / "configs"
+CONFIG_PATH = Path(getProjectRoot()) / "configs"
 WHITELIST_PATH = CONFIG_PATH / "awl.strings"
 BLACKLIST_PATH = CONFIG_PATH / "abl.strings"
 
