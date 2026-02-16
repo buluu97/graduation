@@ -1,7 +1,7 @@
 # Documentation
 English | [简体中文](/docs/manual_cn.md)
 
-## Directory Structure
+## Directory
 
 ### 1. Kea2's high-level idea
 - [Kea2's high-level idea](#kea2s-high-level-idea)
