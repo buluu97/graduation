@@ -201,14 +201,14 @@ class FastbotManager:
         if self.options.profile_period:
             shell_command += ["--profile-period", f"{self.options.profile_period}"]
 
-        if self.options.act_blacklist_file ^ self.options.act_blacklist_file:
+        if bool(self.options.act_whitelist_file) ^ bool(self.options.act_blacklist_file):
             config_path = getProjectRoot() / "configs"
             if self.options.act_whitelist_file:
-                whitelist_path = config_path / self.options.act_whitelist_file
+                whitelist_path = config_path / "awl.strings"
                 self.dev.sync.push(whitelist_path, self.options.act_whitelist_file)
                 shell_command += ["--act-whitelist-file", self.options.act_whitelist_file]
             else:
-                blacklist_path = config_path / self.options.act_blacklist_file
+                blacklist_path = config_path / "abl.strings"
                 self.dev.sync.push(blacklist_path, self.options.act_blacklist_file)
                 shell_command += ["--act-blacklist-file", self.options.act_blacklist_file]
 

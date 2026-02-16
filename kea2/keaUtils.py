@@ -396,8 +396,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         logger.info(f"Property execution info file: {stamp_manager.prop_exec_file}")
 
     @merge_fbm
+    @catchException("Unexpected Error in KeaTestRunner.run")
     def run(self, test):
-        has_crash_or_anr = False
         self.validateAndCollectProperties(test)
 
         if len(self.allProperties) == 0:
