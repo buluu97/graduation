@@ -106,7 +106,7 @@ class WidgetCoverage:
 
     @catchException("Error getting widget representation")
     def __get_widget_repr(self, data):
-        activity = data.get("Activity", "")
+        activity: str = data.get("Activity", "")
         if not activity:
             return ""
         
@@ -114,6 +114,11 @@ class WidgetCoverage:
         # filter out irrelevant widgets (not in the target packages)
         for pkg in self.options.packageNames:
             if pkg in activity:
+                break
+            # Handling the case where the activity string may not contain the full package name but can be inferred from the activity name itself
+            # Example: com.example.app.MainActivity & com.example.app.alpha
+            pkg_name_from_activity = ".".join(_ for _ in activity.split(".") if "activity" not in _.lower())
+            if pkg_name_from_activity in pkg:
                 break
         else:
             return ""

@@ -167,16 +167,22 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         "--act-whitelist-file",
         dest="act_whitelist_file",
         required=False,
+        nargs="?",
+        const="/sdcard/.kea2/awl.strings",
+        default=None,
         type=str,
-        help="Activity WhiteList File. Only the activities listed in the file can be explored during testing.",
+        help="Activity WhiteList File. If omitted value (only `--act-whitelist-file`), defaults to `/sdcard/.kea2/awl.strings`.",
     )
 
     parser.add_argument(
         "--act-blacklist-file",
         dest="act_blacklist_file",
         required=False,
+        nargs="?",
+        const="/sdcard/.kea2/abl.strings",
+        default=None,
         type=str,
-        help="Activity BlackList File. The activities listed in the file will be avoided during testing.",
+        help="Activity BlackList File. If omitted value (only `--act-blacklist-file`), defaults to `/sdcard/.kea2/abl.strings`.",
     )
 
     parser.add_argument(

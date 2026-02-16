@@ -246,14 +246,15 @@ d(text="Alarm", className="android.widget.Button")
 
 2. **在运行测试时增加命令行参数**  
 
-   在命令行添加以下参数以指定白名单文件（`/sdcard/awl.strings` 是设备上的目标路径）：  
+   在命令行添加以下参数以启用白名单（仅写参数名时默认使用 `/sdcard/.kea2/awl.strings`）：  
    ```
-   --act-whitelist-file /sdcard/awl.strings
+   --act-whitelist-file
    ```
    
    示例运行命令：  
    ```
-   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-whitelist-file /sdcard/awl.strings unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-whitelist-file unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-whitelist-file /sdcard/custom_awl.strings unittest discover -p quicktest.py
    ```
 
 ### Activity黑名单配置
@@ -270,14 +271,15 @@ d(text="Alarm", className="android.widget.Button")
   > 注意：你不需要手动将此黑名单文件推送到设备上，程序将自动完成这一工作。
 
 2. **在运行测试时增加命令行参数**  
-   在命令行添加以下参数以指定黑名单文件（`/sdcard/abl.strings` 是设备上的目标路径）：  
+   在命令行添加以下参数以启用黑名单（仅写参数名时默认使用 `/sdcard/.kea2/abl.strings`）：  
    ```
-   --act-blacklist-file /sdcard/abl.strings
+   --act-blacklist-file
    ```
    
    示例运行命令：  
    ```
-   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-blacklist-file /sdcard/abl.strings unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-blacklist-file unittest discover -p quicktest.py
+   kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --act-blacklist-file /sdcard/custom_abl.strings unittest discover -p quicktest.py
    ```
 
 ### 重要说明
