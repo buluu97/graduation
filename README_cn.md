@@ -6,6 +6,9 @@
 [<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />](https://github.com/ecnusse/Kea2)
 [<img src="https://img.shields.io/badge/Gitee-Mirror-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2)
 
+### [English](/README.md) | 简体中文
+
+
 <div align="center">
     <img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
@@ -14,9 +17,7 @@
 </div>
 </br>
 
-
-
-### [English](/README.md) | 简体中文
+### [:blue_book: User Manual](/docs/manual_en.md) | [:blue_book: 用户手册](/docs/manual_cn.md)
 
 ## 简介
 
@@ -73,11 +74,6 @@ Kea2（及其理念）已被以下用户/项目使用或集成：
 - [ByteDance's Fastbot](https://github.com/bytedance/Fastbot_Android)
 
 如果你也在使用Kea2，欢迎联系我们并反馈你的意见和问题。
-
-## 设计与展望
-
-Kea2部分关键特性灵感来源于
-- [hypothesis](https://github.com/HypothesisWorks/hypothesis)，Python的基于性质的测试框架
 
 ## 设计与展望
 
@@ -149,9 +145,10 @@ python3 quicktest.py
 否则请协助[提交错误报告](https://github.com/ecnusse/Kea2/issues)，并附上错误信息。谢谢！
 
 
-## 特性 1（运行基础版Fastbot：查找稳定性错误）
+## 特性 1（运行基础版Fastbot：查找稳定性错误并获得 kea2 测试报告）
 
 利用Fastbot的全部能力对你的App进行压力测试，查找*稳定性错误*（即*崩溃错误*）；
+同时，你可以获得由Kea2提供的测试报告，了解测试过程中的App行为和发现的错误。
 
 ```bash
 kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10
@@ -254,61 +251,6 @@ Kea2支持在运行Fastbot时自动断言，用以发现*逻辑错误*（即*非
 
 你可以用类似特性 2 的命令行运行此示例。
 
-## 特性 4（兼容已有脚本：通过前置脚本步骤到达特定层次）
-
-Kea2支持复用已有的UI测试脚本。我们受到以下理念启发：*已有的UI测试脚本通常覆盖重要的App功能并能达到深层状态，因此它们可以作为良好的“引导脚本”，驱动Fastbot探索重要且深层的App状态。*
-
-例如，你可能已有“登录并添加好友”的UI测试脚本。此特性允许你使用已有脚本，在脚本中设置断点（即可中断点），并在每个断点后启动Fastbot探索App。这样你可以先完成登录，再启动Fastbot探索登录后的App状态，帮助Fastbot探索深层状态（Fastbot自身难以完成登录）。
-
-### 示例
-
-在`hybridtest_examples`目录下有四个示例脚本，分别对应不同形式的用户脚本，展示如何在已有代码中启动kea2。
-
-具体为：
-
-* [u2_unittest_example.py](hybridtest_examples/u2_unittest_example.py) 是基于unittest组织的u2脚本。
-* [u2_pytest_example.py](hybridtest_examples/u2_pytest_example.py) 是基于pytest组织的u2脚本。
-* [appium_unittest_example.py](hybridtest_examples/appium_unittest_example.py) 是基于unittest组织的appium脚本。
-* [appium_pytest_example.py](hybridtest_examples/appium_pytest_example.py) 是基于pytest组织的appium脚本。
-
-注意事项：
-
-1. 你可以通过修改`if`条件控制是否执行kea2相关代码，方便在同一脚本中启用或禁用kea2操作。这里以环境变量为例。
-2. 由于kea2由u2驱动，若appium脚本想启动kea2，需先关闭appium会话。请确保在`desired_caps`中配置`"noReset": True`，避免关闭会话时重置应用。
-3. 你需要将以下代码模板插入已有测试用例中：你可以在注释部分添加自己的hook逻辑，如启动或停止appium会话、清理实例等，具体取决于你的setup和teardown设计。除此之外，只需配置`option`参数和`configs_path`参数（即`configs`目录所在位置，通常是执行`kea2 init`的目录），然后传入`run_kea2_testing`函数即可。
-
-```python
-from kea2 import Kea2Tester, Options
-
-if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
-    '''
-    注意：这里的if条件可根据项目实际情况修改，环境变量形式仅为示例。    
-    '''
-
-    # 关闭驱动会话等操作
-    # ...
-    
-    tester = Kea2Tester()
-    result = self.tester.run_kea2_testing(
-        Options(
-            driverName="d",
-            packageNames=[PACKAGE_NAME],
-            propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
-            serial=DEVICE_SERIAL,
-            running_mins=2,
-            maxStep=20
-        ),
-        configs_path = None  # 默认，若configs文件夹位于根目录，可省略此参数。           
-    )
-    
-    # 重新启动驱动会话或清理实例
-    # ...
-    
-    return  # 使本测试用例后续步骤不执行
-```
-
-
-
 ## 测试报告
 
 Kea2会在每次测试结束后自动生成HTML格式的测试报告。你可以在当前工作目录下的`output/`目录中找到报告。
@@ -324,30 +266,13 @@ Kea2会在每次测试结束后自动生成HTML格式的测试报告。你可以
 
 ## :blue_book: User Manual (用户手册)
 
-Please see the [:blue_book: User Manual](/docs/manual_en.md) for more details on how to use Kea2.
+Please see the [user manual](/docs/manual_en.md) for more details on how to use Kea2.
 
-请查看[:blue_book: 用户手册](/docs/manual_cn.md)以获取更多Kea2的详细文档。
+请查看[用户手册](/docs/manual_cn.md)以获取更多Kea2的详细文档。
 
-其中包含：
-- Kea2在微信上的使用示例（中文）；
-- 如何定义Kea2脚本和使用装饰器（如`@precondition`、`@prob`、`@max_tries`）；
-- 如何运行Kea2及命令行选项；
-- 如何发现并理解Kea2的测试结果；
-- 如何在模糊测试过程中将特定Activity、UI控件和UI区域加入[白名单或黑名单](docs/blacklisting_cn.md)。
-
-### 其他Kea2相关资源（中文）
-
-- [Kea2和基于性质测试的常见问题与回答](https://sy8pzmhmun.feishu.cn/wiki/SLGwwqgzIiEuC3kwmV8cSZY0nTg?from=from_copylink)  
-- [Kea2 101（从0到1的入门教程与最佳实践，建议新手阅读）](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)  
-- [Kea2 分享交流会（2025.09，bilibili录播）](https://www.bilibili.com/video/BV1CZYNz9Ei5/)  
-- [Kea2 工具快速介绍（2025.11，bilibili录播）](https://www.bilibili.com/video/BV1WAyUBDEMw/)
-
-部分Kea/Kea2相关博客（中文）：
-- [别再苦哈哈写测试脚本了，生成它们吧！（一）](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
-- [别再苦哈哈写测试脚本了，生成它们吧！（二）](https://mp.weixin.qq.com/s/s4WkdstNcKupu9OP8jeOXw)
-- [别再苦哈哈写测试脚本了，生成它们吧！（三）](https://mp.weixin.qq.com/s/BjXyo-xJRmPB_sCc4pmh8g)
-- [2025 Let’s GoSSIP 软件安全暑期学校预告第一弹——Kea2](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
-- :mega: [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) --- 视频回放&PPT@MTSC 2025
+## :mega: News & Media
+- [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) - 视频回放与 PPT @ MTSC 2025
+- [2025 Let’s GoSSIP 软件安全暑期学校：Kea2（预告 #1）](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
 
 工业界对Kea2的理解和评价（点击箭头查看详情）：
 
