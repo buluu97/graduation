@@ -1,4 +1,4 @@
-
+<div align="center">
 
 [![PyPI](https://img.shields.io/pypi/v/kea2-python.svg)](https://pypi.python.org/pypi/kea2-python)
 [![PyPI Downloads](https://static.pepy.tech/badge/kea2-python)](https://pepy.tech/projects/kea2-python)
@@ -8,13 +8,14 @@
 [<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />](https://github.com/ecnusse/Kea2)
 [<img src="https://img.shields.io/badge/Gitee-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2) 
 
-### English | [简体中文](/README_cn.md)
+**English | [简体中文](/README_cn.md)**
 
-<div align="center">
-    <img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
-</div>
-<div align="center">
-    <a href="https://en.wikipedia.org/wiki/Kea">Kea2's logo: A large parrot skilled in finding "bugs"</a>
+</br>
+
+<img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
+
+<a href="https://en.wikipedia.org/wiki/Kea">Kea2's logo: A large parrot skilled in finding "bugs"</a>
+
 </div>
 </br>
 

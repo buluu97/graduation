@@ -1,3 +1,5 @@
+<div align="center">
+
 [![PyPI](https://img.shields.io/pypi/v/kea2-python.svg)](https://pypi.python.org/pypi/kea2-python)
 [![PyPI Downloads](https://static.pepy.tech/badge/kea2-python)](https://pepy.tech/projects/kea2-python)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
@@ -6,14 +8,17 @@
 [<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />](https://github.com/ecnusse/Kea2)
 [<img src="https://img.shields.io/badge/Gitee-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2) 
 
-### [English](/README.md) | 简体中文
+**[English](/README.md) | 简体中文**
 
-<div align="center">
-    <img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
+</br>
+
+<img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
+
+
+<a href="https://en.wikipedia.org/wiki/Kea">Kea2的Logo：一只擅长发现“bugs”的大型鹦鹉</a>
+
 </div>
-<div align="center">
-    <a href="https://en.wikipedia.org/wiki/Kea">Kea2的Logo：一只擅长发现“bugs”的大型鹦鹉</a>
-</div>
+
 </br>
 
 ### [:blue_book: User Manual](/docs/manual_en.md) | [:blue_book: 用户手册](/docs/manual_cn.md)
