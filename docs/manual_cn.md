@@ -1,6 +1,6 @@
 # 文档
 
-English | [简体中文](/docs/manual_cn.md)
+[English](/docs/manual_en.md) | 简体中文
 
 ## 目录
 
