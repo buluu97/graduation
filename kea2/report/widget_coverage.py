@@ -20,6 +20,7 @@ class WidgetCoverage:
     AUTO_RESOURCE_ID = "<AUTO>"
     _profile_period: int
     _options: "Options"
+    _all_activities: Set[str] = None
     
     def __init__(self, output_dir, options:"Options"=None, profile_period:int=None):
         self.output_dir = Path(output_dir)
@@ -43,6 +44,16 @@ class WidgetCoverage:
             if options_data:
                 self._options = Options.from_dict(options_data)
         return self._options
+    
+    @property
+    def all_activities(self) -> Set[str]:
+        if self._all_activities is None:
+            with open(self.output_dir / "coverage.log") as f:
+                line = f.readline()
+                data = json.loads(line)
+                self._all_activities = set(data["totalActivities"])
+        return self._all_activities
+                
 
     def generate_coverage_report(self):
         logger.info(
@@ -103,24 +114,28 @@ class WidgetCoverage:
                 __record_coverage(final_steps_count)
 
         return triggered_widgets, coverage_records
+    
+    def is_activity_in_target_packages(self, activity: str) -> bool:
+        if self.all_activities:
+            return activity in self.all_activities
+        # Fallback
+        # Check if activity matches any of the specified package names
+        # filter out irrelevant widgets (not in the target packages)
+        for pkg in self.options.packageNames:
+            if pkg in activity:
+                return True
+            pkg_name_from_activity = ".".join(_ for _ in activity.split(".") if "activity" not in _.lower())
+            if pkg_name_from_activity in pkg:
+                return True
+        return False
 
     @catchException("Error getting widget representation")
     def __get_widget_repr(self, data):
         activity: str = data.get("Activity", "")
         if not activity:
             return ""
-        
-        # Check if activity matches any of the specified package names
-        # filter out irrelevant widgets (not in the target packages)
-        for pkg in self.options.packageNames:
-            if pkg in activity:
-                break
-            # Handling the case where the activity string may not contain the full package name but can be inferred from the activity name itself
-            # Example: com.example.app.MainActivity & com.example.app.alpha
-            pkg_name_from_activity = ".".join(_ for _ in activity.split(".") if "activity" not in _.lower())
-            if pkg_name_from_activity in pkg:
-                break
-        else:
+         
+        if not self.is_activity_in_target_packages(activity):
             return ""
 
         info_str = data.get("Info", "")
