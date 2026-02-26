@@ -42,6 +42,7 @@ jobs:
           adb shell getprop sys.boot_completed
           adb devices
           set +e
+          kea2 init
           python3 quicktest.py
           rc=$?
           echo "quicktest return code: ${rc}"
