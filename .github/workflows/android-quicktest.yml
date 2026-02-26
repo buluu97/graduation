@@ -43,13 +43,7 @@ jobs:
 
           echo "Emulator is ready. Running kea2 quicktest..."
           kea2 init
-          set +e
-          python3 quicktest.py
-          rc=$?
-          set -e
-
-          echo "rc=$rc" >> "$GITHUB_OUTPUT"
-          echo "quicktest return code: ${rc}"
+          python3 quicktest.py; rc=$?; echo "rc=$rc" >> "$GITHUB_OUTPUT"; echo "quicktest return code: ${rc}"
           
     - name: Check quicktest return code
       run: |
