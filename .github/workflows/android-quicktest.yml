@@ -17,36 +17,31 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install kea2
-      run: |
-        python -m pip install --upgrade pip
-        pip install .
-
     - name: Enable KVM
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    - name: Boot Android emulator
+    - name: Install kea2
+      run: |
+        python -m pip install .
+
+    - name: run kea2 tests on emulator
+      id: quicktest
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 36
         target: google_apis
         arch: x86_64
         script: |
+          echo "Waiting for emulator to boot..."
           adb wait-for-device
-          for _ in $(seq 1 30); do
-            [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
-            sleep 2
-          done
+          timeout 60 sh -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
           echo "Emulator boot completed."
           adb devices
-    
-    - name: Run quicktest
-      id: quicktest
-      continue-on-error: true
-      run: |
+
+          echo "Emulator is ready. Running kea2 quicktest..."
           kea2 init
           set +e
           python3 quicktest.py
@@ -55,7 +50,7 @@ jobs:
 
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           echo "quicktest return code: ${rc}"
-    
+          
     - name: Check quicktest return code
       run: |
         rc="${{ steps.quicktest.outputs.rc }}"
