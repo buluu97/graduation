@@ -28,23 +28,31 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    - name: Run quicktest on Android emulator
-      id: quicktest
-      continue-on-error: true
+    - name: Boot Android emulator
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 36
         target: google_apis
         arch: x86_64
         script: |
-          ./gradlew connectedCheck
-
+          adb wait-for-device
+          for _ in $(seq 1 30); do
+            [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
+            sleep 2
+          done
+          echo "Emulator boot completed."
+          adb devices
+    
+    - name: Run quicktest
+      id: quicktest
+      continue-on-error: true
+      run: |
           kea2 init
           set +e
           python3 quicktest.py
           rc=$?
           set -e
-          
+
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           echo "quicktest return code: ${rc}"
     
