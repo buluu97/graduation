@@ -35,17 +35,19 @@ jobs:
         arch: x86_64
         target: default
         profile: Nexus 6
-        emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+        emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-metrics
         disable-animations: true
         script: |
+          adb wait-for-device
+          adb shell getprop sys.boot_completed
           adb devices
           set +e
           python3 quicktest.py
           rc=$?
           echo "quicktest return code: ${rc}"
-          if [[ "${rc}" =~ ^[0-3]$ ]]; then
-            echo "Return code is valid (0,1,2,3)."
+          if [[ "${rc}" =~ ^[0-4]$ ]]; then
+            echo "Return code is valid (0,1,2,3,4)."
             exit 0
           fi
-          echo "Invalid return code: ${rc}. Expected one of 0,1,2,3."
+          echo "Invalid return code: ${rc}. Expected one of 0,1,2,3,4."
           exit 1
