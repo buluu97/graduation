@@ -151,25 +151,26 @@ You can launch Kea2 by shell commands `kea2 run`.
 
 ### 1.1 `kea2 run` Options
 
-| arg | meaning | default | 
-| --- | --- | --- |
-| -s | The serial of your device, which can be found by `adb devices` | |
-| -t | The transport id of your device, which can be found by `adb devices -l` | |
-| -p | Specify the target app package name(s) to test (e.g., com.example.app). *Supports multiple packages: `-p pkg1 pkg2 pkg3`* | 
-| -o | The ouput directory for logs and results | `output` |
-| --running-minutes | The time (in minutes) to run Kea2 | `10` |
-| --max-step | The maxium number of monkey events to send | `inf` (infinite) |
-| --throttle | The delay time (in milliseconds) between two monkey events | `200` |
-| --driver-name | The name of driver used in the kea2's scripts. If `--driver-name d` is specified, you should use `d` to interact with a device, e..g, `self.d(..).click()`. | `d` |
-| --log-stamp | the stamp for log file and result file. (e.g., if `--log-stamp 123` is specified, the log files will be named as `fastbot_123.log` and `result_123.json`.) | current time stamp |
-| --profile-period | The period (in the numbers of monkey events) to profile coverage and collect UI screenshots. Specifically, the UI screenshots are stored on the SDcard of the mobile device, and thus you need to set an appropriate value according to the available device storage. | `25` |
-| --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
-| --pre-failure-screenshots | Dump n screenshots before failure. 0 means take screenshots for every step. This option is only valid when `--take-screenshots` is set. | `0` |
-| --post-failure-screenshots | Dump n screenshots after failure. Should be smaller than `--pre-failure-screenshots`. This option is only valid when `--take-screenshots` is set. | `0` |
-| --restart-app-period | The period (in the numbers of monkey events) to restart the app under test. | `0` (never restart) |
-| --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
-| --act-whitelist-file | Activity WhiteList File. You can pass a custom path, or omit the value to use `/sdcard/.kea2/awl.strings`. | |
-| --act-blacklist-file | Activity BlackList File. You can pass a custom path, or omit the value to use `/sdcard/.kea2/abl.strings`. | |
+| arg                        | meaning                                                                                                                                                                                                                                                               | default | 
+|----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| --- |
+| -s                         | The serial of your device, which can be found by `adb devices`                                                                                                                                                                                                        | |
+| -t                         | The transport id of your device, which can be found by `adb devices -l`                                                                                                                                                                                               | |
+| -p                         | Specify the target app package name(s) to test (e.g., com.example.app). *Supports multiple packages: `-p pkg1 pkg2 pkg3`*                                                                                                                                             | 
+| -o                         | The ouput directory for logs and results                                                                                                                                                                                                                              | `output` |
+| --running-minutes          | The time (in minutes) to run Kea2                                                                                                                                                                                                                                     | `10` |
+| --max-step                 | The maxium number of monkey events to send                                                                                                                                                                                                                            | `inf` (infinite) |
+| --throttle                 | The delay time (in milliseconds) between two monkey events                                                                                                                                                                                                            | `200` |
+| --driver-name              | The name of driver used in the kea2's scripts. If `--driver-name d` is specified, you should use `d` to interact with a device, e..g, `self.d(..).click()`.                                                                                                           | `d` |
+| --log-stamp                | the stamp for log file and result file. (e.g., if `--log-stamp 123` is specified, the log files will be named as `fastbot_123.log` and `result_123.json`.)                                                                                                            | current time stamp |
+| --profile-period           | The period (in the numbers of monkey events) to profile coverage and collect UI screenshots. Specifically, the UI screenshots are stored on the SDcard of the mobile device, and thus you need to set an appropriate value according to the available device storage. | `25` |
+| --take-screenshots         | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`).                                                                  |  |
+| --pre-failure-screenshots  | Dump n screenshots before failure. 0 means take screenshots for every step. This option is only valid when `--take-screenshots` is set.                                                                                                                               | `0` |
+| --post-failure-screenshots | Dump n screenshots after failure. Should be smaller than `--pre-failure-screenshots`. This option is only valid when `--take-screenshots` is set.                                                                                                                     | `0` |
+| --restart-app-period       | The period (in the numbers of monkey events) to restart the app under test.                                                                                                                                                                                           | `0` (never restart) |
+| --device-output-root       | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access.                                                                                       | `/sdcard` |
+| --act-whitelist-file       | Activity WhiteList File. You can pass a custom path, or omit the value to use `/sdcard/.kea2/awl.strings`.                                                                                                                                                            | |
+| --act-blacklist-file       | Activity BlackList File. You can pass a custom path, or omit the value to use `/sdcard/.kea2/abl.strings`.                                                                                                                                                            | |
+| --merge-fbm                | Enable FBM merge at startup. Pulls FBM(s) from the device and merges with local PC FBM data. The FBM file path on the local PC is in `configs/merge_fbm`.                                                                                                             | |
 
 ### 1.2 Sub-commands and their arguments
 Kea2 supports 3 sub-commands: `propertytest`, `unittest`, and `--` (extra arguments).
@@ -652,6 +653,14 @@ if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
     
     return  # this make your following steps of this testcase not work
 ```
+
+# Experimental Feature
+
+## FBM Merge 
+
+Kea2 provides an experimental feature called FBM Merge, which enables automatic aggregation and slimming of Fastbot model (FBM) files across multiple devices or test runs. This is especially useful for distributed or large-scale testing scenarios, helping to accelerate model training and improve coverage consistency. To enable it, simply add the `--merge-fbm` option when running kea2.
+
+For detailed usage, implementation, and best practices, please refer to [docs/Fbm_Merge_en.md](Fbm_Merge_en.md).
 
 # Other Tips and FAQs
 
