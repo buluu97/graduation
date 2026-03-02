@@ -5,29 +5,29 @@
 ## 目录
 
 ### 1. Kea2 的工具理念
-- [Kea2 的工具理念](#kea2s-high-level-idea)
+- [Kea2 的工具理念](#1-kea2-的工具理念)
 ### 2. 如何编写 Kea2 脚本
-- [Kea2 脚本教程](#kea2s-script-tutorials)
-- [Kea2 脚本 API（测试类结构与装饰器）](#kea2s-scripts-apis-测试类结构装饰器)
+- [Kea2 脚本教程](#kea2-脚本教程)
+- [Kea2 脚本 API（测试类结构与装饰器）](#kea2-脚本-api)
 ### 3. 如何启动 Kea2
 - [命令行启动](#1-通过-shell-命令启动) (`kea2 run` 参数、子命令与返回码)
 - [在 Python 代码中启动（`unittest.main`）](#2-通过-unittestmain-启动-kea2)
 ### 4. 如何阅读和管理 Kea2 测试报告
-- [阅读 Kea2 测试报告（属性检查结果字段）](#meaning-of-property-violations)
-- [生成 Kea2 测试报告](#manually-generate-kea2-report)
-- [合并多个测试报告](#merge-multiple-test-reports-for-multiple-test-sessions)
+- [阅读 Kea2 测试报告（属性检查结果字段）](#阅读-kea2-报告)
+- [生成 Kea2 测试报告](#生成-kea2-报告kea2-report)
+- [合并多个测试报告](#合并多个测试报告kea2-merge)
 ### 5. 配置文件
-- [Fastbot 配置文件](#fastbot-configuration-files)
-- [黑白名单（控件/界面特定区域）](#blacklisting-specific-ui-widgetsregions-黑白名单控件界面特定区域)
-- [更新用户配置文件](#update-of-user-configuration-files)
+- [Fastbot 配置文件](#fastbot-配置文件)
+- [黑白名单](#activity-黑白名单)
+- [更新用户配置文件](#用户配置文件更新)
 ### 6. 高级功能
-- [高级功能 1：带状态测试](#advanced-feature-1-stateful-testing-带状态的测试)
-- [高级功能 2：不变式检查](#advanced-feature-2-ivariant-checks-不变式检查)
-- [高级功能 3：复用回归脚本](#advanced-feature-3-reusing-regression-tests-兼容已有脚本通过前置脚本步骤到达特定层次)
+- [高级功能 1：带状态测试](#高级功能-1带状态测试stateful-testing)
+- [高级功能 2：不变式检查](#高级功能-2不变式检查invariant-checks)
+- [高级功能 3：复用回归脚本](#高级功能-3复用回归脚本兼容已有脚本通过前置脚本步骤到达特定层次)
 ### 7. 常见问题与技巧
-- [FAQ](#faqs)
-- [与第三方包交互](#interacting-with-third-party-packages)
-- [提升 Kea2 性能的建议](#tricks-to-enhance-kea2-performance)
+- [FAQ](#faq)
+- [与第三方包交互](#与第三方包交互)
+- [提升 Kea2 性能的建议](#提升-kea2-性能的建议)
 
 # Kea2 的工具理念
 
