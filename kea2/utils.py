@@ -8,7 +8,7 @@ from functools import wraps
 from typing import Callable, Dict, Optional, Union
 from unittest import TestCase
 
-
+# 装饰器
 def singleton(cls):
     _instance = {}
 
@@ -19,6 +19,7 @@ def singleton(cls):
     return inner
 
 
+# 日志系统
 class LoggingLevel:
     level = logging.INFO
     _instance: Optional["LoggingLevel"] = None  # 单例缓存
@@ -32,20 +33,23 @@ class LoggingLevel:
     def set_level(cls, level: int):
         cls.level = level
 
-
+# 自定义过滤器（每条日志经过此filter，只有大于等于当前等级才输出）
 class DynamicLevelFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         return record.levelno >= LoggingLevel.level
 
-
+# 核心入口
 def getLogger(name: str) -> logging.Logger:
+    # 获取logger
     logger = logging.getLogger(name)
 
     def enable_pretty_logging():
+        # 自动配置handler
         if not logger.handlers:
             # Configure handler
             handler = logging.StreamHandler()
             handler.flush = lambda: handler.stream.flush()
+            # 日志格式
             handler.setFormatter(logging.Formatter('[%(levelname)1s][%(asctime)s %(module)s:%(lineno)d pid:%(process)d] %(message)s'))
             handler.setLevel(logging.NOTSET)
             handler.addFilter(DynamicLevelFilter())
@@ -57,12 +61,14 @@ def getLogger(name: str) -> logging.Logger:
     return logger
 
 
+# 全局logger
 logger = getLogger(__name__)
 
 
 
 
 @singleton
+# 时间戳管理
 class TimeStamp:
     time_stamp = None
 
@@ -78,6 +84,7 @@ class TimeStamp:
 
 
 @singleton
+# 统一管理文件命名和输出目录
 class StampManager:
     stamp: Optional[str] = None
     output_dir: Optional[Path] = None
@@ -130,7 +137,7 @@ d = Device
 
 _CUSTOM_PROJECT_ROOT: Optional[Path] = None
 
-
+# 项目根目录定位
 def setCustomProjectRoot(configs_path: Optional[Union[str, Path]]):
     """
     Set a custom project root directory (containing the configs directory). Passing None can restore the default behavior.
@@ -162,6 +169,7 @@ def getProjectRoot() -> Optional[Path]:
     return cur_dir
 
 
+# 性能统计
 def timer(log_info: str=None):
     """ ### Decorator to measure the execution time of a function.
 
@@ -188,6 +196,7 @@ def timer(log_info: str=None):
     return accept
 
 
+# 异常捕获
 def catchException(log_info: str):
     """ ### Decorator to catch exceptions and print log info.
 
@@ -209,7 +218,7 @@ def catchException(log_info: str):
         return wrapper
     return accept
 
-
+# 动态加载函数
 def loadFuncsFromFile(file_path: str) -> Dict[str, Callable]:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"{file_path} not found.")
@@ -231,9 +240,10 @@ def loadFuncsFromFile(file_path: str) -> Dict[str, Callable]:
 
     return funcs
 
-
+# 获取类名
 def getClassName(clazz):
     return f'%s.%s' % (clazz.__module__, clazz.__qualname__)
 
+# 获取测试用例名
 def getFullPropName(testCase: TestCase):
     return f"%s.%s" % (getClassName(testCase.__class__), testCase._testMethodName)

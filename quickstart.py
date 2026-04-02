@@ -141,7 +141,7 @@ if __name__ == "__main__":
             maxStep=50,
             profile_period=10,
             take_screenshots=True,  # whether to take screenshots, default is False
-            # running_mins=10,  # specify the maximal running time in minutes, default value is 10m
+            running_mins=1,  # specify the maximal running time in minutes, default value is 10m
             # throttle=200,   # specify the throttle in milliseconds, default value is 200ms
         )
     )

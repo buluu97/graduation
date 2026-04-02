@@ -71,6 +71,7 @@ class ReportData(TypedDict):
     crash_events: List[Dict]  # Crash events from crash-dump.log
     anr_events: List[Dict]  # ANR events from crash-dump.log
     kill_apps_events: List[Dict]  # kill_apps info events from steps.log
+    ui_tarpit_data: Dict  # UI Tarpit detection summary (from ui_tarpit_report.json)
 
 
 class PropertyExecResult(TypedDict):
@@ -298,6 +299,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "crash_events": [],
             "anr_events": [],
             "kill_apps_events": [],
+            "ui_tarpit_data": {},
         }
 
         # Parse steps.log file to get test step numbers and screenshot mappings
@@ -532,6 +534,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         data["crash_events"] = crash_events
         data["anr_events"] = anr_events
 
+        # Load UI Tarpit detection data
+        data["ui_tarpit_data"] = self._load_ui_tarpit_data()
+
         return data
 
     def _parse_step_data(self, raw_step_info: str) -> StepData:
@@ -604,6 +609,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'triggered_anr_count': len(data["anr_events"]),
             'property_stats_summary': data["property_stats_summary"],
             'kill_apps_events': data.get("kill_apps_events", []),
+            'ui_tarpit_data': data.get("ui_tarpit_data", {}),
         }
 
         # Check if template exists, if not create it
@@ -616,6 +622,24 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         html_content = template.render(**template_data)
 
         return html_content
+
+    def _load_ui_tarpit_data(self) -> Dict:
+        """
+        Load UI Tarpit detection data from ui_tarpit_report.json.
+
+        Returns:
+            dict: UI Tarpit report data, or empty dict if not found.
+        """
+        report_path = self.result_dir / "ui_tarpit_report.json"
+        if not report_path.exists():
+            logger.debug(f"UI Tarpit report not found: {report_path}")
+            return {}
+        try:
+            with open(report_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load UI Tarpit report: {e}")
+            return {}
 
     def _load_widget_coverage_trend(self) -> List[Dict]:
         widget_coverage_log = self.data_path.output_dir / "widget_coverage.log"

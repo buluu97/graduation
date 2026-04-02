@@ -1,3 +1,5 @@
+# kea2核心执行引擎
+
 import random
 import warnings
 import types
@@ -5,6 +7,7 @@ import traceback
 import json
 import os
 import functools
+import tempfile
 
 from copy import deepcopy
 from pathlib import Path
@@ -33,6 +36,9 @@ from .state import invariant, INVARIANT_MARKER
 from .result import KeaJsonResult, KeaTextTestResult
 from .fbm_plugin import merge_fbm
 
+# 导入UI Tarpit检测器
+from .tarpit.similarity import UITarpitDetector
+
 logger = getLogger(__name__)
 hybrid_mode = ContextVar("hybrid_mode", default=False)
 
@@ -42,7 +48,8 @@ class KeaRuntimeError(RuntimeError):
 
 
 
-
+# 定义测试规则
+# 定义属性执行的前置条件
 def precondition(precond: Callable[[Any], bool]) -> Callable:
     """the decorator @precondition
 
@@ -56,7 +63,7 @@ def precondition(precond: Callable[[Any], bool]) -> Callable:
 
     return accept
 
-
+# 控制执行概率
 def prob(p: float):
     """the decorator @prob
 
@@ -72,7 +79,7 @@ def prob(p: float):
 
     return accept
 
-
+# 限制某property执行次数
 def max_tries(n: int):
     """the decorator @max_tries
 
@@ -88,7 +95,7 @@ def max_tries(n: int):
 
     return accept
 
-
+# 标记该测试可被fastbot插入fuzz测试
 def interruptable(strategy='default'):
     """the decorator @interruptable
 
@@ -102,6 +109,7 @@ def interruptable(strategy='default'):
     return decorator
 
 
+# 配置中心 整个kea2的运行配置对象
 @dataclass
 class Options:
     """
@@ -159,21 +167,29 @@ class Options:
             return
         super().__setattr__(name, value)
 
+
+# 初始化流程
     def __post_init__(self):
         import logging
+        # 设置logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)
 
+        # 初始化driver
         self._set_driver()
 
+        # 生成时间戳
         self.log_stamp = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
         self._sanitize_stamp(self.log_stamp)
 
+        # 初始化输出目录
         self.output_dir = Path(self.output_dir).absolute() / f"res_{self.log_stamp}"
         StampManager().set_stamp(self.log_stamp)
         StampManager().set_output_dir(self.output_dir)
 
+        # 参数校验
         self._sanitize_args()
 
+        # 检查app是否安装
         _check_package_installation(self.packageNames)
         _save_bug_report_configs(self)
         _save_options_configs(self)
@@ -318,6 +334,8 @@ class KeaTestSuite(TestSuite):
         return super().addTest(test)
 
 
+# 测试发现机制
+# 只加载property/invariant
 class KeaTestLoader(TestLoader):
     testMethodPrefix = ""
     suiteClass = KeaTestSuite
@@ -378,7 +396,7 @@ class SetUpClassExtension:
                 import traceback
                 traceback.print_exc()
 
-
+# 核心执行循环
 class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
     resultclass: KeaJsonResult
@@ -400,6 +418,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
     @merge_fbm
     @catchException("Unexpected Error in KeaTestRunner.run")
     def run(self, test):
+
+        # 收集property
+        self.validateAndCollectProperties(test)
+        # 收集property
         self.validateAndCollectProperties(test)
 
         if len(self.allProperties) == 0:
@@ -420,6 +442,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
         with warnings.catch_warnings():
             stamp_manager = StampManager()
+            # 启动fastbot
             fb = FastbotManager(self.options, stamp_manager.log_file)
             fb.start()
 
@@ -429,6 +452,17 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             result.flushResult()
             # setUp for the u2 driver
             self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
+
+            # 初始化UI Tarpit检测器（必须在 self.scriptDriver 赋值之后）
+            logger.info("正在初始化UI Tarpit检测器...")
+            from .tarpit.similarity import UITarpitDetector
+            ui_tarpit_detector = UITarpitDetector(
+                sim_k=3,
+                output_dir=self.options.output_dir,
+                u2_device=self.scriptDriver,
+            )
+            self.ui_tarpit_count = 0  # UI Tarpit检测计数器
+            logger.info("UI Tarpit检测器初始化完成，连续相似次数阈值设置为5次")
 
             for test in {**self.allProperties, **self.allInvariants}.values():
                 self.setUpClass(test)
@@ -444,6 +478,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
             # Kea2 main testing loop
             try:
+                # 主循环
                 while self.stepsCount < self.options.maxStep:
                     logger.info(f"[Property based testing] [New Iteration] Elapsed: {perf_counter()-start_time:.1f}s")
                     if self.shouldStop(start_time):
@@ -459,7 +494,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                             self.scriptDriver.app_stop(app)
                         sleep(3)
                         fb.sendInfo("kill_apps")
-                        continue
+                        pass
 
                     try:
                         # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
@@ -473,7 +508,23 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                         else:
                             self.stepsCount += 1
                             logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
+                            # 执行UI事件 返回当前UI树
                             xml_raw = fb.stepMonkey(self._monkeyStepInfo)
+                        
+                        # UI Tarpit检测：每次UI事件执行后检查是否进入UI陷阱
+                        logger.info("正在执行UI Tarpit检测...")
+                        try:
+                            if ui_tarpit_detector.check():
+                                self.ui_tarpit_count += 1
+                                logger.warning(
+                                    f"⚠️ 检测到UI Tarpit！当前累计检测到 {self.ui_tarpit_count} 次UI陷阱"
+                                )
+                                logger.warning("应用可能陷入了无法前进或后退的界面状态")
+                            else:
+                                logger.info("✅ 当前界面状态正常，未检测到UI Tarpit")
+                        except Exception as e:
+                            logger.warning(f"UI Tarpit检测失败: {e}")
+                            
                     # If the connection is refused, fastbot might have stpped running
                     except u2.HTTPError:
                         logger.info("Connection refused by remote.")
@@ -489,7 +540,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
                     if not xml_raw:
                         logger.warning("Empty ui hierarchy returned. Skip this step.")
-                        continue
+                        pass
 
                     result.setCurrentStepsCount(self.stepsCount)
 
@@ -512,14 +563,16 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                         resultSyncer.sync_event.set()
 
                     # get the checkable properties
+                    # 寻找可执行property
                     checkableProperties = self.getCheckableProperties(xml_raw, result, staticCheckerDriver)
 
                     if not checkableProperties:
-                        continue
+                        pass
 
                     self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
 
                     # randomly select a property to execute
+                    # 随机执行property
                     propertyName = random.choice(checkableProperties)
                     test = self.allProperties[propertyName]
                     result.addExcutedProperty(test, self.stepsCount)
@@ -530,6 +583,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                         test(result)
                     finally:
                         result.printError(test)
+                    # 记录结果
                     result.updateExecutionInfo(test)
                     fb.logScript(result.lastPropertyInfo)
                     fb.executed_prop = True
@@ -551,6 +605,18 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                 log_watcher.close()
                 result.has_crash_or_anr = log_watcher.has_crash_or_anr
 
+                # 输出UI Tarpit检测结果
+                ui_tarpit_detector.print_ui_tarpits()
+                logger.info("=" * 60)
+                logger.info("📊 UI Tarpit检测结果汇总")
+                logger.info("=" * 60)
+                if self.ui_tarpit_count > 0:
+                    logger.warning(f"🚨 本次测试共检测到 {self.ui_tarpit_count} 次UI Tarpit事件")
+                    logger.warning("⚠️  应用可能存在界面循环或无法退出的问题")
+                else:
+                    logger.info("✅ 本次测试未检测到UI Tarpit，界面状态正常")
+                logger.info("=" * 60)
+                
                 result.logSummary()
                 self._generate_bug_report()
 
@@ -621,11 +687,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             # filter the properties according to the given u
             if p < u:
                 print(f"{propName} will not execute due to probability (@prob). Skip.", flush=True)
-                continue
+                pass
             # filter the property reached max_tries
             if result.getExcutedProperty(test) >= max_tries:
                 print(f"{propName} has reached its max_tries {max_tries} (@max_tries). Skip.", flush=True)
-                continue
+                pass
             checkableProperties.append(propName)
 
         # log the checkable properties information
@@ -658,7 +724,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             # Find all the _FailedTest (Caused by ImportError) and directly run it to report errors
             if type(t).__name__ == "_FailedTest":
                 t(_result)
-                continue
+                pass
             if hasattr(t, PRECONDITIONS_MARKER):
                 self.allProperties[getFullPropName(t)] = t
             if hasattr(t, INVARIANT_MARKER):
@@ -699,17 +765,17 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                 if func_name == "global_block_widgets":
                     self._block_funcs["widgets"].append(func)
                     setattr(func, PRECONDITIONS_MARKER, (lambda d: True,))
-                    continue
+                    pass
                 if func_name == "global_block_tree":
                     self._block_funcs["trees"].append(func)
                     setattr(func, PRECONDITIONS_MARKER, (lambda d: True,))
-                    continue
+                    pass
                 if func_name.startswith("block_") and not func_name.startswith("block_tree_"):
                     if getattr(func, PRECONDITIONS_MARKER, None) is None:
                         logger.warning(f"No precondition in block widget function: {func_name}. Default globally active.")
                         setattr(func, PRECONDITIONS_MARKER, (lambda d: True,))
                     self._block_funcs["widgets"].append(func)
-                    continue
+                    pass
                 if func_name.startswith("block_tree_"):
                     if getattr(func, PRECONDITIONS_MARKER, None) is None:
                         logger.warning(f"No precondition in block tree function: {func_name}. Default globally active.")
@@ -796,7 +862,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         except Exception:
             # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
             pass
-
+            
+# 混合模式（unitest+Kea2）
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
     allTestCases: Dict[str, Tuple[TestCase, bool]]

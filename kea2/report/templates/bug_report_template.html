@@ -1541,7 +1541,7 @@
                         </div>
                         <div class="summary-group">
                             <div class="summary-group-title">Problematic Data</div>
-                            <div class="summary-grid cols-4">
+                            <div class="summary-grid cols-5">
                                 <div class="summary-item">
                                     <i class="bi bi-bug text-danger"></i>
                                     <span class="stat-value value-danger">{{ bugs_found }}</span>
@@ -1561,6 +1561,11 @@
                                     <i class="bi bi-hourglass-split text-warning"></i>
                                     <span class="stat-value value-warning">{{ triggered_anr_count }}</span>
                                     <span class="stat-label">Triggered ANR</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-sign-stop text-warning"></i>
+                                    <span class="stat-value value-warning">{{ ui_tarpit_data.get('total_trigger_count', 0) if ui_tarpit_data else 0 }}</span>
+                                    <span class="stat-label">UI Tarpit Triggers</span>
                                 </div>
                             </div>
                         </div>
@@ -1909,6 +1914,105 @@
             </h2>
             <div class="alert alert-info text-center">
                 <i class="bi bi-info-circle"></i> No crash or ANR events detected in this test session.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- UI Tarpit Detection Section -->
+        {% if ui_tarpit_data %}
+        <div class="section-block">
+            <h2 class="section-title">
+                <i class="bi bi-sign-stop text-warning"></i> UI Tarpit Detection
+            </h2>
+
+            <!-- Summary Stats -->
+            <div class="summary-grid cols-4 mb-4">
+                <div class="summary-item">
+                    <i class="bi bi-ui-checks-grid text-warning"></i>
+                    <span class="stat-value value-warning">{{ ui_tarpit_data.get('unique_tarpits_count', 0) }}</span>
+                    <span class="stat-label">Unique UI Tarpits</span>
+                </div>
+                <div class="summary-item">
+                    <i class="bi bi-repeat text-danger"></i>
+                    <span class="stat-value value-danger">{{ ui_tarpit_data.get('total_trigger_count', 0) }}</span>
+                    <span class="stat-label">Total Triggers</span>
+                </div>
+                <div class="summary-item">
+                    <i class="bi bi-clock text-warning"></i>
+                    <span class="stat-value value-warning">{{ ui_tarpit_data.get('tarpit_stuck_seconds', 0) }}s</span>
+                    <span class="stat-label">Estimated Stuck Time</span>
+                </div>
+                <div class="summary-item">
+                    <i class="bi bi-pie-chart text-danger"></i>
+                    <span class="stat-value value-danger">{{ ui_tarpit_data.get('tarpit_stuck_ratio', 0) }}%</span>
+                    <span class="stat-label">Stuck Time Ratio</span>
+                </div>
+            </div>
+
+            {% set tarpits_map = {} %}
+            {% for trap in ui_tarpit_data.get('tarpits', []) %}
+                {% set _ = tarpits_map.update({trap.name: trap}) %}
+            {% endfor %}
+
+            {% if ui_tarpit_data.get('events') %}
+            <!-- UI Tarpit Details -->
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Trap Name</th>
+                            <th>Type</th>
+                            <th>Total Triggers</th>
+                            <th>Time</th>
+                            <th>Screenshot</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ev in ui_tarpit_data.get('events', []) %}
+                        {% set trap_info = tarpits_map.get(ev.tarpit_name, {}) %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><span class="badge bg-warning text-dark">{{ ev.tarpit_name }}</span></td>
+                            <td>
+                                {% if ev.is_known %}
+                                <span class="badge bg-secondary">Known</span>
+                                {% else %}
+                                <span class="badge bg-danger">New</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ trap_info.get('count', '-') if trap_info else '-' }}</td>
+                            <td style="white-space:nowrap;">{{ ev.time[:19] | replace('T', ' ') if ev.time else '-' }}</td>
+                            <td>
+                                {% if ev.screenshot %}
+                                <a href="{{ ev.screenshot }}" target="_blank">
+                                    <img src="{{ ev.screenshot }}" alt="tarpit screenshot"
+                                         style="width:80px;height:107px;object-fit:contain;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+                                </a>
+                                {% else %}
+                                <span class="text-muted">No screenshot</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if not ui_tarpit_data.get('events') %}
+            <div class="alert alert-success text-center mt-2">
+                <i class="bi bi-check-circle"></i> No UI Tarpits detected in this test session.
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="section-block">
+            <h2 class="section-title">
+                <i class="bi bi-sign-stop text-warning"></i> UI Tarpit Detection
+            </h2>
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> No UI Tarpit data available for this test session.
             </div>
         </div>
         {% endif %}
