@@ -12,6 +12,7 @@ from ..utils import getLogger, catchException
 from .mixin import CrashAnrMixin, PathParserMixin, ScreenshotsMixin
 from .utils import thread_pool
 from .widget_coverage import WidgetCoverage
+from .tarpit_advisor import generate_tarpit_advice
 
 
 if TYPE_CHECKING:
@@ -537,6 +538,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         # Load UI Tarpit detection data
         data["ui_tarpit_data"] = self._load_ui_tarpit_data()
 
+        # Generate DeepSeek advice for each tarpit (only when tarpits exist)
+        self._enrich_tarpit_with_advice(data["ui_tarpit_data"])
+
         return data
 
     def _parse_step_data(self, raw_step_info: str) -> StepData:
@@ -622,6 +626,40 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         html_content = template.render(**template_data)
 
         return html_content
+
+    def _enrich_tarpit_with_advice(self, ui_tarpit_data: dict) -> None:
+        """
+        调用 DeepSeek API 为每个 tarpit 生成脚本建议，并将建议写入
+        ui_tarpit_data["tarpits"][i]["advice"] 字段（原地修改）。
+
+        API Key 从 options.json 读取（字段 deepseek_api_key），
+        若未配置则跳过。
+        """
+        if not ui_tarpit_data or not ui_tarpit_data.get("tarpits"):
+            return
+
+        try:
+            api_key = getattr(self.options, "deepseek_api_key", None)
+        except Exception:
+            api_key = None
+
+        if not api_key:
+            logger.info("[TarpitAdvisor] 未配置 deepseek_api_key，跳过 AI 建议生成")
+            return
+
+        package_name = ""
+        try:
+            names = getattr(self.options, "packageNames", None)
+            if names:
+                package_name = names[0]
+        except Exception:
+            pass
+
+        advice_map = generate_tarpit_advice(ui_tarpit_data, package_name, api_key)
+
+        # 将建议写入每个 trap 对象
+        for trap in ui_tarpit_data["tarpits"]:
+            trap["advice"] = advice_map.get(trap["name"], "")
 
     def _load_ui_tarpit_data(self) -> Dict:
         """

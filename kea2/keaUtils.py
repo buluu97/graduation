@@ -161,6 +161,10 @@ class Options:
     extra_args: List[str] = None
     # Whether to pull device FBM(s) at start, merge with PC FBM and push merged back to device
     merge_fbm: bool = False
+    # UI Tarpit consecutive similar frames threshold
+    sim_k: int = 3
+    # DeepSeek API Key for AI-powered UI Tarpit script suggestions
+    deepseek_api_key: str = "sk-204ed5e8f7c949b2abeea78c88323ac8"
 
     def __setattr__(self, name, value):
         if value is None:
@@ -457,12 +461,12 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             logger.info("正在初始化UI Tarpit检测器...")
             from .tarpit.similarity import UITarpitDetector
             ui_tarpit_detector = UITarpitDetector(
-                sim_k=3,
+                sim_k=self.options.sim_k,
                 output_dir=self.options.output_dir,
                 u2_device=self.scriptDriver,
             )
             self.ui_tarpit_count = 0  # UI Tarpit检测计数器
-            logger.info("UI Tarpit检测器初始化完成，连续相似次数阈值设置为5次")
+            logger.info(f"UI Tarpit检测器初始化完成，连续相似次数阈值设置为{ui_tarpit_detector.sim_k}次")
 
             for test in {**self.allProperties, **self.allInvariants}.values():
                 self.setUpClass(test)

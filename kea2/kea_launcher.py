@@ -205,6 +205,24 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
     parser.add_argument(
+        "--sim-k",
+        dest="sim_k",
+        type=int,
+        required=False,
+        default=3,
+        help="UI Tarpit detection threshold: the number of consecutive similar frames required to declare a tarpit (default: 3).",
+    )
+
+    parser.add_argument(
+        "--deepseek-api-key",
+        dest="deepseek_api_key",
+        type=str,
+        required=False,
+        default=None,
+        help="DeepSeek API key for AI-powered UI Tarpit script suggestions. If not provided, AI suggestions will be skipped.",
+    )
+
+    parser.add_argument(
         "extra",
         nargs=argparse.REMAINDER,
         help="Extra args (e.g. propertytest & --). See docs (https://github.com/ecnusse/Kea2/blob/main/docs/manual_en.md) for details.",
@@ -307,6 +325,8 @@ def run(args=None) -> ReturnCode:
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
         restart_app_period=args.restart_app_period,
+        sim_k=args.sim_k,
+        deepseek_api_key=args.deepseek_api_key,
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,

@@ -46,6 +46,10 @@ class UITarpitDetector(object):
         # 上一帧截图路径（None 表示还没有截过图）
         self._last_screenshot_path = None
 
+        # UI层级转储保存目录
+        self.hierarchy_save_dir = os.path.join(str(output_dir), "ui_tarpits", "hierarchies")
+        os.makedirs(self.hierarchy_save_dir, exist_ok=True)
+
         # 内存中已发现的UI陷阱字典
         self.tarpits = {}
 
@@ -83,6 +87,31 @@ class UITarpitDetector(object):
             return path
         except Exception as e:
             self.logger.error(f"[UITarpitDetector] 截图失败: {e}")
+            return None
+
+    def _dump_ui_hierarchy(self):
+        """
+        通过uiautomator2获取当前页面的UI层级结构（XML），
+        并保存到hierarchy_save_dir目录。
+
+        Returns:
+            str | None: UI层级XML字符串，失败时返回None
+        """
+        if self.u2_device is None:
+            return None
+        try:
+            xml_str = self.u2_device.dump_hierarchy()
+            # 保存XML文件到磁盘
+            xml_path = os.path.join(
+                self.hierarchy_save_dir,
+                f"hierarchy_{self._screenshot_index:05d}.xml"
+            )
+            with open(xml_path, "w", encoding="utf-8") as f:
+                f.write(xml_str)
+            self.logger.debug(f"[UITarpitDetector] UI层级已保存: {xml_path}")
+            return xml_str
+        except Exception as e:
+            self.logger.warning(f"[UITarpitDetector] 获取UI层级失败: {e}")
             return None
 
     def check(self, u2_device=None):
@@ -155,12 +184,18 @@ class UITarpitDetector(object):
             )
             # 记录该陷阱
             is_known, tarpit_name = self.check_or_add_new_trap(current_path, tag=self._screenshot_index)
+            # 获取当前页面的UI层级结构
+            ui_hierarchy = self._dump_ui_hierarchy()
+            # 如果是新陷阱，将UI层级存入陷阱字典
+            if not is_known and ui_hierarchy:
+                self.tarpits[tarpit_name]['ui_hierarchy'] = ui_hierarchy
             # 记录事件（用于报告）
             self.tarpit_events.append({
                 "time": datetime.now().isoformat(),
                 "screenshot": current_path,
                 "tarpit_name": tarpit_name,
                 "is_known": is_known,
+                "ui_hierarchy": ui_hierarchy,
             })
             # 重置计数，以便后续继续检测新的陷阱
             self.sim_count = 0
@@ -255,6 +290,7 @@ class UITarpitDetector(object):
                 "name": name,
                 "count": info.get('count', 1),
                 "screenshot": rel_path,
+                "ui_hierarchy": info.get('ui_hierarchy', ''),
             })
 
         # 构建事件列表（附上相对路径）
